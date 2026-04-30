@@ -7,7 +7,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import Kasir from './pages/Kasir';
 import Produk from './pages/Produk';
-import Login from './pages/Login';
+import Login from './pages/login';
 
 function App() {
   // Status login dimulai dari FALSE setiap kali refresh (Keamanan sesuai permintaan)
