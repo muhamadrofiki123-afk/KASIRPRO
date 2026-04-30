@@ -269,7 +269,7 @@ function App() {
   const chartData = getChartData();
 
   // =========================================================================
-  // UI START 
+  // UI START
   // =========================================================================
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#ea580c' }}><strong>Memuat Sistem...</strong></div>;
@@ -302,67 +302,65 @@ function App() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc', overflow: 'hidden' }}>
       
-      {/* HEADER */}
-      <header className="no-print" style={{ background: 'white', padding: '16px 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, flex: 'none' }}>
+      {/* HEADER - Ukuran Compact */}
+      <header className="no-print" style={{ background: 'white', padding: '10px 16px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, flex: 'none' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#ea580c' }}>{namaToko || 'POS MODERN PRO'}</h1>
-          <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: '500' }}>Akun: {user.email}</p>
+          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#ea580c' }}>{namaToko || 'POS MODERN PRO'}</h1>
+          <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '11px', fontWeight: '500' }}>Akun: {user.email}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '50%', width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', cursor: 'pointer', color: '#ea580c' }}>👤</button>
-          <button onClick={() => signOut(auth)} style={{ padding: '10px 20px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>Logout</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#ea580c' }}>👤</button>
+          <button onClick={() => signOut(auth)} style={{ padding: '8px 16px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}>Logout</button>
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA - KASIR DIKUNCI ANTI SCROLL */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* MAIN CONTENT AREA - Padding bawah disesuaikan nav */}
+      <main style={{ flex: 1, overflow: 'auto', paddingBottom: '60px' }}>
         
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px', paddingBottom: '100px' }}>
-            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b', marginBottom: '24px' }}>📊 Dashboard</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-                <div style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(234, 88, 12, 0.3)' }}>
-                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Omzet Hari Ini</div>
-                  <div style={{ fontSize: '32px', fontWeight: '800' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
-                </div>
-                <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(159, 18, 57, 0.3)' }}>
-                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Pengeluaran Hari Ini</div>
-                  <div style={{ fontSize: '32px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
-                </div>
-                <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}>
-                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Laba Bersih Hari Ini</div>
-                  <div style={{ fontSize: '32px', fontWeight: '800' }}>Rp {dashboardStats.labaBersih.toLocaleString()}</div>
-                </div>
-                <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(3, 105, 161, 0.3)' }}>
-                  <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Total Produk & Stok Tipis</div>
-                  <div style={{ fontSize: '32px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '16px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
-                </div>
+          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              <div style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.15)' }}>
+                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Omzet Hari Ini</div>
+                <div style={{ fontSize: '24px', fontWeight: '800' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
               </div>
+              <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(185, 28, 28, 0.15)' }}>
+                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Pengeluaran</div>
+                <div style={{ fontSize: '24px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.15)' }}>
+                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Laba Bersih</div>
+                <div style={{ fontSize: '24px', fontWeight: '800' }}>Rp {dashboardStats.labaBersih.toLocaleString()}</div>
+              </div>
+              <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(3, 105, 161, 0.15)' }}>
+                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Stok & Tipis</div>
+                <div style={{ fontSize: '24px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock}</span></div>
+              </div>
+            </div>
 
-              <div style={{ background: 'white', padding: '30px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px' }}>📈 Grafik Pendapatan</h3>
-                  <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #fed7aa', outline: 'none', fontWeight: '700', color: '#ea580c', background: '#fff7ed' }}>
-                    <option value="jam">Hari Ini (Per Jam)</option><option value="hari">7 Hari Terakhir</option><option value="bulan">6 Bulan Terakhir</option><option value="tahun">5 Tahun Terakhir</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', height: '250px', gap: '15px', paddingTop: '20px' }}>
-                  {chartData.data.map((d, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                      <div style={{ fontSize: '11px', color: '#ea580c', fontWeight: '800', marginBottom: '8px', textAlign: 'center' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
-                      <div style={{ width: '100%', background: 'linear-gradient(to top, #fdba74, #ea580c)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '12px', fontWeight: '700', textAlign: 'center' }}>{d.label}</div>
-                    </div>
-                  ))}
-                </div>
+            {/* Grafik COMPACT agar langsung kelihatan */}
+            <div style={{ background: 'white', padding: '16px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ margin: 0, color: '#1e293b', fontSize: '16px' }}>📈 Grafik Pendapatan</h3>
+                <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #fed7aa', outline: 'none', fontWeight: '700', color: '#ea580c', background: '#fff7ed', fontSize: '12px' }}>
+                  <option value="jam">Hari Ini</option><option value="hari">7 Hari</option><option value="bulan">6 Bulan</option><option value="semua">📂 Semua Waktu</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: '200px', gap: '10px', paddingTop: '10px' }}>
+                {chartData.data.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                    <div style={{ fontSize: '10px', color: '#ea580c', fontWeight: '800', marginBottom: '6px' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
+                    <div style={{ width: '100%', background: 'linear-gradient(to top, #fdba74, #ea580c)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px', fontWeight: '700' }}>{d.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* --- TAB KASIR (DIKUNCI ANTI SCROLL FULL, UKURAN DIPERKECIL) --- */}
+        {/* --- TAB KASIR (TAMPILAN DIKUNCI, PRODUK & KERANJANG TERPISAH) --- */}
         {activeTab === 'kasir' && (
           <div className="kasir-wrapper" style={{ flex: 1, display: 'flex', padding: '16px', gap: '16px', overflow: 'hidden' }}>
             
@@ -402,8 +400,8 @@ function App() {
               </div>
             </div>
 
-            {/* KANAN: KERANJANG (TETAP DIAM, HANYA LIST YANG SCROLL) */}
-            <div className="kasir-right-panel" style={{ flex: '0 0 340px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            {/* KANAN: KERANJANG (LEBAR, TETAP TEGAK, INTERNAL SCROLL) */}
+            <div className="kasir-right-panel" style={{ flex: '0 0 420px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5', flex: 'none' }}>
                 <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>🛒 Keranjang ({cart.length})</h2>
                 {cart.length > 0 && <button onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', fontSize: '11px' }}>Kosongkan</button>}
@@ -429,7 +427,7 @@ function App() {
                 ))}
               </div>
 
-              {/* AREA PEMBAYARAN LEBIH COMPACT */}
+              {/* AREA PEMBAYARAN DI BAWAH (Compact & Tidak Tertutup) */}
               <div style={{ padding: '16px 20px', background: '#fffaf5', borderTop: '2px solid #fed7aa', flex: 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#475569' }}>Total Pembelian:</span>
@@ -492,11 +490,13 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB TOKO --- */}
+        {/* --- TAB TOKO (LAYOUT FULL) --- */}
         {activeTab === 'toko' && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '100px' }}>
-            <div className="mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start', maxWidth: '1200px', margin: '0 auto' }}>
-              <div style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {/* Hapus maxWidth restriction agar full */}
+            <div className="mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
+              
+              <div style={{ flex: '1 1 70%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                   <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>📦 Database Produk</h3>
                   <button onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
@@ -532,7 +532,7 @@ function App() {
                 </table>
               </div>
 
-              <div style={{ flex: '1 1 30%' }}>
+              <div style={{ flex: '1 1 25%' }}>
                 <form onSubmit={simpanProduk} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>➕ Tambah Produk</h3>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Nama Produk</label>
@@ -574,11 +574,13 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB PENGELUARAN --- */}
+        {/* --- TAB PENGELUARAN (LAYOUT FULL) --- */}
         {activeTab === 'pengeluaran' && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '100px' }}>
-            <div className="mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start', maxWidth: '1200px', margin: '0 auto' }}>
-              <div style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {/* Hapus maxWidth restriction agar full */}
+            <div className="mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
+              
+              <div style={{ flex: '1 1 70%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
                 <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
@@ -605,7 +607,7 @@ function App() {
                 </table>
               </div>
 
-              <div style={{ flex: '1 1 30%' }}>
+              <div style={{ flex: '1 1 25%' }}>
                 <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ margin: '0 0 24px 0', color: '#e11d48', fontSize: '20px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Keterangan (Contoh: Bayar Listrik, Kulakan)</label>
@@ -652,7 +654,7 @@ function App() {
         )}
       </main>
 
-      {/* --- MODAL EDIT PROFIL TOKO DENGAN UPLOAD QRIS --- */}
+      {/* --- MODAL EDIT PROFIL TOKO --- */}
       {showProfileModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', overflowY: 'auto' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', margin: 'auto' }}>
@@ -745,7 +747,7 @@ function App() {
         </div>
       )}
 
-      {/* --- LABEL BARCODE (DIPERLEBAR PERSEGI PANJANG) --- */}
+      {/* --- LABEL BARCODE --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#1e293b', position: 'sticky', top: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
@@ -765,17 +767,17 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH (UKURAN DIPERBESAR) */}
-      <nav className="no-print" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e2e8f0', display: 'flex', padding: '10px 0', boxShadow: '0 -10px 25px rgba(0,0,0,0.05)', zIndex: 10 }}>
-        {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '8px', border: 'none', background: 'none', color: activeTab === tab.id ? '#ea580c' : '#94a3b8', fontSize: activeTab === tab.id ? '30px' : '26px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', position: 'relative', transition: 'all 0.2s' }}>
+      {/* NAVIGASI BAWAH - Tinggi COMPACT & Warna Kuning Mustard */}
+      <nav className="no-print" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff3e0', backdropFilter: 'blur(20px)', borderTop: '1px solid #fed7aa', display: 'flex', padding: '5px 0', boxShadow: '0 -10px 25px rgba(234, 88, 12, 0.05)', zIndex: 10, height: '60px' }}>
+        {[ { id: 'dashboard', label: 'Laba', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Barang', icon: '📦' }, { id: 'pengeluaran', label: 'Kas Keluar', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#ea580c' : '#94a3b8', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
             <span style={{ transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s' }}>{tab.icon}</span>
-            <span style={{ fontSize: '14px', fontWeight: activeTab === tab.id ? '800' : '600' }}>{tab.label}</span>
+            <span style={{ fontSize: '11px', fontWeight: activeTab === tab.id ? '800' : '600', textAlign: 'center' }}>{tab.label}</span>
           </button>
         ))}
       </nav>
 
-      {/* CSS KODE PINTAR (ANTI BENTROK DI HP & KERANJANG TINGGI) */}
+      {/* CSS PINTAR untuk ANTI BENTROK HP & PERBAIKAN HP/PC */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -791,16 +793,22 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #ea580c; }
 
-        /* MENGATASI BENTROK TAMPILAN DI HP & MEMPERBAIKI KERANJANG */
+        /* MENGATASI KELUHAN HP - KERANJANG TEGAK, PRODUK SCROLL KECIL */
         @media (max-width: 768px) {
-          .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; }
-          .mobile-reverse { flex-direction: column-reverse !important; }
+          .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
+          .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
           
           /* KASIR MOBILE: Batasi tinggi daftar produk agar keranjang tidak tenggelam */
-          .kasir-wrapper { overflow-y: auto !important; padding-bottom: 100px !important; }
-          .kasir-left-panel { height: 40vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 8px; }
+          .kasir-wrapper { overflow-y: auto !important; padding-bottom: 70px !important; }
+          .kasir-left-panel { height: 30vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
-          .cart-list { max-height: 30vh !important; overflow-y: auto !important; }
+          .cart-list { max-height: 25vh !important; overflow-y: auto !important; min-height: 120px !important; }
+
+          /* Kecilkan Grid Produk HP agar lebih banyak muat */
+          .kasir-left-panel .grid-container > div { gridTemplateColumns: repeat(auto-fill, minmax(100px, 1fr)) !important; gap: 8px !important; }
+          .kasir-left-panel .grid-container > div > div { padding: 8px !important; borderRadius: 8px !important; }
+          .kasir-left-panel .grid-container > div > div h3 { fontSize: 12px !important; }
+          .kasir-left-panel .grid-container > div > div .price { fontSize: 14px !important; }
         }
       `}</style>
     </div>
