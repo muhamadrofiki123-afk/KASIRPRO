@@ -293,7 +293,7 @@ function App() {
   const chartData = getChartData();
 
   // =========================================================================
-  // UI START (TEMA ORANGE MODERN & ELEGANT)
+  // UI START
   // =========================================================================
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#ea580c' }}><strong>Memuat Sistem...</strong></div>;
@@ -302,7 +302,6 @@ function App() {
     return (
       <div style={{ minHeight: '100vh', position: 'relative', background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Inter', sans-serif" }}>
         
-        {/* FORM LOGIN ORANGE */}
         <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(234, 88, 12, 0.15)', width: '100%', maxWidth: '420px', zIndex: 10 }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <div style={{ fontSize: '13px', fontWeight: '800', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>Selamat Datang di Aplikasi</div>
@@ -317,7 +316,6 @@ function App() {
           <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#ea580c', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>{isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}</p>
         </div>
 
-        {/* WATERMARK CREDIT */}
         <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: '#94a3b8', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>
           created by : Muhamad Rofiki
         </div>
@@ -384,7 +382,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB KASIR (Tinggi Keranjang Diperbaiki & Ada Opsi Pembayaran) --- */}
+        {/* --- TAB KASIR --- */}
         {activeTab === 'kasir' && (
           <div className="desktop-row-mobile-col" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
             
@@ -427,7 +425,7 @@ function App() {
                 {cart.length > 0 && <button onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '12px' }}>Kosongkan</button>}
               </div>
               
-              <div style={{ padding: '12px 24px', flex: 1, overflowY: 'auto' }}>
+              <div className="cart-list" style={{ padding: '12px 24px', flex: 1, overflowY: 'auto' }}>
                 {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px', fontSize: '14px', fontWeight: '500' }}>Belum ada pesanan...</div> : 
                   cart.map(item => (
                   <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0', borderBottom: '1px dashed #e2e8f0' }}>
@@ -517,9 +515,9 @@ function App() {
 
         {/* --- TAB TOKO --- */}
         {activeTab === 'toko' && (
-          <div className="desktop-row-mobile-col" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
+          <div className="desktop-row-mobile-col mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
             
-            <div className="scrollable-box" style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+            <div className="scrollable-box table-section" style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>📦 Database Produk</h3>
                 <button onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
@@ -555,7 +553,7 @@ function App() {
               </table>
             </div>
 
-            <div className="sticky-box" style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
+            <div className="sticky-box form-section" style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>➕ Tambah Produk</h3>
                 
@@ -603,9 +601,9 @@ function App() {
 
         {/* --- TAB PENGELUARAN --- */}
         {activeTab === 'pengeluaran' && (
-          <div className="desktop-row-mobile-col" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
+          <div className="desktop-row-mobile-col mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
             
-            <div className="scrollable-box" style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+            <div className="scrollable-box table-section" style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
               <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
               
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -633,7 +631,7 @@ function App() {
               </table>
             </div>
 
-            <div className="sticky-box" style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
+            <div className="sticky-box form-section" style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
               <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 24px 0', color: '#e11d48', fontSize: '20px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Keterangan (Contoh: Bayar Listrik, Kulakan)</label>
@@ -677,7 +675,7 @@ function App() {
         )}
       </main>
 
-      {/* --- MODAL EDIT PROFIL TOKO DENGAN UPLOAD QRIS --- */}
+      {/* --- MODAL EDIT PROFIL TOKO --- */}
       {showProfileModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', overflowY: 'auto' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', margin: 'auto' }}>
@@ -800,7 +798,7 @@ function App() {
         ))}
       </nav>
 
-      {/* CSS KODE PINTAR (ANTI BENTROK DI HP) */}
+      {/* CSS KODE PINTAR (ANTI BENTROK DI HP & KERANJANG TINGGI) */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -816,11 +814,13 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #ea580c; }
 
-        /* MENGATASI BENTROK TAMPILAN DI HP */
+        /* MENGATASI BENTROK TAMPILAN DI HP & MEMPERBAIKI KERANJANG */
         @media (max-width: 768px) {
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; }
+          .mobile-reverse { flex-direction: column-reverse !important; }
           .scrollable-box { max-height: none !important; overflow: visible !important; width: 100% !important; }
           .sticky-box { position: static !important; width: 100% !important; height: auto !important; margin-bottom: 30px; }
+          .cart-list { min-height: 250px !important; max-height: 400px !important; flex: none !important; }
         }
       `}</style>
     </div>
