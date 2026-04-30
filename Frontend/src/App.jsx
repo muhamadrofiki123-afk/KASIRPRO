@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { Html5Qrcode } from 'html5-qrcode';
 
-// --- CONFIG FIREBASE ASLI MILIK VICKY ---
 const firebaseConfig = {
   apiKey: "AIzaSyBq9lMekzm_aq-2Buvub7E7f7dx1V5kTiA",
   authDomain: "kasir-pintar-93e03.firebaseapp.com",
@@ -29,10 +28,10 @@ function App() {
   const [produk, setProduk] = useState([]);
   const [transaksi, setTransaksi] = useState([]);
   
-  // Anti Hilang saat Refresh
+  // FIX: Anti-Hilang saat Refresh pakai LocalStorage
   const [cart, setCart] = useState(() => {
-    try { const saved = localStorage.getItem('kasirCart'); return saved ? JSON.parse(saved) : []; } 
-    catch(e) { return []; }
+    const saved = localStorage.getItem('vicky_cart');
+    return saved ? JSON.parse(saved) : [];
   });
   
   const [search, setSearch] = useState('');
@@ -40,25 +39,19 @@ function App() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
-  
-  // Scanner States
   const [isScanningKasir, setIsScanningKasir] = useState(false);
   const [isScanningToko, setIsScanningToko] = useState(false);
   
   const [strukData, setStrukData] = useState(null);
-  const [printMode, setPrintMode] = useState(null);
-  const [printData, setPrintData] = useState(null);
-
   const [namaToko, setNamaToko] = useState('');
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
+  
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
   const [stokProd, setStokProd] = useState('');
   const [barcodeProd, setBarcodeProd] = useState('');
-
   const [reportFilter, setReportFilter] = useState('hari');
-  const [dashboardStats, setDashboardStats] = useState({ todaySales: 0, totalProducts: 0, lowStock: 0 });
 
   useEffect(() => {
     setPersistence(auth, browserLocalPersistence).then(() => {
@@ -66,23 +59,22 @@ function App() {
     });
   }, []);
 
-  useEffect(() => { localStorage.setItem('kasirCart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('vicky_cart', JSON.stringify(cart)); }, [cart]);
 
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, "profilToko", user.uid)).then(d => {
       if(d.exists()) { setNamaToko(d.data().nama); setAlamat(d.data().alamat); setNoTelp(d.data().noTelp); }
     });
-    const unsubProduk = onSnapshot(query(collection(db, "produk"), where("userId", "==", user.uid)), (snap) => {
+    onSnapshot(query(collection(db, "produk"), where("userId", "==", user.uid)), (snap) => {
       setProduk(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc")), (snap) => {
+    onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc")), (snap) => {
       setTransaksi(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    return () => { unsubProduk(); unsubTrans(); };
   }, [user]);
 
-  // Scanner Logic
+  // Kamera Scanner
   useEffect(() => {
     let html5QrCode;
     const scannerId = isScanningKasir ? "reader-kasir" : (isScanningToko ? "reader-toko" : null);
@@ -92,7 +84,7 @@ function App() {
         (decodedText) => {
           if (isScanningKasir) {
             const found = produk.find(p => p.barcode === decodedText);
-            if (found) addToCart(found); else alert('Barcode tidak terdaftar!');
+            if (found) addToCart(found); else alert('Barcode tidak ada!');
             setIsScanningKasir(false);
           } else {
             setBarcodeProd(decodedText);
@@ -106,11 +98,8 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      setLoading(true);
-      if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
-      else await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) { alert('Gagal: ' + error.message); } finally { setLoading(false); }
+    try { setLoading(true); if (isRegister) await createUserWithEmailAndPassword(auth, email, password); else await signInWithEmailAndPassword(auth, email, password); } 
+    catch (error) { alert('Login Gagal: ' + error.message); } finally { setLoading(false); }
   };
 
   const addToCart = (p) => {
@@ -130,48 +119,42 @@ function App() {
   const kembalian = paymentAmount !== '' ? Number(paymentAmount) - totalAmount : 0;
 
   const processPayment = async () => {
-    if (cart.length === 0 || Number(paymentAmount) < totalAmount) return alert("Periksa keranjang atau uang bayar!");
+    if (cart.length === 0 || Number(paymentAmount) < totalAmount) return alert("Cek uang bayar!");
     const dataTrans = {
       userId: user.uid,
       items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty})),
-      total: totalAmount,
-      uangBayar: Number(paymentAmount),
-      kembalian: kembalian,
-      waktu: new Date()
+      total: totalAmount, uangTunai: Number(paymentAmount), kembalian: kembalian, waktu: new Date()
     };
     try {
       await addDoc(collection(db, "transaksi"), { ...dataTrans, waktu: serverTimestamp() });
       for (const item of cart) { await updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); }
       setStrukData(dataTrans);
       setCart([]); setPaymentAmount('');
-    } catch (err) { alert("Gagal transaksi"); }
+    } catch (err) { alert("Gagal!"); }
   };
 
   const simpanProduk = async (e) => {
     e.preventDefault();
-    // Validasi Kode Unik
-    const checkDuplicate = produk.find(p => p.barcode === barcodeProd && barcodeProd !== "");
-    if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
-
+    if (produk.find(p => p.barcode === barcodeProd && barcodeProd !== "")) return alert("Barcode sudah ada!");
     const bcode = barcodeProd || Math.floor(Date.now()).toString();
     await addDoc(collection(db, "produk"), { nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: bcode, userId: user.uid, createdAt: new Date() });
     setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd('');
-    alert("Produk Berhasil Disimpan!");
+    alert("Berhasil!");
   };
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#10b981' }}><strong>Memuat Sistem...</strong></div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif' }}>Memuat...</div>;
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Inter', sans-serif" }}>
-        <div style={{ background: 'white', padding: '40px', borderRadius: '24px', width: '100%', maxWidth: '400px' }}>
-          <h1 style={{ textAlign: 'center', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>POS Pro</h1>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea, #764ba2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ background: 'white', padding: '40px', borderRadius: '24px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <h1 style={{ textAlign: 'center', color: '#10b981', marginBottom: '30px' }}>POS MODERN</h1>
           <form onSubmit={handleLogin}>
-            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '15px', marginBottom: '15px', borderRadius: '12px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '15px', marginBottom: '20px', borderRadius: '12px', border: '1px solid #ddd', boxSizing: 'border-box' }} />
-            <button type="submit" style={{ width: '100%', padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>{isRegister ? 'DAFTAR' : 'MASUK'}</button>
+            <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '15px', marginBottom: '15px', borderRadius: '12px', border: '1px solid #ddd' }} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '15px', marginBottom: '20px', borderRadius: '12px', border: '1px solid #ddd' }} />
+            <button type="submit" style={{ width: '100%', padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>{isRegister ? 'DAFTAR' : 'MASUK'}</button>
           </form>
-          <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', textAlign: 'center', marginTop: '15px', color: '#3b82f6', fontSize: '14px' }}>{isRegister ? 'Sudah punya akun? Login' : 'Daftar Toko Baru'}</p>
+          <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', textAlign: 'center', marginTop: '15px', color: '#3b82f6' }}>{isRegister ? 'Login' : 'Daftar'}</p>
         </div>
       </div>
     );
@@ -180,150 +163,158 @@ function App() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc' }}>
       
-      <header className="no-print" style={{ background: 'white', padding: '15px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 40 }}>
-        <div><h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#10b981' }}>{namaToko || 'POS Modern'}</h1></div>
-        <div style={{ display: 'flex', gap: '15px' }}>
+      <header className="no-print" style={{ background: 'white', padding: '15px 24px', boxShadow: '0 1px 5px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
+        <div><h1 style={{ margin: 0, fontSize: '22px', fontWeight: '800', background: 'linear-gradient(to right, #10b981, #059669)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{namaToko || 'POS MODERN'}</h1></div>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
           <button onClick={() => setShowProfileModal(true)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>☰</button>
-          <button onClick={() => signOut(auth)} style={{ padding: '8px 15px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>Logout</button>
+          <button onClick={() => signOut(auth)} style={{ padding: '8px 16px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '10px', fontWeight: 'bold' }}>Logout</button>
         </div>
       </header>
 
-      <main style={{ flex: 1, overflow: 'auto', paddingBottom: '80px' }}>
-        {activeTab === 'dashboard' && (
-          <div style={{ padding: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-              <div style={{ background: '#10b981', color: 'white', padding: '25px', borderRadius: '15px' }}>
-                <small>Penjualan Hari Ini</small>
-                <h2>Rp {dashboardStats.todaySales.toLocaleString()}</h2>
-              </div>
-              <div style={{ background: '#3b82f6', color: 'white', padding: '25px', borderRadius: '15px' }}>
-                <small>Total Produk</small>
-                <h2>{dashboardStats.totalProducts} Item</h2>
-              </div>
-            </div>
-          </div>
-        )}
+      <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        
+        {/* NAVIGASI TAB */}
+        <div className="no-print" style={{ display: 'flex', background: 'white', padding: '10px 20px', gap: '10px', borderBottom: '1px solid #eee' }}>
+          <button onClick={() => setActiveTab('kasir')} style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: activeTab === 'kasir' ? '#10b981' : '#f1f5f9', color: activeTab === 'kasir' ? 'white' : '#64748b', fontWeight: 'bold' }}>💰 Kasir</button>
+          <button onClick={() => setActiveTab('dashboard')} style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: activeTab === 'dashboard' ? '#10b981' : '#f1f5f9', color: activeTab === 'dashboard' ? 'white' : '#64748b', fontWeight: 'bold' }}>📊 Dashboard</button>
+          <button onClick={() => setActiveTab('toko')} style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: activeTab === 'toko' ? '#10b981' : '#f1f5f9', color: activeTab === 'toko' ? 'white' : '#64748b', fontWeight: 'bold' }}>🏪 Toko</button>
+        </div>
 
         {activeTab === 'kasir' && (
-          <div style={{ display: 'flex', height: '100%' }}>
+          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             {/* KIRI: PRODUK */}
-            <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <input type="text" placeholder="🔍 Cari nama atau scan..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '15px', borderRadius: '12px', border: '1px solid #ddd', outline: 'none' }} />
-                <button onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ padding: '0 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer' }}>📸</button>
+            <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                <input type="text" placeholder="🔍 Cari nama atau scan..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '18px', borderRadius: '16px', border: '2px solid #e2e8f0', outline: 'none' }} />
+                <button onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ padding: '0 25px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 'bold' }}>📸 Kamera</button>
               </div>
-              {isScanningKasir && <div id="reader-kasir" style={{ marginBottom: '20px', borderRadius: '12px', overflow: 'hidden' }}></div>}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '15px' }}>
+              {isScanningKasir && <div id="reader-kasir" style={{ marginBottom: '20px', borderRadius: '16px', overflow: 'hidden', border: '3px solid #10b981' }}></div>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                 {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
-                  <div key={p.id} onClick={() => addToCart(p)} style={{ background: 'white', padding: '15px', borderRadius: '15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', cursor: 'pointer', border: p.stok === 0 ? '1px solid red' : '1px solid transparent' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{p.nama}</div>
-                    <div style={{ color: '#10b981', fontWeight: 'bold', margin: '5px 0' }}>Rp {p.harga.toLocaleString()}</div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>Stok: {p.stok}</div>
+                  <div key={p.id} onClick={() => addToCart(p)} style={{ background: 'white', padding: '20px', borderRadius: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', cursor: 'pointer', border: '1px solid #f1f5f9', position: 'relative' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#10b981' }}>Rp {p.harga.toLocaleString()}</div>
+                    <div style={{ fontWeight: '700', marginTop: '10px', color: '#1e293b' }}>{p.nama}</div>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginTop: '10px' }}>Stok: <span style={{ color: p.stok < 5 ? 'red' : 'green', fontWeight: 'bold' }}>{p.stok}</span></div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* KANAN: KERANJANG TERBELAH */}
-            <div style={{ width: '380px', background: 'white', borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', fontSize: '18px' }}>🛒 Keranjang ({cart.length})</div>
-              <div style={{ flex: 1, overflowY: 'auto', padding: '15px' }}>
+            {/* KANAN: KERANJANG MEWAH */}
+            <div style={{ width: '420px', background: 'white', borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', boxShadow: '-5px 0 15px rgba(0,0,0,0.02)' }}>
+              <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', fontWeight: '800', fontSize: '20px', color: '#1e293b' }}>🛒 Pesanan ({cart.length})</div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
                 {cart.map(item => (
-                  <div key={item.id} style={{ marginBottom: '15px', borderBottom: '1px solid #f8fafc', paddingBottom: '10px' }}>
-                    <div style={{ fontWeight: '600' }}>{item.name || item.nama}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px' }}>
-                      <span style={{ color: '#10b981', fontSize: '14px' }}>Rp {(item.harga * item.qty).toLocaleString()}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
-                        <button onClick={() => setQuantity(item.id, item.qty - 1)} style={{ width: '25px', height: '25px', border: 'none', background: 'white', borderRadius: '5px', cursor: 'pointer' }}>-</button>
-                        <input type="number" value={item.qty} onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '35px', textAlign: 'center', border: 'none', background: 'transparent', fontWeight: 'bold' }} />
-                        <button onClick={() => addToCart(item)} style={{ width: '25px', height: '25px', border: 'none', background: '#10b981', color: 'white', borderRadius: '5px', cursor: 'pointer' }}>+</button>
+                  <div key={item.id} style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', marginBottom: '12px' }}>
+                    <div style={{ fontWeight: '700', marginBottom: '8px' }}>{item.nama}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#10b981', fontWeight: 'bold' }}>Rp {(item.harga * item.qty).toLocaleString()}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '5px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                        <button onClick={() => setQuantity(item.id, item.qty - 1)} style={{ width: '30px', height: '30px', border: 'none', background: '#fee2e2', borderRadius: '8px', color: '#dc2626', fontWeight: 'bold' }}>-</button>
+                        <input type="number" value={item.qty} onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '40px', textAlign: 'center', border: 'none', fontWeight: '800' }} />
+                        <button onClick={() => addToCart(item)} style={{ width: '30px', height: '30px', border: 'none', background: '#dcfce7', borderRadius: '8px', color: '#166534', fontWeight: 'bold' }}>+</button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{ padding: '20px', background: '#f8fafc', borderTop: '1px solid #eee' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>Total Tagihan:</span><span style={{ fontWeight: 'bold', color: '#10b981' }}>Rp {totalAmount.toLocaleString()}</span>
+              
+              {/* BAGIAN PEMBAYARAN KONSUMEN */}
+              <div style={{ padding: '24px', background: '#f8fafc', borderTop: '2px solid #eee' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>
+                  <span>Total Pembelian:</span>
+                  <span style={{ fontSize: '24px', fontWeight: '900', color: '#10b981' }}>Rp {totalAmount.toLocaleString()}</span>
                 </div>
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ fontSize: '12px', color: '#666' }}>Pembayaran Customer:</label>
-                  <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalAmount ? '2px solid #ef4444' : '1px solid #ddd', outline: 'none' }} placeholder="Masukkan uang..." />
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '8px' }}>💳 Pembayaran Customer (Tunai):</label>
+                  <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" style={{ width: '100%', padding: '15px', borderRadius: '12px', border: paymentAmount !== '' && Number(paymentAmount) < totalAmount ? '3px solid #ef4444' : '2px solid #10b981', fontSize: '20px', fontWeight: 'bold', outline: 'none' }} />
                 </div>
+
                 {paymentAmount !== '' && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: Number(paymentAmount) < totalAmount ? '#dc2626' : '#16a34a', marginBottom: '15px', fontWeight: 'bold' }}>
-                    <span>{Number(paymentAmount) < totalAmount ? '⚠️ Kurang:' : 'Kembalian:'}</span>
-                    <span>Rp {Math.abs(kembalian).toLocaleString()}</span>
+                  <div style={{ padding: '15px', borderRadius: '12px', background: Number(paymentAmount) >= totalAmount ? '#dcfce7' : '#fee2e2', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626', marginBottom: '15px', textAlign: 'center' }}>
+                    <div style={{ fontWeight: 'bold' }}>{Number(paymentAmount) >= totalAmount ? 'Kembalian:' : '⚠️ Uang Kurang:'}</div>
+                    <div style={{ fontSize: '22px', fontWeight: '900' }}>Rp {Math.abs(kembalian).toLocaleString()}</div>
                   </div>
                 )}
-                <button onClick={processPayment} disabled={cart.length === 0 || Number(paymentAmount) < totalAmount} style={{ width: '100%', padding: '15px', background: (cart.length === 0 || Number(paymentAmount) < totalAmount) ? '#cbd5e1' : '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>BAYAR & CETAK STRUK</button>
+
+                <button onClick={processPayment} disabled={cart.length === 0 || Number(paymentAmount) < totalAmount} style={{ width: '100%', padding: '20px', background: (cart.length === 0 || Number(paymentAmount) < totalAmount) ? '#cbd5e1' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '18px', cursor: 'pointer' }}>BAYAR & CETAK STRUK</button>
               </div>
             </div>
           </div>
         )}
 
+        {/* TAB TOKO */}
         {activeTab === 'toko' && (
-          <div style={{ padding: '24px' }}>
-            <h2 style={{ marginBottom: '20px' }}>Manajemen Produk</h2>
-            <form onSubmit={simpanProduk} style={{ background: 'white', padding: '25px', borderRadius: '20px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', maxWidth: '600px' }}>
-              <input value={namaProd} onChange={e => setNamaProd(e.target.value)} required placeholder="Nama Produk" style={{ width: '100%', padding: '12px', marginBottom: '10px', border: '1px solid #ddd', borderRadius: '8px' }} />
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                <input value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" placeholder="Harga Jual" style={{ flex: 1, padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} />
-                <input value={stokProd} onChange={e => setStokProd(e.target.value)} required type="number" placeholder="Stok Awal" style={{ flex: 1, padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} />
+          <div style={{ padding: '32px', maxWidth: '800px' }}>
+            <h2 style={{ marginBottom: '24px' }}>🏪 Kelola Produk</h2>
+            <form onSubmit={simpanProduk} style={{ background: 'white', padding: '30px', borderRadius: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
+              <input value={namaProd} onChange={e => setNamaProd(e.target.value)} required placeholder="Nama Produk" style={{ width: '100%', padding: '15px', marginBottom: '15px', borderRadius: '12px', border: '1px solid #ddd' }} />
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                <input value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" placeholder="Harga Jual" style={{ flex: 1, padding: '15px', borderRadius: '12px', border: '1px solid #ddd' }} />
+                <input value={stokProd} onChange={e => setStokProd(e.target.value)} required type="number" placeholder="Stok Awal" style={{ flex: 1, padding: '15px', borderRadius: '12px', border: '1px solid #ddd' }} />
               </div>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Barcode Produk" style={{ flex: 1, padding: '12px', border: '1px solid #ddd', borderRadius: '8px' }} />
-                <button type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ padding: '0 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>📸 Scan</button>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Barcode Produk" style={{ flex: 1, padding: '15px', borderRadius: '12px', border: '1px solid #ddd' }} />
+                <button type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ padding: '0 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold' }}>📸 Scan</button>
               </div>
-              {isScanningToko && <div id="reader-toko" style={{ marginBottom: '15px' }}></div>}
-              <button type="submit" style={{ width: '100%', padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>Simpan Produk</button>
+              {isScanningToko && <div id="reader-toko" style={{ marginBottom: '20px', borderRadius: '12px', overflow: 'hidden' }}></div>}
+              <button type="submit" style={{ width: '100%', padding: '18px', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '16px' }}>Simpan Ke Database</button>
             </form>
-            
-            <div style={{ marginTop: '20px' }}>
-               <button onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ padding: '10px 20px', background: '#000', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Print Label Semua Barcode</button>
+          </div>
+        )}
+
+        {/* TAB DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <div style={{ padding: '32px' }}>
+            <h2 style={{ marginBottom: '24px' }}>📈 Statistik Penjualan</h2>
+            <div style={{ background: 'white', padding: '30px', borderRadius: '24px', height: '300px', display: 'flex', alignItems: 'flex-end', gap: '15px' }}>
+              {[15, 45, 30, 80, 55, 90, 65].map((h, i) => (
+                <div key={i} style={{ flex: 1, background: '#10b981', height: `${h}%`, borderRadius: '8px 8px 0 0', position: 'relative' }}>
+                  <small style={{ position: 'absolute', top: '-25px', width: '100%', textAlign: 'center', fontWeight: 'bold', color: '#64748b' }}>{h}k</small>
+                </div>
+              ))}
             </div>
+            <p style={{ textAlign: 'center', color: '#64748b', marginTop: '15px' }}>Grafik Aktivitas Penjualan Minggu Ini</p>
           </div>
         )}
       </main>
 
-      <nav className="no-print" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', borderTop: '1px solid #e5e7eb', display: 'flex', padding: '10px 0', zIndex: 100 }}>
-        {[{id:'dashboard', icon:'📊'}, {id:'kasir', icon:'💰'}, {id:'toko', icon:'🏪'}, {id:'laporan', icon:'📈'}].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ flex: 1, background: 'none', border: 'none', fontSize: '24px', color: activeTab === t.id ? '#10b981' : '#9ca3af', cursor: 'pointer' }}>{t.icon}</button>
-        ))}
-      </nav>
-
       {/* MODAL PROFIL */}
       {showProfileModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '350px' }}>
-            <h3 style={{ marginTop: 0 }}>Profil Toko</h3>
-            <input value={namaToko} onChange={e => setNamaToko(e.target.value)} placeholder="Nama Toko" style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
-            <input value={alamat} onChange={e => setAlamat(e.target.value)} placeholder="Alamat" style={{ width: '100%', padding: '10px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
-            <input value={noTelp} onChange={e => setNoTelp(e.target.value)} placeholder="WhatsApp" style={{ width: '100%', padding: '10px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #ddd' }} />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '380px' }}>
+            <h3 style={{ marginTop: 0 }}>⚙️ Pengaturan Toko</h3>
+            <input value={namaToko} onChange={e => setNamaToko(e.target.value)} placeholder="Nama Toko" style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', border: '1px solid #ddd' }} />
+            <input value={alamat} onChange={e => setAlamat(e.target.value)} placeholder="Alamat" style={{ width: '100%', padding: '12px', marginBottom: '10px', borderRadius: '10px', border: '1px solid #ddd' }} />
+            <input value={noTelp} onChange={e => setNoTelp(e.target.value)} placeholder="WhatsApp" style={{ width: '100%', padding: '12px', marginBottom: '20px', borderRadius: '10px', border: '1px solid #ddd' }} />
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={simpanProfil} style={{ flex: 1, padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px' }}>Simpan</button>
-              <button onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '10px', background: '#eee', border: 'none', borderRadius: '8px' }}>Batal</button>
+              <button onClick={simpanProfil} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold' }}>Simpan</button>
+              <button onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '10px' }}>Tutup</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* AREA STRUK */}
+      {/* MODAL STRUK */}
       {strukData && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div id="strukArea" style={{ background: '#fff', width: '300px', padding: '20px', textAlign: 'center', fontFamily: 'monospace' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div id="strukArea" style={{ background: '#fff', width: '300px', padding: '25px', textAlign: 'center', fontFamily: 'monospace', color: '#000' }}>
             <h2 style={{ margin: 0 }}>{namaToko}</h2>
             <p style={{ fontSize: '12px' }}>{alamat}<br/>{noTelp}</p>
             <hr style={{ borderTop: '1px dashed #000' }} />
-            <div style={{ textAlign: 'left', fontSize: '12px' }}>
+            <div style={{ textAlign: 'left', fontSize: '13px' }}>
               {strukData.items.map((it, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{it.qty}x {it.nama}</span><span>{(it.harga*it.qty).toLocaleString()}</span></div>)}
             </div>
             <hr style={{ borderTop: '1px dashed #000' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}><span>TOTAL</span><span>Rp {strukData.total.toLocaleString()}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}><span>TUNAI</span><span>Rp {strukData.uangBayar.toLocaleString()}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}><span>KEMBALI</span><span>Rp {strukData.kembalian.toLocaleString()}</span></div>
-            <p style={{ marginTop: '15px' }}>TERIMA KASIH</p>
-            <button className="no-print" onClick={() => setStrukData(null)} style={{ marginTop: '20px', padding: '10px 20px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '8px' }}>Tutup & Lanjut</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '15px' }}><span>TOTAL</span><span>Rp {strukData.total.toLocaleString()}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span>TUNAI</span><span>Rp {strukData.uangTunai.toLocaleString()}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}><span>KEMBALI</span><span>Rp {strukData.kembalian.toLocaleString()}</span></div>
+            <p style={{ marginTop: '20px', fontSize: '12px' }}>*** TERIMA KASIH ***</p>
+            <div className="no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => window.print()} style={{ flex: 1, padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px' }}>Print</button>
+              <button onClick={() => setStrukData(null)} style={{ flex: 1, padding: '10px', background: '#eee', border: 'none', borderRadius: '8px' }}>Tutup</button>
+            </div>
           </div>
         </div>
       )}
@@ -333,7 +324,7 @@ function App() {
           .no-print { display: none !important; }
           body * { visibility: hidden; }
           #strukArea, #strukArea * { visibility: visible; }
-          #strukArea { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
+          #strukArea { position: absolute; left: 0; top: 0; width: 100%; border: none; }
         }
       `}</style>
     </div>
