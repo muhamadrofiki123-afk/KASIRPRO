@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode'; // Kita pakai yang langsung auto-start
 
 // --- CONFIG FIREBASE ASLI MILIK VICKY ---
 const firebaseConfig = {
@@ -31,7 +31,7 @@ function App() {
   const [cart, setCart] = useState([]);
   
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('kasir'); // Default ke Kasir
+  const [activeTab, setActiveTab] = useState('kasir');
   const [barcodeInput, setBarcodeInput] = useState('');
   
   // State Pembayaran & Kamera
@@ -78,6 +78,7 @@ function App() {
     return () => { unsubProduk(); unsubTrans(); };
   }, [user]);
 
+  // Statistik Dashboard
   useEffect(() => {
     if (!produk.length && !transaksi.length) return;
     const today = new Date().toISOString().split('T')[0];
@@ -90,28 +91,46 @@ function App() {
     });
   }, [produk, transaksi]);
 
-  // --- EFEK SCANNER KAMERA ---
+  // --- EFEK SCANNER KAMERA (AUTO-START) ---
   useEffect(() => {
+    let html5QrCode;
     if (isScanning && activeTab === 'kasir') {
-      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-      scanner.render(
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          scanner.clear();
-          setIsScanning(false);
           const found = produk.find(p => p.barcode === decodedText);
           if (found) {
             addToCart(found);
-            alert(`✅ ${found.nama} ditambahkan!`);
+            setIsScanning(false);
+            html5QrCode.stop();
           } else {
-            alert('❌ Barcode tidak terdaftar di database!');
+            alert('❌ Barcode tidak terdaftar!');
+            setIsScanning(false);
+            html5QrCode.stop();
           }
         },
-        (error) => { /* abaikan error scanning berjalan */ }
-      );
-      return () => { scanner.clear().catch(e => console.log("Scanner cleanup error", e)); };
+        (error) => { /* abaikan error per frame */ }
+      ).catch(err => {
+        alert("Gagal membuka kamera! Pastikan izin kamera browser sudah diaktifkan.");
+        setIsScanning(false);
+      });
     }
+
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(console.error);
+      }
+    };
   }, [isScanning, produk, activeTab]);
 
+  // --- AUTO PRINT SAAT STRUK MUNCUL ---
+  useEffect(() => {
+    if (strukData) {
+      setTimeout(() => { window.print(); }, 800); // Otomatis print 0.8 detik setelah bayar
+    }
+  }, [strukData]);
 
   // --- LOGIKA MESIN ---
   const handleLogin = async (e) => {
@@ -143,11 +162,12 @@ function App() {
     });
   };
 
-  const updateQuantity = (id, newQty) => {
+  // UBAH ANGKA MANUAL
+  const setQuantity = (id, newQty) => {
     if (newQty <= 0) { setCart(prev => prev.filter(item => item.id !== id)); return; }
     setCart(prev => prev.map(item => {
       if (item.id === id) {
-        if(newQty > item.stok) { alert("Stok tidak mencukupi!"); return item; }
+        if(newQty > item.stok) { alert(`Stok sisa ${item.stok}!`); return { ...item, qty: item.stok }; }
         return { ...item, qty: newQty };
       }
       return item;
@@ -210,6 +230,25 @@ function App() {
     link.click();
   };
 
+  // Logika Grafik 7 Hari (CSS Sederhana)
+  const getLast7DaysData = () => {
+    const days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toISOString().split('T')[0];
+    });
+    
+    let max = 1;
+    const data = days.map(date => {
+      const dayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate().toISOString().split('T')[0] === date);
+      const total = dayTrans.reduce((sum, t) => sum + t.total, 0);
+      if(total > max) max = total;
+      return { date: date.slice(-2), total }; // ambil tanggal saja
+    });
+    return { data, max };
+  };
+  const chartData = getLast7DaysData();
+
   // =========================================================================
   // UI START
   // =========================================================================
@@ -261,47 +300,58 @@ function App() {
 
       <main style={{ flex: 1, overflow: 'auto', paddingBottom: '100px' }}>
         
-        {/* --- TAB DASHBOARD --- */}
+        {/* --- TAB DASHBOARD (DENGAN GRAFIK 7 HARI) --- */}
         {activeTab === 'dashboard' && (
           <div style={{ padding: '32px 24px' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b', marginBottom: '32px' }}>Dashboard (Hari Ini)</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px' }}>
-              <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '32px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(16, 185, 129, 0.3)' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#1e293b', marginBottom: '24px' }}>📊 Dashboard</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}>
                 <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Penjualan Hari Ini</div>
-                <div style={{ fontSize: '36px', fontWeight: '700' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
+                <div style={{ fontSize: '32px', fontWeight: '700' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
               </div>
-              <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', padding: '32px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(59, 130, 246, 0.3)' }}>
-                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Produk</div>
-                <div style={{ fontSize: '36px', fontWeight: '700' }}>{dashboardStats.totalProducts} item</div>
+              <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Total Produk & Stok Tipis</div>
+                <div style={{ fontSize: '32px', fontWeight: '700' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '16px' }}>/ {dashboardStats.lowStock} tipis</span></div>
               </div>
-              <div style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', padding: '32px', borderRadius: '20px', boxShadow: '0 20px 25px -5px rgba(245, 158, 11, 0.3)' }}>
-                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>Stok Menipis (&lt;5)</div>
-                <div style={{ fontSize: '36px', fontWeight: '700' }}>{dashboardStats.lowStock} item</div>
+            </div>
+
+            {/* GRAFIK PENJUALAN MINGGU INI */}
+            <div style={{ background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <h3 style={{ margin: '0 0 20px 0', color: '#1e293b' }}>📈 Grafik Penjualan 7 Hari Terakhir</h3>
+              <div style={{ display: 'flex', alignItems: 'flex-end', height: '200px', gap: '10px', paddingTop: '20px' }}>
+                {chartData.data.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                    <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 'bold', marginBottom: '5px' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
+                    <div style={{ width: '100%', background: 'linear-gradient(to top, #10b981, #34d399)', borderRadius: '4px 4px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '5px', transition: '1s' }}></div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '10px' }}>Tgl {d.date}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* --- TAB KASIR (TAMPILAN SPLIT SCREEN & KAMERA) --- */}
+        {/* --- TAB KASIR SPLIT SCREEN --- */}
         {activeTab === 'kasir' && (
           <div style={{ padding: '24px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
             
             {/* BAGIAN KIRI: DAFTAR PRODUK & SCANNER */}
-            <div style={{ flex: '1 1 60%', minWidth: '320px' }}>
+            <div style={{ flex: '1 1 55%', minWidth: '320px' }}>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="🔍 Cari nama produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', outline: 'none' }} />
                 <form onSubmit={handleManualScan} style={{ flex: 1 }}>
                   <input type="text" placeholder="🔫 Scan Alat Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} autoFocus style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' }} />
                 </form>
                 <button onClick={() => setIsScanning(!isScanning)} style={{ padding: '16px 24px', background: isScanning ? '#ef4444' : '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>
-                  {isScanning ? 'Tutup Kamera' : '📸 Kamera'}
+                  {isScanning ? 'Tutup Kamera' : '📸 Buka Kamera'}
                 </button>
               </div>
 
-              {/* Area Scanner Kamera */}
+              {/* TAMPILAN KAMERA LANGSUNG */}
               {isScanning && (
-                <div style={{ background: 'white', padding: '16px', borderRadius: '16px', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div id="reader" style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}></div>
+                <div style={{ background: '#1e293b', padding: '16px', borderRadius: '16px', marginBottom: '24px', textAlign: 'center', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                  <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold' }}>Arahkan Barcode ke Kamera</p>
+                  <div id="reader" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px' }}></div>
                 </div>
               )}
 
@@ -321,24 +371,33 @@ function App() {
             </div>
 
             {/* BAGIAN KANAN: KERANJANG SELALU TAMPIL */}
-            <div style={{ flex: '1 1 350px', position: 'sticky', top: '100px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 220px)', minHeight: '500px' }}>
-              <div style={{ padding: '24px', borderBottom: '2px solid #f1f5f9' }}>
+            <div style={{ flex: '1 1 350px', position: 'sticky', top: '90px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 180px)', minHeight: '500px' }}>
+              <div style={{ padding: '20px 24px', borderBottom: '2px solid #f1f5f9' }}>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>🛒 Keranjang ({cart.length})</h2>
               </div>
               
               <div style={{ padding: '16px 24px', flex: 1, overflowY: 'auto' }}>
                 {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '50px' }}>Belum ada pesanan...</div> : 
                   cart.map(item => (
-                  <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>{item.nama}</h3>
+                      <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{item.nama}</h3>
                       <button onClick={() => updateQuantity(item.id, 0)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '18px', cursor: 'pointer' }}>🗑️</button>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontSize: '15px', fontWeight: '700', color: '#10b981' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '4px', borderRadius: '8px' }}>
-                        <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'white', border: '1px solid #e2e8f0', color: '#1e293b', fontWeight: 'bold', cursor: 'pointer' }}>−</button>
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b', minWidth: '20px', textAlign: 'center' }}>{item.qty}</span>
+                      
+                      {/* BISA KETIK ANGKA MANUAL DISINI */}
+                      <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'white', border: 'none', color: '#1e293b', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>−</button>
+                        
+                        <input 
+                          type="number" 
+                          value={item.qty} 
+                          onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} 
+                          style={{ width: '35px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '15px', fontWeight: '700', color: '#1e293b', outline: 'none' }} 
+                        />
+                        
                         <button onClick={() => addToCart(item)} style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#10b981', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>+</button>
                       </div>
                     </div>
@@ -351,7 +410,7 @@ function App() {
                   <span style={{ fontSize: '16px', fontWeight: '600', color: '#64748b' }}>Total Tagihan</span>
                   <span style={{ fontSize: '24px', fontWeight: '800', color: '#10b981' }}>Rp {totalAmount.toLocaleString()}</span>
                 </div>
-                <button onClick={() => { if(cart.length>0) setShowPaymentModal(true); setPaymentAmount(''); }} disabled={cart.length === 0} style={{ width: '100%', padding: '16px', background: cart.length === 0 ? '#cbd5e1' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: cart.length === 0 ? 'not-allowed' : 'pointer', boxShadow: cart.length === 0 ? 'none' : '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}>
+                <button onClick={() => { setShowPaymentModal(true); setPaymentAmount(''); }} disabled={cart.length === 0} style={{ width: '100%', padding: '16px', background: cart.length === 0 ? '#cbd5e1' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: cart.length === 0 ? 'not-allowed' : 'pointer', boxShadow: cart.length === 0 ? 'none' : '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}>
                   BAYAR SEKARANG
                 </button>
               </div>
@@ -379,7 +438,7 @@ function App() {
                   <input value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" placeholder="Harga Jual" style={{ flex: 1, padding: '14px', border: '2px solid #e2e8f0', borderRadius: '10px', boxSizing: 'border-box' }} />
                   <input value={stokProd} onChange={e => setStokProd(e.target.value)} required type="number" placeholder="Stok Awal" style={{ flex: 1, padding: '14px', border: '2px solid #e2e8f0', borderRadius: '10px', boxSizing: 'border-box' }} />
                 </div>
-                <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Barcode (Opsional)" style={{ width: '100%', padding: '14px', marginBottom: '15px', border: '2px solid #e2e8f0', borderRadius: '10px', boxSizing: 'border-box' }} />
+                <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Barcode (Kosong = Otomatis)" style={{ width: '100%', padding: '14px', marginBottom: '15px', border: '2px solid #e2e8f0', borderRadius: '10px', boxSizing: 'border-box' }} />
                 <button type="submit" style={{ width: '100%', padding: '14px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Simpan Ke Database</button>
               </form>
             </div>
@@ -430,7 +489,7 @@ function App() {
         )}
       </main>
 
-      {/* --- PAYMENT MODAL --- */}
+      {/* --- PAYMENT MODAL (VALIDASI MERAH JIKA KURANG) --- */}
       {showPaymentModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', backdropFilter: 'blur(8px)' }}>
           <div style={{ background: 'white', borderRadius: '24px', width: '100%', maxWidth: '420px', boxShadow: '0 50px 100px -20px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
@@ -441,7 +500,7 @@ function App() {
 
             <div style={{ padding: '24px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Uang Pembeli (Tunai)</label>
-              <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" autoFocus style={{ width: '100%', padding: '16px 20px', border: Number(paymentAmount) < totalAmount && paymentAmount !== '' ? '3px solid #fee2e2' : '3px solid #dcfce7', borderRadius: '12px', fontSize: '24px', fontWeight: '700', textAlign: 'center', background: '#fafbfc', outline: 'none', boxSizing: 'border-box' }} />
+              <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} placeholder="0" autoFocus style={{ width: '100%', padding: '16px 20px', border: Number(paymentAmount) < totalAmount && paymentAmount !== '' ? '3px solid #ef4444' : '3px solid #e2e8f0', borderRadius: '12px', fontSize: '24px', fontWeight: '700', textAlign: 'center', background: '#fafbfc', outline: 'none', boxSizing: 'border-box' }} />
               
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px', marginBottom: '24px' }}>
                   <button onClick={() => setPaymentAmount(totalAmount)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', color: '#1e293b' }}>Uang Pas</button>
@@ -449,24 +508,28 @@ function App() {
                   <button onClick={() => setPaymentAmount(100000)} style={{ flex: 1, padding: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', color: '#1e293b' }}>100.000</button>
               </div>
 
+              {/* LOGIKA MERAH JIKA UANG KURANG */}
               {paymentAmount !== '' && (
                 <div style={{ background: Number(paymentAmount) >= totalAmount ? '#dcfce7' : '#fee2e2', borderRadius: '12px', padding: '16px', marginBottom: '24px', textAlign: 'center' }}>
                   <div style={{ fontSize: '24px', fontWeight: '700', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626' }}>
                     {Number(paymentAmount) >= totalAmount ? `Kembali Rp ${(Number(paymentAmount) - totalAmount).toLocaleString()}` : `Kurang Rp ${(totalAmount - Number(paymentAmount)).toLocaleString()}`}
+                  </div>
+                  <div style={{ fontSize: '14px', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626', fontWeight: '600', marginTop: '5px' }}>
+                    {Number(paymentAmount) >= totalAmount ? 'Kembalian Pembeli' : '⚠️ Uang Tidak Cukup!'}
                   </div>
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button onClick={() => setShowPaymentModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}>❌ Batal</button>
-                <button onClick={processPayment} disabled={Number(paymentAmount) < totalAmount || paymentAmount === ''} style={{ flex: 2, padding: '16px', background: (Number(paymentAmount) < totalAmount || paymentAmount === '') ? '#e2e8f0' : '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: (Number(paymentAmount) < totalAmount || paymentAmount === '') ? 'not-allowed' : 'pointer', boxShadow: (Number(paymentAmount) < totalAmount || paymentAmount === '') ? 'none' : '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}>✅ Bayar & Cetak</button>
+                <button onClick={processPayment} disabled={Number(paymentAmount) < totalAmount || paymentAmount === ''} style={{ flex: 2, padding: '16px', background: (Number(paymentAmount) < totalAmount || paymentAmount === '') ? '#cbd5e1' : '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '700', cursor: (Number(paymentAmount) < totalAmount || paymentAmount === '') ? 'not-allowed' : 'pointer', boxShadow: (Number(paymentAmount) < totalAmount || paymentAmount === '') ? 'none' : '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}>✅ Bayar & Cetak</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- STRUK AREA --- */}
+      {/* --- STRUK AREA (AUTO PRINT) --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 3000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace' }}>
@@ -490,7 +553,7 @@ function App() {
             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>*** TERIMA KASIH ***</p>
 
             <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-              <button onClick={() => window.print()} style={{ flex: 1, background: '#10b981', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print</button>
+              <button onClick={() => window.print()} style={{ flex: 1, background: '#10b981', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print Ulang</button>
               <button onClick={() => setStrukData(null)} style={{ flex: 1, background: '#e2e8f0', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Tutup</button>
             </div>
           </div>
