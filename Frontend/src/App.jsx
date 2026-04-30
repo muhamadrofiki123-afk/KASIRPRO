@@ -57,13 +57,12 @@ function App() {
   const [noTelp, setNoTelp] = useState('');
   const [qrisImage, setQrisImage] = useState(''); 
   
-  // State Input Produk + State Baru untuk Edit
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
   const [stokProd, setStokProd] = useState('');
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
-  const [editingProductId, setEditingProductId] = useState(null); // FITUR BARU: EDIT PRODUK
+  const [editingProductId, setEditingProductId] = useState(null);
 
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
   const [nominalPengeluaran, setNominalPengeluaran] = useState('');
@@ -143,7 +142,7 @@ function App() {
 
     setDashboardStats({
       totalProducts: produk.length,
-      lowStock: produk.filter(p => p.stok < 50).length, // Update indicator low stock ke 50
+      lowStock: produk.filter(p => p.stok < 50).length,
       todaySales: omzetHariIni,
       totalPengeluaran: pengeluaranHariIni,
       labaBersih: omzetHariIni - pengeluaranHariIni
@@ -234,7 +233,6 @@ function App() {
     } catch (err) { alert("Gagal memproses transaksi"); }
   };
 
-  // FITUR: SIMPAN & UPDATE PRODUK
   const simpanProduk = async (e) => {
     e.preventDefault();
     if (editingProductId) {
@@ -322,10 +320,6 @@ function App() {
   };
   const chartData = getChartData();
 
-  // =========================================================================
-  // UI TAMPILAN FULL ELEGAN (ORANGE: #FF7835, NAVY: #272734, PUTIH)
-  // =========================================================================
-
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}><strong>Memuat Sistem...</strong></div>;
 
   if (!user) {
@@ -369,8 +363,8 @@ function App() {
           
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
-          <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box' }}>
-            <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box', width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               
               <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ background: '#272734', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(39, 39, 52, 0.15)' }}>
@@ -416,6 +410,7 @@ function App() {
         {activeTab === 'kasir' && (
           <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
             
+            {/* KIRI: AREA PRODUK & PENCARIAN */}
             <div className="kasir-left-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ flex: 'none', display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="🔍 Cari nama produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '12px 16px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '14px', outline: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
@@ -434,6 +429,7 @@ function App() {
                 </div>
               )}
 
+              {/* AREA LIST PRODUK YANG BISA DI-SCROLL */}
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', paddingBottom: '20px' }}>
                 <div className="grid-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
                   {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
@@ -457,12 +453,14 @@ function App() {
               </div>
             </div>
 
+            {/* KANAN: KERANJANG DIPERLEBAR JADI 420px */}
             <div className="kasir-right-panel" style={{ flex: '0 0 420px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
               <div style={{ flex: 'none', padding: '16px 20px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5' }}>
                 <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#272734' }}>🛒 Keranjang ({cart.length})</h2>
                 {cart.length > 0 && <button tabIndex="0" onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}>Kosongkan</button>}
               </div>
               
+              {/* SCROLL AREA KERANJANG */}
               <div className="cart-list" style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
                 {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>Belum ada pesanan...</div> : 
                   cart.map(item => (
@@ -472,7 +470,7 @@ function App() {
                       <button tabIndex="0" onClick={() => updateQuantity(item.id, 0)} style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>×</button>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#0ea5e9' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#FF7835' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
                       <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                         <button tabIndex="0" onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#f1f5f9', border: 'none', color: '#27274F', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>−</button>
                         <input type="number" value={item.qty} onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '30px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '13px', fontWeight: '800', color: '#272734', outline: 'none' }} />
@@ -483,6 +481,7 @@ function App() {
                 ))}
               </div>
 
+              {/* AREA PEMBAYARAN BAWAH */}
               <div style={{ flex: 'none', padding: '16px 20px', background: '#fffaf5', borderTop: '2px solid #fed7aa' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#27274F' }}>Total Pembelian:</span>
@@ -540,7 +539,7 @@ function App() {
 
         {/* --- TAB TOKO (FULL LAYOUT KIRI-KANAN) --- */}
         {activeTab === 'toko' && (
-          <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+          <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -562,7 +561,7 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {produk.length === 0 ? <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada produk.</td></tr> : 
+                    {produk.length === 0 ? <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada produk.</td></tr> : 
                       produk.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px' }}>{p.nama}</td>
@@ -583,7 +582,7 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section" style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column' }}>
+            <div className="form-section sticky-box" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>{editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}</h3>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Nama Produk</label>
@@ -632,9 +631,9 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB PENGELUARAN --- */}
+        {/* --- TAB PENGELUARAN (FULL LAYOUT KIRI-KANAN) --- */}
         {activeTab === 'pengeluaran' && (
-          <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+          <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               <h3 style={{ flex: 'none', margin: '0 0 20px 0', color: '#272734', fontSize: '18px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
@@ -650,7 +649,7 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada pengeluaran.</td></tr> : 
+                    {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada pengeluaran.</td></tr> : 
                       pengeluaran.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500' }}>{p.waktu?.toDate().toLocaleString('id-ID')}</td>
@@ -666,25 +665,25 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section" style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column' }}>
+            <div className="form-section sticky-box" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
               <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
+                <h3 style={{ margin: '0 0 20px 0', color: '#e11d48', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Keterangan (Contoh: Bayar Listrik, Kulakan)</label>
                 <input value={namaPengeluaran} onChange={e => setNamaPengeluaran(e.target.value)} required style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Nominal Pengeluaran (Rp)</label>
                 <input value={nominalPengeluaran} onChange={e => setNominalPengeluaran(e.target.value)} required type="number" style={{ width: '100%', padding: '12px', marginBottom: '24px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
-                <button tabIndex="0" type="submit" style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>SIMPAN PENGELUARAN</button>
+                <button tabIndex="0" type="submit" style={{ width: '100%', padding: '14px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>SIMPAN PENGELUARAN</button>
               </form>
             </div>
           </div>
         )}
 
-        {/* --- TAB LAPORAN --- */}
+        {/* --- TAB LAPORAN (COMPACT, FILTER LENGKAP, SCROLL INTERNAL) --- */}
         {activeTab === 'laporan' && (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
-              <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
+              <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
             </div>
             
             <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -694,6 +693,7 @@ function App() {
               </select>
             </div>
 
+            {/* TABEL DATA TRANSAKSI */}
             <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
               {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
                 filteredTransaksi.map(t => (
@@ -723,16 +723,12 @@ function App() {
               <h3 style={{ margin: 0, color: '#272734', fontSize: '22px', fontWeight: '800' }}>⚙️ Profil Toko & QRIS</h3>
               <button tabIndex="0" onClick={() => setShowProfileModal(false)} style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '20px', cursor: 'pointer', color: '#27274F', fontWeight: 'bold' }}>×</button>
             </div>
-            
             <label style={{ fontSize: '13px', fontWeight: '700', color: '#27274F', marginBottom: '6px', display: 'block' }}>Nama Toko / Perusahaan</label>
             <input value={namaToko} onChange={e => setNamaToko(e.target.value)} placeholder="Contoh: PT Adi Jaya" style={{ width: '100%', padding: '14px', marginBottom: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-            
             <label style={{ fontSize: '13px', fontWeight: '700', color: '#27274F', marginBottom: '6px', display: 'block' }}>Alamat Lengkap</label>
             <input value={alamat} onChange={e => setAlamat(e.target.value)} placeholder="Contoh: Jl. Sudirman No 12..." style={{ width: '100%', padding: '14px', marginBottom: '12px', border: '1px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-            
             <label style={{ fontSize: '13px', fontWeight: '700', color: '#27274F', marginBottom: '6px', display: 'block' }}>Nomor Telepon / WhatsApp</label>
             <input value={noTelp} onChange={e => setNoTelp(e.target.value)} placeholder="Contoh: 08123456789" style={{ width: '100%', padding: '14px', marginBottom: '20px', border: '1px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-            
             <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '24px', border: '2px dashed #fed7aa' }}>
               <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '8px', display: 'block' }}>📱 Upload Gambar QRIS Toko</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '12px', marginBottom: '12px', display: qrisImage ? 'none' : 'block' }} />
@@ -741,30 +737,25 @@ function App() {
                   <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Gambar QRIS Tersimpan</p>
                   <img src={qrisImage} alt="QRIS" style={{ maxWidth: '150px', maxHeight: '150px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
                   <div>
-                    <button tabIndex="0" onClick={() => setQrisImage('')} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
-                      🗑️ Hapus & Ganti Gambar
-                    </button>
+                    <button onClick={() => setQrisImage('')} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>🗑️ Hapus & Ganti</button>
                   </div>
                 </div>
               )}
             </div>
-
             <button tabIndex="0" onClick={simpanProfil} style={{ width: '100%', padding: '16px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '15px' }}>SIMPAN PENGATURAN</button>
           </div>
         </div>
       )}
 
-      {/* --- MODAL POP-UP TAMPIL QRIS SAAT BAYAR --- */}
+      {/* --- MODAL TAMPIL QRIS --- */}
       {showQrisModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
             <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px' }}>Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
-            
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
               <img src={qrisImage} alt="QRIS Toko" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
             </div>
-
             <div style={{ display: 'flex', gap: '12px' }}>
               <button tabIndex="0" onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>TUTUP</button>
               <button tabIndex="0" onClick={processPayment} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH DIBAYAR</button>
@@ -773,7 +764,7 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA (AUTO PRINT) --- */}
+      {/* --- STRUK AREA --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace' }}>
@@ -782,13 +773,11 @@ function App() {
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             <p style={{ fontSize: '12px', textAlign: 'left' }}>Tgl: {strukData.waktu.toLocaleString()}<br/>Metode: {strukData.metode}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-            
             {strukData.items.map((it, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
                 <span>{it.qty} {it.satuan} {it.nama}</span><span>{(it.harga * it.qty).toLocaleString()}</span>
               </div>
             ))}
-            
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}><span>TOTAL</span><span>Rp {strukData.total.toLocaleString()}</span></div>
             {strukData.metode === 'Tunai' && (
@@ -799,7 +788,6 @@ function App() {
             )}
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>*** TERIMA KASIH ***</p>
-
             <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
               <button tabIndex="0" onClick={() => window.print()} style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print</button>
               <button tabIndex="0" onClick={() => setStrukData(null)} style={{ flex: 1, background: '#e2e8f0', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#27274F' }}>Tutup</button>
@@ -828,17 +816,17 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH */}
-      <nav className="no-print" style={{ flex: 'none', height: '70px', background: 'white', borderTop: '1px solid #e2e8f0', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(0,0,0,0.05)', zIndex: 10, boxSizing: 'border-box' }}>
+      {/* NAVIGASI BAWAH (NAMA KEMBALI KE AWAL) */}
+      <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(255, 120, 53, 0.1)', zIndex: 10, boxSizing: 'border-box' }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
-          <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#94a3b8', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
+          <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
             <span style={{ transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s' }}>{tab.icon}</span>
             <span style={{ fontSize: '11px', fontWeight: activeTab === tab.id ? '800' : '600', textAlign: 'center' }}>{tab.label}</span>
           </button>
         ))}
       </nav>
 
-      {/* CSS PINTAR untuk ANTI BENTROK HP & PERBAIKAN SCROLL LAPTOP SERTA KEYBOARD FOCUS */}
+      {/* CSS KHUSUS */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -854,25 +842,20 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
 
-        /* FOKUS WARNA ORANGE SAAT PAKE KEYBOARD (TAB/PANAH) */
         *:focus { outline: 3px solid #FF7835 !important; outline-offset: 2px !important; }
         input:focus, select:focus { border-color: #FF7835 !important; outline: none !important; box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; }
 
-        /* MENGATASI KELUHAN HP */
         @media (max-width: 768px) {
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           
-          /* KASIR MOBILE: Batasi tinggi daftar produk agar keranjang tidak tenggelam */
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
           
-          /* Kecilkan Grid Produk HP agar lebih banyak muat */
           .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 8px !important; }
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
           
-          /* Tabel Section & Form untuk HP */
           .table-section { max-height: 50vh !important; flex: none !important; }
           .form-section { height: auto !important; flex: none !important; }
         }
