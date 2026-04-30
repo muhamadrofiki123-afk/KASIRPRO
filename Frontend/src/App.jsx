@@ -293,32 +293,32 @@ function App() {
   const chartData = getChartData();
 
   // =========================================================================
-  // UI START
+  // UI START (TEMA ORANGE MODERN & ELEGANT)
   // =========================================================================
 
-  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#10b981' }}><strong>Memuat Sistem...</strong></div>;
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#ea580c' }}><strong>Memuat Sistem...</strong></div>;
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', position: 'relative', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ minHeight: '100vh', position: 'relative', background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Inter', sans-serif" }}>
         
-        {/* FORM LOGIN */}
-        <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', width: '100%', maxWidth: '420px', zIndex: 10 }}>
+        {/* FORM LOGIN ORANGE */}
+        <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(234, 88, 12, 0.15)', width: '100%', maxWidth: '420px', zIndex: 10 }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '800', color: '#10b981', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>Selamat Datang di Aplikasi</div>
-            <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#1e293b', margin: 0 }}>POS MODERN PRO</h1>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>Selamat Datang di Aplikasi</div>
+            <h1 style={{ fontSize: '30px', fontWeight: '900', color: '#1e293b', margin: 0 }}>POS MODERN PRO</h1>
             <p style={{ color: '#64748b', fontSize: '14px', margin: '8px 0 0 0', fontWeight: '600' }}>Sistem Kasir Bisnis Terpadu</p>
           </div>
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '20px' }}><input type="email" placeholder="Alamat Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} /></div>
-            <div style={{ marginBottom: '32px' }}><input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} /></div>
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 10px 15px -3px rgba(30, 41, 59, 0.3)' }}>{isRegister ? 'BUAT AKUN BARU' : 'MASUK KE SISTEM'}</button>
+            <div style={{ marginBottom: '20px' }}><input type="email" placeholder="Alamat Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #fed7aa', borderRadius: '12px', fontSize: '16px', background: '#fffaf5', outline: 'none', boxSizing: 'border-box' }} /></div>
+            <div style={{ marginBottom: '32px' }}><input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #fed7aa', borderRadius: '12px', fontSize: '16px', background: '#fffaf5', outline: 'none', boxSizing: 'border-box' }} /></div>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 10px 15px -3px rgba(234, 88, 12, 0.4)' }}>{isRegister ? 'BUAT AKUN BARU' : 'MASUK KE SISTEM'}</button>
           </form>
-          <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#3b82f6', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>{isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}</p>
+          <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#ea580c', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>{isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}</p>
         </div>
 
         {/* WATERMARK CREDIT */}
-        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: 'rgba(255, 255, 255, 0.25)', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>
+        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: '#94a3b8', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>
           created by : Muhamad Rofiki
         </div>
       </div>
@@ -326,15 +326,15 @@ function App() {
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f1f5f9' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc' }}>
       
       <header className="no-print" style={{ background: 'white', padding: '16px 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 40 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '800', color: '#0f172a' }}>{namaToko || 'POS MODERN PRO'}</h1>
+          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#ea580c' }}>{namaToko || 'POS MODERN PRO'}</h1>
           <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: '500' }}>Akun: {user.email}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => setShowProfileModal(true)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '50%', width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', cursor: 'pointer', color: '#334155' }}>👤</button>
+          <button onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '50%', width: '45px', height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', cursor: 'pointer', color: '#ea580c' }}>👤</button>
           <button onClick={() => signOut(auth)} style={{ padding: '10px 20px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>Logout</button>
         </div>
       </header>
@@ -346,20 +346,20 @@ function App() {
           <div style={{ padding: '32px 24px', maxWidth: '1200px', margin: '0 auto' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b', marginBottom: '24px' }}>📊 Dashboard</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-              <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(15, 23, 42, 0.3)' }}>
-                <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '8px', fontWeight: '500' }}>Omzet Hari Ini</div>
+              <div style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(234, 88, 12, 0.3)' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Omzet Hari Ini</div>
                 <div style={{ fontSize: '32px', fontWeight: '800' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
               </div>
-              <div style={{ background: 'linear-gradient(135deg, #e11d48 0%, #9f1239 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(159, 18, 57, 0.3)' }}>
-                <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '8px', fontWeight: '500' }}>Pengeluaran Hari Ini</div>
+              <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(159, 18, 57, 0.3)' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Pengeluaran Hari Ini</div>
                 <div style={{ fontSize: '32px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
               </div>
               <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}>
-                <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '8px', fontWeight: '500' }}>Laba Bersih Hari Ini</div>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Laba Bersih Hari Ini</div>
                 <div style={{ fontSize: '32px', fontWeight: '800' }}>Rp {dashboardStats.labaBersih.toLocaleString()}</div>
               </div>
               <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 10px 15px -3px rgba(3, 105, 161, 0.3)' }}>
-                <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '8px', fontWeight: '500' }}>Total Produk & Stok Tipis</div>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px', fontWeight: '600' }}>Total Produk & Stok Tipis</div>
                 <div style={{ fontSize: '32px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '16px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
               </div>
             </div>
@@ -367,15 +367,15 @@ function App() {
             <div style={{ background: 'white', padding: '30px', borderRadius: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px' }}>📈 Grafik Pendapatan</h3>
-                <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '600', color: '#334155' }}>
+                <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #fed7aa', outline: 'none', fontWeight: '700', color: '#ea580c', background: '#fff7ed' }}>
                   <option value="jam">Hari Ini (Per Jam)</option><option value="hari">7 Hari Terakhir</option><option value="bulan">6 Bulan Terakhir</option><option value="tahun">5 Tahun Terakhir</option>
                 </select>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-end', height: '250px', gap: '15px', paddingTop: '20px' }}>
                 {chartData.data.map((d, i) => (
                   <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                    <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: '800', marginBottom: '8px', textAlign: 'center' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
-                    <div style={{ width: '100%', background: 'linear-gradient(to top, #38bdf8, #0284c7)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
+                    <div style={{ fontSize: '11px', color: '#ea580c', fontWeight: '800', marginBottom: '8px', textAlign: 'center' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
+                    <div style={{ width: '100%', background: 'linear-gradient(to top, #fdba74, #ea580c)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginTop: '12px', fontWeight: '700', textAlign: 'center' }}>{d.label}</div>
                   </div>
                 ))}
@@ -384,15 +384,15 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB KASIR --- */}
+        {/* --- TAB KASIR (Tinggi Keranjang Diperbaiki & Ada Opsi Pembayaran) --- */}
         {activeTab === 'kasir' && (
-          <div style={{ padding: '24px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+          <div className="desktop-row-mobile-col" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
             
-            <div style={{ flex: '1 1 55%', minWidth: '320px' }}>
+            <div className="scrollable-box" style={{ flex: '1 1 55%', minWidth: '320px' }}>
               <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="🔍 Cari nama produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '16px 20px', border: 'none', borderRadius: '12px', fontSize: '16px', outline: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} />
                 <form onSubmit={handleManualScan} style={{ flex: 1 }}>
-                  <input type="text" placeholder="🔫 Scan Alat Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} autoFocus style={{ width: '100%', padding: '16px 20px', border: '2px solid #0f172a', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} />
+                  <input type="text" placeholder="🔫 Scan Alat Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} autoFocus style={{ width: '100%', padding: '16px 20px', border: '2px solid #ea580c', borderRadius: '12px', fontSize: '16px', outline: 'none', boxSizing: 'border-box', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }} />
                 </form>
                 <button onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ padding: '16px 24px', background: isScanningKasir ? '#ef4444' : '#1e293b', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
                   {isScanningKasir ? 'Tutup Kamera' : '📸 Buka Kamera'}
@@ -402,18 +402,18 @@ function App() {
               {isScanningKasir && (
                 <div style={{ background: '#1e293b', padding: '20px', borderRadius: '16px', marginBottom: '24px', textAlign: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }}>
                   <p style={{ color: 'white', margin: '0 0 15px 0', fontWeight: 'bold', fontSize: '18px' }}>Arahkan Barcode ke Kamera</p>
-                  <div id="reader-kasir" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', overflow: 'hidden', borderRadius: '12px', border: '3px solid #38bdf8' }}></div>
+                  <div id="reader-kasir" style={{ width: '100%', maxWidth: '400px', margin: '0 auto', overflow: 'hidden', borderRadius: '12px', border: '3px solid #ea580c' }}></div>
                 </div>
               )}
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
                 {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
-                  <div key={p.id} onClick={() => addToCart(p)} style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', cursor: 'pointer', border: p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.2s, border 0.2s' }} onMouseEnter={(e) => {e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.border = '2px solid #0284c7';}} onMouseLeave={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent';}}>
+                  <div key={p.id} onClick={() => addToCart(p)} style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', cursor: 'pointer', border: p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.2s, border 0.2s' }} onMouseEnter={(e) => {e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.border = '2px solid #ea580c';}} onMouseLeave={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent';}}>
                     {p.stok <= 5 && <div style={{ position: 'absolute', top: '12px', right: '12px', background: '#ef4444', color: 'white', padding: '4px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'STOK TIPIS'}</div>}
                     <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>{p.nama}</h3>
-                    <div style={{ fontSize: '20px', fontWeight: '900', color: '#0ea5e9', marginBottom: '12px' }}>Rp {p.harga.toLocaleString()}</div>
+                    <div style={{ fontSize: '20px', fontWeight: '900', color: '#ea580c', marginBottom: '12px' }}>Rp {p.harga.toLocaleString()}</div>
                     <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>Stok: <span style={{ color: p.stok > 0 ? '#0ea5e9' : '#ef4444' }}>{p.stok} {p.satuan || 'Pcs'}</span></span>
+                      <span style={{ background: '#fff7ed', padding: '4px 8px', borderRadius: '6px', fontWeight: '700' }}>Stok: <span style={{ color: p.stok > 0 ? '#ea580c' : '#ef4444' }}>{p.stok} {p.satuan || 'Pcs'}</span></span>
                       <span style={{ color: '#94a3b8', fontFamily: 'monospace' }}>{p.barcode || '-'}</span>
                     </div>
                   </div>
@@ -421,8 +421,8 @@ function App() {
               </div>
             </div>
 
-            <div style={{ flex: '1 1 350px', position: 'sticky', top: '90px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', overflow: 'hidden' }}>
-              <div style={{ padding: '20px 24px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
+            <div className="sticky-box" style={{ flex: '1 1 350px', position: 'sticky', top: '90px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', overflow: 'hidden' }}>
+              <div style={{ padding: '20px 24px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5' }}>
                 <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>🛒 Keranjang ({cart.length})</h2>
                 {cart.length > 0 && <button onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '8px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '12px' }}>Kosongkan</button>}
               </div>
@@ -436,21 +436,21 @@ function App() {
                       <button onClick={() => updateQuantity(item.id, 0)} style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '24px', height: '24px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '15px', fontWeight: '800', color: '#0ea5e9' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
+                      <div style={{ fontSize: '15px', fontWeight: '900', color: '#ea580c' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
                       <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                         <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '28px', height: '28px', borderRadius: '4px', background: '#f1f5f9', border: 'none', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>−</button>
                         <input type="number" value={item.qty} onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '35px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '14px', fontWeight: '800', color: '#1e293b', outline: 'none' }} />
-                        <button onClick={() => addToCart(item)} style={{ width: '28px', height: '28px', borderRadius: '4px', background: '#0ea5e9', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>+</button>
+                        <button onClick={() => addToCart(item)} style={{ width: '28px', height: '28px', borderRadius: '4px', background: '#ea580c', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>+</button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ padding: '20px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ padding: '20px 24px', background: '#fffaf5', borderTop: '1px solid #fed7aa' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
                   <span style={{ fontSize: '14px', fontWeight: '700', color: '#475569' }}>Total Pembelian:</span>
-                  <span style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a' }}>Rp {totalAmount.toLocaleString()}</span>
+                  <span style={{ fontSize: '22px', fontWeight: '900', color: '#1e293b' }}>Rp {totalAmount.toLocaleString()}</span>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -464,7 +464,7 @@ function App() {
                       }}
                       style={{
                         flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '13px',
-                        background: metodePembayaran === metode ? '#0f172a' : '#f1f5f9',
+                        background: metodePembayaran === metode ? '#ea580c' : '#f1f5f9',
                         color: metodePembayaran === metode ? 'white' : '#64748b',
                         border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1',
                         transition: 'all 0.2s'
@@ -507,7 +507,7 @@ function App() {
                   </div>
                 )}
 
-                <button onClick={processPayment} disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))} style={{ width: '100%', padding: '16px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#e2e8f0' : '#0f172a', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <button onClick={processPayment} disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))} style={{ width: '100%', padding: '16px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#e2e8f0' : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   BAYAR & CETAK STRUK
                 </button>
               </div>
@@ -517,9 +517,9 @@ function App() {
 
         {/* --- TAB TOKO --- */}
         {activeTab === 'toko' && (
-          <div style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
+          <div className="desktop-row-mobile-col" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
             
-            <div style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+            <div className="scrollable-box" style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>📦 Database Produk</h3>
                 <button onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
@@ -542,8 +542,8 @@ function App() {
                     produk.map(p => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '16px', fontWeight: '700', color: '#1e293b', fontSize: '14px' }}>{p.nama}</td>
-                      <td style={{ padding: '16px', fontWeight: '700', color: '#0ea5e9', fontSize: '14px' }}>Rp {p.harga.toLocaleString()}</td>
-                      <td style={{ padding: '16px' }}><span style={{ background: p.stok < 5 ? '#fee2e2' : '#f1f5f9', color: p.stok < 5 ? '#dc2626' : '#334155', padding: '4px 10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px' }}>{p.stok} {p.satuan || 'Pcs'}</span></td>
+                      <td style={{ padding: '16px', fontWeight: '800', color: '#ea580c', fontSize: '14px' }}>Rp {p.harga.toLocaleString()}</td>
+                      <td style={{ padding: '16px' }}><span style={{ background: p.stok < 5 ? '#fee2e2' : '#fff7ed', color: p.stok < 5 ? '#dc2626' : '#ea580c', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '12px' }}>{p.stok} {p.satuan || 'Pcs'}</span></td>
                       <td style={{ padding: '16px', fontFamily: 'monospace', color: '#64748b', fontSize: '13px' }}>{p.barcode}</td>
                       <td style={{ padding: '16px', display: 'flex', gap: '8px' }}>
                         <button onClick={() => { setPrintData([p]); setPrintMode('label'); }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Cetak</button>
@@ -555,7 +555,7 @@ function App() {
               </table>
             </div>
 
-            <div style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
+            <div className="sticky-box" style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>➕ Tambah Produk</h3>
                 
@@ -581,7 +581,7 @@ function App() {
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
                   <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Kosong = Otomatis" style={{ flex: 1, padding: '14px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-                  <button type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ padding: '0 16px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                  <button type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ padding: '0 16px', background: '#ea580c', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
                     📸 Scan
                   </button>
                 </div>
@@ -593,7 +593,7 @@ function App() {
                   </div>
                 )}
 
-                <button type="submit" style={{ width: '100%', padding: '16px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <button type="submit" style={{ width: '100%', padding: '16px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                   SIMPAN PRODUK
                 </button>
               </form>
@@ -603,9 +603,9 @@ function App() {
 
         {/* --- TAB PENGELUARAN --- */}
         {activeTab === 'pengeluaran' && (
-          <div style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
+          <div className="desktop-row-mobile-col" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start' }}>
             
-            <div style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+            <div className="scrollable-box" style={{ flex: '1 1 60%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
               <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
               
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -633,7 +633,7 @@ function App() {
               </table>
             </div>
 
-            <div style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
+            <div className="sticky-box" style={{ flex: '1 1 30%', position: 'sticky', top: '90px' }}>
               <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 24px 0', color: '#e11d48', fontSize: '20px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Keterangan (Contoh: Bayar Listrik, Kulakan)</label>
@@ -654,7 +654,7 @@ function App() {
               <select value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ padding: '14px 20px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#f8fafc', fontSize: '15px', fontWeight: '600', color: '#334155', outline: 'none' }}>
                 <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
               </select>
-              <button onClick={exportExcel} style={{ padding: '14px 24px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '15px' }}>📥 Download Excel</button>
+              <button onClick={exportExcel} style={{ padding: '14px 24px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '15px' }}>📥 Download Excel</button>
             </div>
 
             <div style={{ background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
@@ -663,11 +663,11 @@ function App() {
                 <div key={t.id} style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '15px', marginBottom: '8px' }}>{t.waktu?.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - {t.waktu?.toDate().toLocaleTimeString('id-ID')}</div>
-                    <div style={{ color: '#475569', fontSize: '13px', background: '#f1f5f9', padding: '6px 12px', borderRadius: '6px', display: 'inline-block', fontWeight: '600', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#10b981' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
+                    <div style={{ color: '#475569', fontSize: '13px', background: '#fff7ed', padding: '6px 12px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#ea580c' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: '900', color: '#0ea5e9', fontSize: '20px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
+                    <div style={{ fontWeight: '900', color: '#ea580c', fontSize: '20px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
                     {t.metode === 'Tunai' && <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span> Kembali: Rp {t.kembalian?.toLocaleString()}</div>}
                   </div>
                 </div>
@@ -695,8 +695,8 @@ function App() {
             <label style={{ fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '6px', display: 'block' }}>Nomor Telepon / WhatsApp</label>
             <input value={noTelp} onChange={e => setNoTelp(e.target.value)} placeholder="Contoh: 08123456789" style={{ width: '100%', padding: '14px', marginBottom: '20px', border: '1px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
             
-            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', marginBottom: '24px', border: '2px dashed #cbd5e1' }}>
-              <label style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', marginBottom: '8px', display: 'block' }}>📱 Upload Gambar QRIS Toko</label>
+            <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '24px', border: '2px dashed #fed7aa' }}>
+              <label style={{ fontSize: '13px', fontWeight: '800', color: '#1e293b', marginBottom: '8px', display: 'block' }}>📱 Upload Gambar QRIS Toko</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '12px', marginBottom: '12px', display: qrisImage ? 'none' : 'block' }} />
               {qrisImage && (
                 <div style={{ textAlign: 'center' }}>
@@ -711,7 +711,7 @@ function App() {
               )}
             </div>
 
-            <button onClick={simpanProfil} style={{ width: '100%', padding: '16px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '15px' }}>SIMPAN PENGATURAN</button>
+            <button onClick={simpanProfil} style={{ width: '100%', padding: '16px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '15px' }}>SIMPAN PENGATURAN</button>
           </div>
         </div>
       )}
@@ -721,7 +721,7 @@ function App() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             <h2 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
-            <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px' }}>Total Tagihan: <strong style={{ color: '#0ea5e9', fontSize: '18px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
+            <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px' }}>Total Tagihan: <strong style={{ color: '#ea580c', fontSize: '18px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
             
             <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
               <img src={qrisImage} alt="QRIS Toko" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
@@ -729,7 +729,7 @@ function App() {
 
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>TUTUP</button>
-              <button onClick={processPayment} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}>SUDAH DIBAYAR</button>
+              <button onClick={processPayment} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(234, 88, 12, 0.4)' }}>SUDAH DIBAYAR</button>
             </div>
           </div>
         </div>
@@ -763,7 +763,7 @@ function App() {
             <p style={{ fontSize: '14px', fontWeight: 'bold' }}>*** TERIMA KASIH ***</p>
 
             <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-              <button onClick={() => window.print()} style={{ flex: 1, background: '#10b981', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print</button>
+              <button onClick={() => window.print()} style={{ flex: 1, background: '#ea580c', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print</button>
               <button onClick={() => setStrukData(null)} style={{ flex: 1, background: '#e2e8f0', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#475569' }}>Tutup</button>
             </div>
           </div>
@@ -774,14 +774,14 @@ function App() {
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#1e293b', position: 'sticky', top: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
-            <button onClick={() => window.print()} style={{ background: '#10b981', color: 'white', padding: '12px 24px', border: 'none', marginRight: '15px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>🖨️ Print Label</button>
+            <button onClick={() => window.print()} style={{ background: '#ea580c', color: 'white', padding: '12px 24px', border: 'none', marginRight: '15px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>🖨️ Print Label</button>
             <button onClick={() => setPrintMode(null)} style={{ background: '#f8fafc', color: '#334155', padding: '12px 24px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>❌ Batal</button>
           </div>
           <div id="print-area" style={{ background: '#fff', width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'center', fontFamily: 'monospace' }}>
             {printData.map((p, i) => (
-              <div key={i} style={{ border: '1px dashed #000', padding: '16px 20px', textAlign: 'center', width: '260px', height: 'fit-content', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+              <div key={i} style={{ border: '2px dashed #000', padding: '16px 20px', textAlign: 'center', width: '260px', height: 'fit-content', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
                 <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '6px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>{namaToko || 'TOKO'}</div>
-                <div style={{ fontSize: '15px', marginBottom: '10px', fontWeight: '800', color: '#000', lineHeight: '1.2' }}>{p.nama}</div>
+                <div style={{ fontSize: '15px', marginBottom: '10px', fontWeight: '900', color: '#000', lineHeight: '1.2' }}>{p.nama}</div>
                 <img src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=12&includetext`} alt={p.barcode} style={{ width: '100%', height: 'auto', marginBottom: '8px' }} />
                 <div style={{ fontWeight: '900', fontSize: '20px', color: '#000' }}>Rp {p.harga.toLocaleString()}</div>
               </div>
@@ -793,13 +793,14 @@ function App() {
       {/* NAVIGASI BAWAH */}
       <nav className="no-print" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid #e2e8f0', display: 'flex', padding: '8px 0', boxShadow: '0 -10px 25px rgba(0,0,0,0.05)', zIndex: 10 }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '8px', border: 'none', background: 'none', color: activeTab === tab.id ? '#0ea5e9' : '#94a3b8', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', position: 'relative', transition: 'all 0.2s' }}>
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '8px', border: 'none', background: 'none', color: activeTab === tab.id ? '#ea580c' : '#94a3b8', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', position: 'relative', transition: 'all 0.2s' }}>
             <span style={{ transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s' }}>{tab.icon}</span>
             <span style={{ fontSize: '11px', fontWeight: activeTab === tab.id ? '800' : '600' }}>{tab.label}</span>
           </button>
         ))}
       </nav>
 
+      {/* CSS KODE PINTAR (ANTI BENTROK DI HP) */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -809,10 +810,18 @@ function App() {
           #print-area, #print-area * { visibility: visible; }
           #print-area { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; padding: 0; margin: 0; }
         }
+        
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ea580c; }
+
+        /* MENGATASI BENTROK TAMPILAN DI HP */
+        @media (max-width: 768px) {
+          .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; }
+          .scrollable-box { max-height: none !important; overflow: visible !important; width: 100% !important; }
+          .sticky-box { position: static !important; width: 100% !important; height: auto !important; margin-bottom: 30px; }
+        }
       `}</style>
     </div>
   );
