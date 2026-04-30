@@ -36,14 +36,17 @@ function App() {
   });
   
   const [search, setSearch] = useState('');
+  const [searchLaporan, setSearchLaporan] = useState(''); // FITUR BARU: Pencarian Laporan
   const [activeTab, setActiveTab] = useState('dashboard');
   const [barcodeInput, setBarcodeInput] = useState('');
   
+  // Pembayaran & Kamera
   const [paymentAmount, setPaymentAmount] = useState('');
   const [metodePembayaran, setMetodePembayaran] = useState('Tunai'); 
   const [isScanningKasir, setIsScanningKasir] = useState(false);
   const [isScanningToko, setIsScanningToko] = useState(false);
   
+  // Modal States
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showQrisModal, setShowQrisModal] = useState(false);
   
@@ -51,6 +54,7 @@ function App() {
   const [printMode, setPrintMode] = useState(null);
   const [printData, setPrintData] = useState(null);
 
+  // Form Toko & Profil
   const [namaToko, setNamaToko] = useState('');
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
@@ -62,6 +66,7 @@ function App() {
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
 
+  // Form Pengeluaran
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
   const [nominalPengeluaran, setNominalPengeluaran] = useState('');
 
@@ -85,15 +90,19 @@ function App() {
         setNoTelp(d.data().noTelp || ''); setQrisImage(d.data().qrisImage || '');
       }
     });
+
     const unsubProduk = onSnapshot(query(collection(db, "produk"), where("userId", "==", user.uid)), (snap) => {
       setProduk(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
+
     const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc")), (snap) => {
       setTransaksi(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
+
     const unsubPengeluaran = onSnapshot(query(collection(db, "pengeluaran"), where("userId", "==", user.uid), orderBy("waktu", "desc")), (snap) => {
       setPengeluaran(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
+
     return () => { unsubProduk(); unsubTrans(); unsubPengeluaran(); };
   }, [user]);
 
@@ -117,19 +126,26 @@ function App() {
   useEffect(() => {
     let html5QrCode;
     const scannerId = isScanningKasir ? "reader-kasir" : (isScanningToko ? "reader-toko" : null);
+    
     if (scannerId) {
       html5QrCode = new Html5Qrcode(scannerId);
       html5QrCode.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           if (isScanningKasir) {
             const found = produk.find(p => p.barcode === decodedText);
             if (found) { addToCart(found); setIsScanningKasir(false); } 
             else { alert('❌ Barcode tidak terdaftar di database!'); setIsScanningKasir(false); }
-          } else { setBarcodeProd(decodedText); setIsScanningToko(false); }
+          } else {
+            setBarcodeProd(decodedText); setIsScanningToko(false);
+          }
           html5QrCode.stop();
         }, (error) => {}
-      ).catch(err => { alert("Gagal membuka kamera!"); setIsScanningKasir(false); setIsScanningToko(false); });
+      ).catch(err => {
+        alert("Gagal membuka kamera! Pastikan izin kamera browser diizinkan.");
+        setIsScanningKasir(false); setIsScanningToko(false);
+      });
     }
     return () => { if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(console.error); };
   }, [isScanningKasir, isScanningToko, produk]);
@@ -154,7 +170,8 @@ function App() {
   const handleManualScan = (e) => {
     e.preventDefault();
     const found = produk.find(p => p.barcode === barcodeInput || p.barcode === String(barcodeInput));
-    if (found) { addToCart(found); setBarcodeInput(''); } else { alert('Barcode tidak ditemukan!'); setBarcodeInput(''); }
+    if (found) { addToCart(found); setBarcodeInput(''); } 
+    else { alert('Barcode tidak ditemukan!'); setBarcodeInput(''); }
   };
 
   const addToCart = (p) => {
@@ -186,11 +203,15 @@ function App() {
   const processPayment = async () => {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
+    
     const finalUangBayar = metodePembayaran === 'Tunai' ? Number(paymentAmount) : totalAmount;
+
     const dataTrans = {
-      userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty, satuan: i.satuan || 'Pcs'})),
+      userId: user.uid, 
+      items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty, satuan: i.satuan || 'Pcs'})),
       total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metodePembayaran, waktu: new Date()
     };
+
     try {
       await addDoc(collection(db, "transaksi"), { ...dataTrans, waktu: serverTimestamp() });
       for (const item of cart) { await updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); }
@@ -202,9 +223,11 @@ function App() {
     e.preventDefault();
     const checkDuplicate = produk.find(p => p.barcode === barcodeProd && barcodeProd !== "");
     if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
+
     const bcode = barcodeProd || Math.floor(100000000000 + Math.random() * 900000000000).toString();
     await addDoc(collection(db, "produk"), { nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() });
-    setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs'); alert("Produk Berhasil Ditambah!");
+    setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
+    alert("Produk Berhasil Ditambah!");
   };
 
   const simpanPengeluaran = async (e) => {
@@ -218,8 +241,18 @@ function App() {
     alert("Profil Tersimpan!"); setShowProfileModal(false);
   };
 
+  // FITUR: Logika Laporan yang difilter dengan Kolom Pencarian
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
+    
+    // Pencarian berdasarkan nama barang atau metode bayar
+    const cari = searchLaporan.toLowerCase();
+    const matchCari = cari === '' || 
+      t.items.some(i => i.nama.toLowerCase().includes(cari)) || 
+      (t.metode && t.metode.toLowerCase().includes(cari));
+      
+    if (!matchCari) return false;
+
     const dateObj = t.waktu.toDate(); const today = new Date();
     if (reportFilter === 'hari') return dateObj.toDateString() === today.toDateString();
     else if (reportFilter === 'minggu') return dateObj >= new Date(today.setDate(today.getDate() - today.getDay()));
@@ -269,7 +302,7 @@ function App() {
   const chartData = getChartData();
 
   // =========================================================================
-  // UI START
+  // UI START 
   // =========================================================================
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#ea580c' }}><strong>Memuat Sistem...</strong></div>;
@@ -277,7 +310,6 @@ function App() {
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', position: 'relative', background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Inter', sans-serif" }}>
-        
         <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(234, 88, 12, 0.15)', width: '100%', maxWidth: '420px', zIndex: 10 }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <div style={{ fontSize: '13px', fontWeight: '800', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>Selamat Datang di Aplikasi</div>
@@ -291,22 +323,20 @@ function App() {
           </form>
           <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#ea580c', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>{isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}</p>
         </div>
-
-        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: '#94a3b8', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>
-          created by : Muhamad Rofiki
-        </div>
+        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: '#94a3b8', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>created by : Muhamad Rofiki</div>
       </div>
     );
   }
 
+  // SCRIPT LAYOUT MASTER UTAMA (KUNCI LAYAR PENUH)
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc', overflow: 'hidden' }}>
       
-      {/* HEADER - Ukuran Compact */}
-      <header className="no-print" style={{ background: 'white', padding: '10px 16px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, flex: 'none' }}>
+      {/* HEADER STATIC */}
+      <header className="no-print" style={{ flex: 'none', height: '70px', background: 'white', padding: '0 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, boxSizing: 'border-box' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#ea580c' }}>{namaToko || 'POS MODERN PRO'}</h1>
-          <p style={{ margin: '2px 0 0 0', color: '#64748b', fontSize: '11px', fontWeight: '500' }}>Akun: {user.email}</p>
+          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#ea580c' }}>{namaToko || 'POS MODERN PRO'}</h1>
+          <p style={{ margin: '0', color: '#64748b', fontSize: '11px', fontWeight: '600' }}>Akun: {user.email}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#ea580c' }}>👤</button>
@@ -314,239 +344,246 @@ function App() {
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA - Padding bawah disesuaikan nav */}
-      <main style={{ flex: 1, overflow: 'auto', paddingBottom: '60px' }}>
-        
-        {/* --- TAB DASHBOARD --- */}
-        {activeTab === 'dashboard' && (
-          <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              <div style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.15)' }}>
-                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Omzet Hari Ini</div>
-                <div style={{ fontSize: '24px', fontWeight: '800' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
-              </div>
-              <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(185, 28, 28, 0.15)' }}>
-                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Pengeluaran</div>
-                <div style={{ fontSize: '24px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
-              </div>
-              <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.15)' }}>
-                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Laba Bersih</div>
-                <div style={{ fontSize: '24px', fontWeight: '800' }}>Rp {dashboardStats.labaBersih.toLocaleString()}</div>
-              </div>
-              <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(3, 105, 161, 0.15)' }}>
-                <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Stok & Tipis</div>
-                <div style={{ fontSize: '24px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock}</span></div>
-              </div>
-            </div>
-
-            {/* Grafik COMPACT agar langsung kelihatan */}
-            <div style={{ background: 'white', padding: '16px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0, color: '#1e293b', fontSize: '16px' }}>📈 Grafik Pendapatan</h3>
-                <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #fed7aa', outline: 'none', fontWeight: '700', color: '#ea580c', background: '#fff7ed', fontSize: '12px' }}>
-                  <option value="jam">Hari Ini</option><option value="hari">7 Hari</option><option value="bulan">6 Bulan</option><option value="semua">📂 Semua Waktu</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', height: '200px', gap: '10px', paddingTop: '10px' }}>
-                {chartData.data.map((d, i) => (
-                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                    <div style={{ fontSize: '10px', color: '#ea580c', fontWeight: '800', marginBottom: '6px' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
-                    <div style={{ width: '100%', background: 'linear-gradient(to top, #fdba74, #ea580c)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px', fontWeight: '700' }}>{d.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- TAB KASIR (TAMPILAN DIKUNCI, PRODUK & KERANJANG TERPISAH) --- */}
-        {activeTab === 'kasir' && (
-          <div className="kasir-wrapper" style={{ flex: 1, display: 'flex', padding: '16px', gap: '16px', overflow: 'hidden' }}>
-            
-            {/* KIRI: AREA PRODUK & PENCARIAN (SCROLL INTERNAL) */}
-            <div className="kasir-left-panel" style={{ flex: '1 1 55%', minWidth: '320px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-              
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', flex: 'none' }}>
-                <input type="text" placeholder="🔍 Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '12px 16px', border: 'none', borderRadius: '10px', fontSize: '14px', outline: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
-                <form onSubmit={handleManualScan} style={{ flex: 1 }}>
-                  <input type="text" placeholder="🔫 Scan Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} autoFocus style={{ width: '100%', padding: '12px 16px', border: '2px solid #ea580c', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
-                </form>
-                <button onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ padding: '12px 16px', background: isScanningKasir ? '#ef4444' : '#1e293b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
-                  {isScanningKasir ? 'Tutup Kamera' : '📸 Kamera'}
-                </button>
-              </div>
-
-              {isScanningKasir && (
-                <div style={{ background: '#1e293b', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center', flex: 'none' }}>
-                  <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
-                  <div id="reader-kasir" style={{ width: '100%', maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #ea580c' }}></div>
-                </div>
-              )}
-
-              <div className="grid-container" style={{ flex: 1, overflowY: 'auto', paddingRight: '6px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px', paddingBottom: '20px' }}>
-                  {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
-                    <div key={p.id} onClick={() => addToCart(p)} style={{ background: 'white', borderRadius: '12px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', border: p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.1s, border 0.1s' }} onMouseEnter={(e) => {e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.border = '2px solid #ea580c';}} onMouseLeave={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent';}}>
-                      {p.stok <= 5 && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '700', color: '#1e293b', lineHeight: '1.2' }}>{p.nama}</h3>
-                      <div style={{ fontSize: '16px', fontWeight: '900', color: '#ea580c', marginBottom: '8px' }}>Rp {p.harga.toLocaleString()}</div>
-                      <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ background: '#fff7ed', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}><span style={{ color: p.stok > 0 ? '#ea580c' : '#ef4444' }}>{p.stok} {p.satuan || 'Pcs'}</span></span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* KANAN: KERANJANG (LEBAR, TETAP TEGAK, INTERNAL SCROLL) */}
-            <div className="kasir-right-panel" style={{ flex: '0 0 420px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5', flex: 'none' }}>
-                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>🛒 Keranjang ({cart.length})</h2>
-                {cart.length > 0 && <button onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', fontSize: '11px' }}>Kosongkan</button>}
-              </div>
-              
-              <div className="cart-list" style={{ padding: '12px 20px', flex: 1, overflowY: 'auto', minHeight: '150px' }}>
-                {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>Belum ada pesanan...</div> : 
-                  cart.map(item => (
-                  <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>{item.nama} <span style={{fontSize:'11px', color:'#94a3b8'}}>({item.satuan || 'Pcs'})</span></h3>
-                      <button onClick={() => updateQuantity(item.id, 0)} style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>×</button>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#ea580c' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                        <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#f1f5f9', border: 'none', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>−</button>
-                        <input type="number" value={item.qty} onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '30px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '13px', fontWeight: '800', color: '#1e293b', outline: 'none' }} />
-                        <button onClick={() => addToCart(item)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#ea580c', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>+</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* AREA PEMBAYARAN DI BAWAH (Compact & Tidak Tertutup) */}
-              <div style={{ padding: '16px 20px', background: '#fffaf5', borderTop: '2px solid #fed7aa', flex: 'none' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#475569' }}>Total Pembelian:</span>
-                  <span style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b' }}>Rp {totalAmount.toLocaleString()}</span>
-                </div>
+      {/* CONTAINER HALAMAN UTAMA (TINGGI TEPAT DI ANTARA HEADER & NAV BAWAH, TIDAK SCROLL FULL) */}
+      <main style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
+          
+          {/* --- TAB DASHBOARD --- */}
+          {activeTab === 'dashboard' && (
+            <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box' }}>
+              <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', height: '100%' }}>
                 
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-                  {['Tunai', 'QRIS', 'Transfer'].map(metode => (
-                    <button
-                      key={metode}
-                      onClick={() => { setMetodePembayaran(metode); if(metode !== 'Tunai') setPaymentAmount(totalAmount); else setPaymentAmount(''); }}
-                      style={{
-                        flex: 1, padding: '8px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
-                        background: metodePembayaran === metode ? '#ea580c' : '#f1f5f9', color: metodePembayaran === metode ? 'white' : '#64748b',
-                        border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1', transition: 'all 0.2s'
-                      }}
-                    >
-                      {metode === 'Tunai' ? '💵 Tunai' : metode === 'QRIS' ? '📱 QRIS' : '💳 Transfer'}
-                    </button>
-                  ))}
+                {/* 4 Kotak Atas */}
+                <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(234, 88, 12, 0.15)' }}>
+                    <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Omzet Hari Ini</div>
+                    <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(185, 28, 28, 0.15)' }}>
+                    <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Pengeluaran Hari Ini</div>
+                    <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(5, 150, 105, 0.15)' }}>
+                    <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Laba Bersih Hari Ini</div>
+                    <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.labaBersih.toLocaleString()}</div>
+                  </div>
+                  <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(3, 105, 161, 0.15)' }}>
+                    <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Produk & Stok Tipis</div>
+                    <div style={{ fontSize: '26px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: '12px' }}>
-                  {metodePembayaran === 'Tunai' ? (
-                    <>
-                      <input type="number" placeholder="Nominal (Rp)" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalAmount ? '2px solid #ef4444' : '2px solid #cbd5e1', fontSize: '16px', fontWeight: '800', outline: 'none', background: 'white', color: '#1e293b', boxSizing: 'border-box' }} />
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                        <button onClick={() => setPaymentAmount(totalAmount)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', color: '#475569' }}>Pas</button>
-                        <button onClick={() => setPaymentAmount(50000)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', color: '#475569' }}>50k</button>
-                        <button onClick={() => setPaymentAmount(100000)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', color: '#475569' }}>100k</button>
+                {/* Grafik Bawah (Otomatis Mengisi Sisa Tinggi) */}
+                <div style={{ flex: 1, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ margin: 0, color: '#1e293b', fontSize: '18px' }}>📈 Grafik Pendapatan</h3>
+                    <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #fed7aa', outline: 'none', fontWeight: '700', color: '#ea580c', background: '#fff7ed', fontSize: '13px' }}>
+                      <option value="jam">Hari Ini (Per Jam)</option><option value="hari">7 Hari Terakhir</option><option value="bulan">6 Bulan Terakhir</option><option value="tahun">5 Tahun Terakhir</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '15px', paddingTop: '10px' }}>
+                    {chartData.data.map((d, i) => (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                        <div style={{ fontSize: '11px', color: '#ea580c', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>{d.total > 0 ? `Rp${(d.total/1000)}k` : ''}</div>
+                        {/* Batas maksimal lebar bar grafik agar tidak terlalu gemuk */}
+                        <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #fdba74, #ea580c)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center' }}>{d.label}</div>
                       </div>
-                    </>
-                  ) : metodePembayaran === 'QRIS' ? (
-                    <button onClick={() => setShowQrisModal(true)} disabled={!qrisImage} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: !qrisImage ? '#cbd5e1' : '#3b82f6', color: 'white', border: 'none', fontWeight: '800', cursor: !qrisImage ? 'not-allowed' : 'pointer', fontSize: '13px', textTransform: 'uppercase' }}>
-                      {qrisImage ? '📱 TAMPILKAN QRIS' : '⚠️ QRIS BELUM DIATUR'}
-                    </button>
-                  ) : (
-                    <div style={{ padding: '10px', background: '#eff6ff', color: '#0369a1', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #bae6fd' }}>
-                      💳 Pastikan transfer masuk sebelum cetak struk.
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* --- TAB KASIR (FIXED LAYOUT KIRI KANAN) --- */}
+          {activeTab === 'kasir' && (
+            <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+              
+              {/* KIRI: PRODUK & PENCARIAN (HANYA INI YANG SCROLL) */}
+              <div className="kasir-left-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ flex: 'none', display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                  <input type="text" placeholder="🔍 Cari nama produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '12px 16px', border: 'none', borderRadius: '10px', fontSize: '14px', outline: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
+                  <form onSubmit={handleManualScan} style={{ flex: 1 }}>
+                    <input type="text" placeholder="🔫 Scan Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} autoFocus style={{ width: '100%', padding: '12px 16px', border: '2px solid #ea580c', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
+                  </form>
+                  <button onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ padding: '12px 16px', background: isScanningKasir ? '#ef4444' : '#1e293b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
+                    {isScanningKasir ? 'Tutup Kamera' : '📸 Kamera'}
+                  </button>
                 </div>
 
-                {metodePembayaran === 'Tunai' && paymentAmount !== '' && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', padding: '10px', background: Number(paymentAmount) >= totalAmount ? '#dcfce7' : '#fee2e2', borderRadius: '8px', border: `1px solid ${Number(paymentAmount) >= totalAmount ? '#bbf7d0' : '#fecaca'}` }}>
-                    <span style={{ fontWeight: '800', fontSize: '12px', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626' }}>
-                      {Number(paymentAmount) >= totalAmount ? 'Kembalian:' : '⚠️ Uang Kurang:'}
-                    </span>
-                    <span style={{ fontWeight: '900', fontSize: '16px', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626' }}>
-                      Rp {Math.abs(kembalian).toLocaleString()}
-                    </span>
+                {isScanningKasir && (
+                  <div style={{ flex: 'none', background: '#1e293b', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center' }}>
+                    <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
+                    <div id="reader-kasir" style={{ width: '100%', maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #ea580c' }}></div>
                   </div>
                 )}
 
-                <button onClick={processPayment} disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))} style={{ width: '100%', padding: '14px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#e2e8f0' : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  BAYAR & CETAK
-                </button>
+                {/* SCROLL AREA PRODUK KIRI */}
+                <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', paddingBottom: '20px' }}>
+                  <div className="grid-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                    {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
+                      <div key={p.id} onClick={() => addToCart(p)} style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', border: p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.1s, border 0.1s' }} onMouseEnter={(e) => {e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.border = '2px solid #ea580c';}} onMouseLeave={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok === 0 ? '2px solid #fee2e2' : '2px solid transparent';}}>
+                        {p.stok <= 5 && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '700', color: '#1e293b', lineHeight: '1.2' }}>{p.nama}</h3>
+                        <div style={{ fontSize: '18px', fontWeight: '900', color: '#ea580c', marginBottom: '8px' }}>Rp {p.harga.toLocaleString()}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ background: '#fff7ed', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}><span style={{ color: p.stok > 0 ? '#ea580c' : '#ef4444' }}>{p.stok} {p.satuan || 'Pcs'}</span></span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* KANAN: KERANJANG (DIPERLEBAR JADI 420px, DIAM, DALAMNYA SAJA YANG SCROLL) */}
+              <div className="kasir-right-panel" style={{ flex: '0 0 420px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                <div style={{ flex: 'none', padding: '16px 20px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5' }}>
+                  <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#1e293b' }}>🛒 Keranjang ({cart.length})</h2>
+                  {cart.length > 0 && <button onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}>Kosongkan</button>}
+                </div>
+                
+                {/* SCROLL AREA KERANJANG */}
+                <div className="cart-list" style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
+                  {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>Belum ada pesanan...</div> : 
+                    cart.map(item => (
+                    <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>{item.nama} <span style={{fontSize:'11px', color:'#94a3b8'}}>({item.satuan || 'Pcs'})</span></h3>
+                        <button onClick={() => updateQuantity(item.id, 0)} style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>×</button>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '900', color: '#ea580c' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                          <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#f1f5f9', border: 'none', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>−</button>
+                          <input type="number" value={item.qty} onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '30px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '13px', fontWeight: '800', color: '#1e293b', outline: 'none' }} />
+                          <button onClick={() => addToCart(item)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#ea580c', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* AREA PEMBAYARAN BAWAH */}
+                <div style={{ flex: 'none', padding: '16px 20px', background: '#fffaf5', borderTop: '2px solid #fed7aa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#475569' }}>Total Pembelian:</span>
+                    <span style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b' }}>Rp {totalAmount.toLocaleString()}</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                    {['Tunai', 'QRIS', 'Transfer'].map(metode => (
+                      <button
+                        key={metode}
+                        onClick={() => { setMetodePembayaran(metode); if(metode !== 'Tunai') setPaymentAmount(totalAmount); else setPaymentAmount(''); }}
+                        style={{
+                          flex: 1, padding: '8px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
+                          background: metodePembayaran === metode ? '#ea580c' : '#f1f5f9', color: metodePembayaran === metode ? 'white' : '#64748b',
+                          border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1', transition: 'all 0.2s'
+                        }}
+                      >
+                        {metode === 'Tunai' ? '💵 Tunai' : metode === 'QRIS' ? '📱 QRIS' : '💳 Transfer'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    {metodePembayaran === 'Tunai' ? (
+                      <>
+                        <input type="number" placeholder="Nominal (Rp)" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalAmount ? '2px solid #ef4444' : '2px solid #cbd5e1', fontSize: '16px', fontWeight: '800', outline: 'none', background: 'white', color: '#1e293b', boxSizing: 'border-box' }} />
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                          <button onClick={() => setPaymentAmount(totalAmount)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', color: '#475569' }}>Pas</button>
+                          <button onClick={() => setPaymentAmount(50000)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', color: '#475569' }}>50k</button>
+                          <button onClick={() => setPaymentAmount(100000)} style={{ flex: 1, padding: '8px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', color: '#475569' }}>100k</button>
+                        </div>
+                      </>
+                    ) : metodePembayaran === 'QRIS' ? (
+                      <button onClick={() => setShowQrisModal(true)} disabled={!qrisImage} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: !qrisImage ? '#cbd5e1' : '#3b82f6', color: 'white', border: 'none', fontWeight: '800', cursor: !qrisImage ? 'not-allowed' : 'pointer', fontSize: '13px', textTransform: 'uppercase' }}>
+                        {qrisImage ? '📱 TAMPILKAN QRIS' : '⚠️ QRIS BELUM DIATUR'}
+                      </button>
+                    ) : (
+                      <div style={{ padding: '10px', background: '#eff6ff', color: '#0369a1', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #bae6fd' }}>
+                        💳 Pastikan transfer masuk sebelum cetak struk.
+                      </div>
+                    )}
+                  </div>
+
+                  {metodePembayaran === 'Tunai' && paymentAmount !== '' && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', padding: '10px', background: Number(paymentAmount) >= totalAmount ? '#dcfce7' : '#fee2e2', borderRadius: '8px', border: `1px solid ${Number(paymentAmount) >= totalAmount ? '#bbf7d0' : '#fecaca'}` }}>
+                      <span style={{ fontWeight: '800', fontSize: '12px', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626' }}>
+                        {Number(paymentAmount) >= totalAmount ? 'Kembalian:' : '⚠️ Uang Kurang:'}
+                      </span>
+                      <span style={{ fontWeight: '900', fontSize: '16px', color: Number(paymentAmount) >= totalAmount ? '#166534' : '#dc2626' }}>
+                        Rp {Math.abs(kembalian).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  <button onClick={processPayment} disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))} style={{ width: '100%', padding: '14px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#e2e8f0' : 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    BAYAR & CETAK
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* --- TAB TOKO (LAYOUT FULL) --- */}
-        {activeTab === 'toko' && (
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {/* Hapus maxWidth restriction agar full */}
-            <div className="mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
+          {/* --- TAB TOKO (FULL LAYOUT KIRI-KANAN) --- */}
+          {activeTab === 'toko' && (
+            <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
               
-              <div style={{ flex: '1 1 70%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                  <h3 style={{ margin: 0, color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>📦 Database Produk</h3>
-                  <button onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#f59e0b', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+              <div className="table-section scrollable-box" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: '800' }}>📦 Database Produk</h3>
+                  <button onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#f59e0b', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
                     🖨️ Cetak Semua Barcode
                   </button>
                 </div>
                 
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '13px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Nama Produk</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Harga</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Stok</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Barcode</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {produk.length === 0 ? <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada produk.</td></tr> : 
-                      produk.map(p => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '16px', fontWeight: '700', color: '#1e293b', fontSize: '14px' }}>{p.nama}</td>
-                        <td style={{ padding: '16px', fontWeight: '800', color: '#ea580c', fontSize: '14px' }}>Rp {p.harga.toLocaleString()}</td>
-                        <td style={{ padding: '16px' }}><span style={{ background: p.stok < 5 ? '#fee2e2' : '#fff7ed', color: p.stok < 5 ? '#dc2626' : '#ea580c', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '12px' }}>{p.stok} {p.satuan || 'Pcs'}</span></td>
-                        <td style={{ padding: '16px', fontFamily: 'monospace', color: '#64748b', fontSize: '13px' }}>{p.barcode}</td>
-                        <td style={{ padding: '16px', display: 'flex', gap: '8px' }}>
-                          <button onClick={() => { setPrintData([p]); setPrintMode('label'); }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Cetak</button>
-                          <button onClick={async () => { if(window.confirm('Yakin ingin menghapus produk ini?')) await deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Hapus</button>
-                        </td>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Nama Produk</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Harga</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Stok</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Barcode</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {produk.length === 0 ? <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada produk.</td></tr> : 
+                        produk.map(p => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: '700', color: '#1e293b', fontSize: '13px' }}>{p.nama}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: '800', color: '#ea580c', fontSize: '13px' }}>Rp {p.harga.toLocaleString()}</td>
+                          <td style={{ padding: '12px 16px' }}><span style={{ background: p.stok < 5 ? '#fee2e2' : '#fff7ed', color: p.stok < 5 ? '#dc2626' : '#ea580c', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px' }}>{p.stok} {p.satuan || 'Pcs'}</span></td>
+                          <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: '#64748b', fontSize: '12px' }}>{p.barcode}</td>
+                          <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
+                            <button onClick={() => { setPrintData([p]); setPrintMode('label'); }} style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '6px 10px', borderRadius: '6px', color: '#475569', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Cetak</button>
+                            <button onClick={async () => { if(window.confirm('Yakin ingin menghapus produk ini?')) await deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              <div style={{ flex: '1 1 25%' }}>
-                <form onSubmit={simpanProduk} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>➕ Tambah Produk</h3>
+              <div className="form-section sticky-box" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
+                <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                  <h3 style={{ margin: '0 0 20px 0', color: '#1e293b', fontSize: '18px', fontWeight: '800' }}>➕ Tambah Produk</h3>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Nama Produk</label>
-                  <input value={namaProd} onChange={e => setNamaProd(e.target.value)} required style={{ width: '100%', padding: '14px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
+                  <input value={namaProd} onChange={e => setNamaProd(e.target.value)} required style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                   <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Harga (Rp)</label>
-                      <input value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" style={{ width: '100%', padding: '14px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
+                      <input value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Stok Awal</label>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <input value={stokProd} onChange={e => setStokProd(e.target.value)} required type="number" style={{ width: '60%', padding: '14px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-                        <select value={satuanProd} onChange={e => setSatuanProd(e.target.value)} style={{ width: '40%', padding: '14px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '12px', fontWeight: 'bold', outline: 'none' }}>
+                        <input value={stokProd} onChange={e => setStokProd(e.target.value)} required type="number" style={{ width: '55%', padding: '12px 6px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
+                        <select value={satuanProd} onChange={e => setSatuanProd(e.target.value)} style={{ width: '45%', padding: '12px 4px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '11px', fontWeight: 'bold', outline: 'none' }}>
                           <option value="Pcs">Pcs</option><option value="Kg">Kg</option><option value="Gram">Gram</option><option value="Liter">Liter</option><option value="Pack">Pack</option><option value="Box">Box</option><option value="Cup">Cup</option>
                         </select>
                       </div>
@@ -554,8 +591,8 @@ function App() {
                   </div>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-                    <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Kosong = Otomatis" style={{ flex: 1, padding: '14px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-                    <button type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ padding: '0 16px', background: '#ea580c', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                    <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Kosong = Otomatis" style={{ flex: 1, padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
+                    <button type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ padding: '0 16px', background: '#ea580c', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
                       📸 Scan
                     </button>
                   </div>
@@ -565,93 +602,98 @@ function App() {
                       <div id="reader-toko" style={{ width: '100%', maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px' }}></div>
                     </div>
                   )}
-                  <button type="submit" style={{ width: '100%', padding: '16px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  <button type="submit" style={{ width: '100%', padding: '14px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                     SIMPAN PRODUK
                   </button>
                 </form>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* --- TAB PENGELUARAN (LAYOUT FULL) --- */}
-        {activeTab === 'pengeluaran' && (
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {/* Hapus maxWidth restriction agar full */}
-            <div className="mobile-reverse" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap-reverse', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
+          {/* --- TAB PENGELUARAN (FULL LAYOUT KIRI-KANAN) --- */}
+          {activeTab === 'pengeluaran' && (
+            <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
               
-              <div style={{ flex: '1 1 70%', background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflowX: 'auto' }}>
-                <h3 style={{ margin: '0 0 24px 0', color: '#1e293b', fontSize: '20px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '13px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Tanggal & Waktu</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Keterangan Pengeluaran</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Nominal</th>
-                      <th style={{ padding: '16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada pengeluaran tercatat.</td></tr> : 
-                      pengeluaran.map(p => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '16px', color: '#64748b', fontSize: '13px', fontWeight: '500' }}>{p.waktu?.toDate().toLocaleString('id-ID')}</td>
-                        <td style={{ padding: '16px', fontWeight: '700', color: '#1e293b', fontSize: '14px' }}>{p.nama}</td>
-                        <td style={{ padding: '16px', fontWeight: '800', color: '#e11d48', fontSize: '15px' }}>- Rp {p.nominal.toLocaleString()}</td>
-                        <td style={{ padding: '16px' }}>
-                          <button onClick={async () => { if(window.confirm('Yakin hapus data ini?')) await deleteDoc(doc(db, "pengeluaran", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 12px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Hapus</button>
-                        </td>
+              <div className="table-section scrollable-box" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                <h3 style={{ flex: 'none', margin: '0 0 20px 0', color: '#1e293b', fontSize: '18px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
+                
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', color: '#475569', fontSize: '12px', textTransform: 'uppercase' }}>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Tanggal & Waktu</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Keterangan</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Nominal</th>
+                        <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada pengeluaran.</td></tr> : 
+                        pengeluaran.map(p => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '12px', fontWeight: '500' }}>{p.waktu?.toDate().toLocaleString('id-ID')}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: '700', color: '#1e293b', fontSize: '13px' }}>{p.nama}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: '800', color: '#e11d48', fontSize: '14px' }}>- Rp {p.nominal.toLocaleString()}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <button onClick={async () => { if(window.confirm('Yakin hapus data ini?')) await deleteDoc(doc(db, "pengeluaran", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              <div style={{ flex: '1 1 25%' }}>
-                <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '32px', borderRadius: '24px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 24px 0', color: '#e11d48', fontSize: '20px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
+              <div className="form-section sticky-box" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
+                <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                  <h3 style={{ margin: '0 0 20px 0', color: '#e11d48', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Keterangan (Contoh: Bayar Listrik, Kulakan)</label>
-                  <input value={namaPengeluaran} onChange={e => setNamaPengeluaran(e.target.value)} required style={{ width: '100%', padding: '14px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
+                  <input value={namaPengeluaran} onChange={e => setNamaPengeluaran(e.target.value)} required style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                   <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', display: 'block', marginBottom: '6px' }}>Nominal Pengeluaran (Rp)</label>
-                  <input value={nominalPengeluaran} onChange={e => setNominalPengeluaran(e.target.value)} required type="number" style={{ width: '100%', padding: '14px', marginBottom: '24px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', fontSize: '14px', outline: 'none' }} />
-                  <button type="submit" style={{ width: '100%', padding: '16px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 10px 15px -3px rgba(225, 29, 72, 0.3)' }}>SIMPAN PENGELUARAN</button>
+                  <input value={nominalPengeluaran} onChange={e => setNominalPengeluaran(e.target.value)} required type="number" style={{ width: '100%', padding: '12px', marginBottom: '24px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
+                  <button type="submit" style={{ width: '100%', padding: '14px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>SIMPAN PENGELUARAN</button>
                 </form>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* --- TAB LAPORAN --- */}
-        {activeTab === 'laporan' && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '100px' }}>
-            <div style={{ padding: '32px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-              <h2 style={{ fontSize: '28px', marginBottom: '32px', color: '#1e293b', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
-              <div style={{ background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '32px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <select value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ padding: '14px 20px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#f8fafc', fontSize: '15px', fontWeight: '600', color: '#334155', outline: 'none' }}>
+          {/* --- TAB LAPORAN (COMPACT, FILTER LENGKAP, SCROLL INTERNAL) --- */}
+          {activeTab === 'laporan' && (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', maxWidth: '1000px', margin: '0 auto' }}>
+              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                <h2 style={{ fontSize: '22px', margin: 0, color: '#1e293b', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
+                <button onClick={exportExcel} style={{ padding: '10px 20px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
+              </div>
+              
+              {/* Kolom Pencarian & Filter (FITUR BARU) */}
+              <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <input type="text" placeholder="🔍 Cari transaksi, nama barang, atau metode bayar..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
+                <select value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#334155', outline: 'none', minWidth: '150px' }}>
                   <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
                 </select>
-                <button onClick={exportExcel} style={{ padding: '14px 24px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '15px' }}>📥 Download Excel</button>
               </div>
 
-              <div style={{ background: 'white', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '15px', fontWeight: '500' }}>Belum ada transaksi.</div> : 
+              {/* Data Transaksi yang Diperkecil Barisnya agar muat banyak dan bisa di-scroll */}
+              <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
                   filteredTransaksi.map(t => (
-                  <div key={t.id} style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={t.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '15px', marginBottom: '8px' }}>{t.waktu?.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - {t.waktu?.toDate().toLocaleTimeString('id-ID')}</div>
-                      <div style={{ color: '#475569', fontSize: '13px', background: '#fff7ed', padding: '6px 12px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#ea580c' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
+                      <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '13px', marginBottom: '6px' }}>{t.waktu?.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })} - {t.waktu?.toDate().toLocaleTimeString('id-ID')}</div>
+                      <div style={{ color: '#475569', fontSize: '12px', background: '#fff7ed', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#ea580c' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: '900', color: '#ea580c', fontSize: '20px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
-                      {t.metode === 'Tunai' && <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 6px', color: '#cbd5e1' }}>|</span> Kembali: Rp {t.kembalian?.toLocaleString()}</div>}
+                      <div style={{ fontWeight: '900', color: '#ea580c', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
+                      {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+        </div>
       </main>
 
       {/* --- MODAL EDIT PROFIL TOKO --- */}
@@ -767,10 +809,10 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH - Tinggi COMPACT & Warna Kuning Mustard */}
-      <nav className="no-print" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff3e0', backdropFilter: 'blur(20px)', borderTop: '1px solid #fed7aa', display: 'flex', padding: '5px 0', boxShadow: '0 -10px 25px rgba(234, 88, 12, 0.05)', zIndex: 10, height: '60px' }}>
-        {[ { id: 'dashboard', label: 'Laba', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Barang', icon: '📦' }, { id: 'pengeluaran', label: 'Kas Keluar', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#ea580c' : '#94a3b8', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
+      {/* NAVIGASI BAWAH - WARNA KUNING MUSTARD & TEKS DIKEMBALIKAN */}
+      <nav className="no-print" style={{ flex: 'none', height: '60px', background: '#fff9c4', borderTop: '1px solid #ffe082', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(0,0,0,0.05)', zIndex: 10, boxSizing: 'border-box' }}>
+        {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#ea580c' : '#94a3b8', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
             <span style={{ transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s' }}>{tab.icon}</span>
             <span style={{ fontSize: '11px', fontWeight: activeTab === tab.id ? '800' : '600', textAlign: 'center' }}>{tab.label}</span>
           </button>
@@ -799,16 +841,17 @@ function App() {
           .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; }
           
           /* KASIR MOBILE: Batasi tinggi daftar produk agar keranjang tidak tenggelam */
-          .kasir-wrapper { overflow-y: auto !important; padding-bottom: 70px !important; }
-          .kasir-left-panel { height: 30vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
-          .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
-          .cart-list { max-height: 25vh !important; overflow-y: auto !important; min-height: 120px !important; }
-
+          .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
+          .kasir-right-panel { height: auto !important; flex: 1 !important; box-shadow: none !important; }
+          
           /* Kecilkan Grid Produk HP agar lebih banyak muat */
-          .kasir-left-panel .grid-container > div { gridTemplateColumns: repeat(auto-fill, minmax(100px, 1fr)) !important; gap: 8px !important; }
-          .kasir-left-panel .grid-container > div > div { padding: 8px !important; borderRadius: 8px !important; }
-          .kasir-left-panel .grid-container > div > div h3 { fontSize: 12px !important; }
-          .kasir-left-panel .grid-container > div > div .price { fontSize: 14px !important; }
+          .kasir-left-panel .grid-container > div { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 8px !important; }
+          .kasir-left-panel .grid-container > div > div { padding: 10px !important; border-radius: 8px !important; }
+          .kasir-left-panel .grid-container > div > div h3 { font-size: 12px !important; }
+          
+          /* Tabel Section untuk HP */
+          .table-section { max-height: 50vh !important; }
+          .form-section { height: auto !important; flex: none !important; }
         }
       `}</style>
     </div>
