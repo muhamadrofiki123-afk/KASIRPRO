@@ -540,7 +540,9 @@ function App() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '15px', paddingTop: '10px' }}>
                   {chartData.data.map((d, i) => (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>{d.total > 0 ? d.total.toLocaleString() : ''}</div>
+                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>
+                        {d.total > 0 ? d.total.toLocaleString() : ''}
+                      </div>
                       <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #fdba74, #FF7835)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
                       <div style={{ fontSize: '12px', color: '#27274F', marginTop: '10px', fontWeight: '700', textAlign: 'center' }}>{d.label}</div>
                     </div>
@@ -1078,7 +1080,8 @@ function App() {
                   display: 'flex', 
                   flexDirection: 'column', 
                   padding: '6px 8px', 
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  overflow: 'hidden'
                 }}>
                   {/* ATAS: NAMA BARANG (DINAMIS & TENGAH) */}
                   <div style={{ 
@@ -1114,14 +1117,15 @@ function App() {
                     </div>
                   </div>
                   
-                  {/* BAWAH: HARGA + SATUAN (DIPERBESAR) */}
+                  {/* BAWAH: HARGA + SATUAN (ANTI-BENTROK, DINAMIS) */}
                   <div style={{ 
-                    fontSize: '22px', 
+                    fontSize: p.harga.toString().length > 6 ? '17px' : '22px', 
                     fontWeight: '900', 
                     color: '#000', 
                     textAlign: 'right',
                     lineHeight: '1',
-                    marginBottom: '2px'
+                    marginBottom: '2px',
+                    whiteSpace: 'nowrap'
                   }}>
                     Rp {p.harga.toLocaleString()} / {p.satuan || 'Pcs'}
                   </div>
