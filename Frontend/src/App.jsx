@@ -41,8 +41,13 @@ function App() {
   const [search, setSearch] = useState('');
   const [searchLaporan, setSearchLaporan] = useState(''); 
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [barcodeInput, setBarcodeInput] = useState('');
   
+  // STATE BARU UNTUK FITUR BON & LAPORAN
+  const [laporanTab, setLaporanTab] = useState('transaksi'); // 'transaksi' atau 'bon'
+  const [showBonModal, setShowBonModal] = useState(false);
+  const [namaPelangganBon, setNamaPelangganBon] = useState('');
+
+  const [barcodeInput, setBarcodeInput] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [metodePembayaran, setMetodePembayaran] = useState('Tunai'); 
   const [isScanningKasir, setIsScanningKasir] = useState(false);
@@ -160,7 +165,9 @@ function App() {
     const today = new Date().toISOString().split('T')[0];
     const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toISOString().split('T')[0] === today);
     const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today);
-    const omzetHariIni = todayTrans.reduce((sum, t) => sum + t.total, 0);
+    
+    // FITUR BON: Omzet hanya menghitung yang Lunas/Tunai/QRIS/Transfer (Bon belum lunas tidak masuk omzet)
+    const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
     setDashboardStats({
@@ -249,18 +256,36 @@ function App() {
   const totalAmount = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
   const kembalian = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalAmount : 0;
 
+  // FITUR BON: Pisahkan logika cek bayar dan simpan database
   const processPayment = async () => {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
-    const finalUangBayar = metodePembayaran === 'Tunai' ? Number(paymentAmount) : totalAmount;
+    
+    if (metodePembayaran === 'Bon') {
+      setShowBonModal(true); 
+    } else {
+      await finalizePayment(metodePembayaran); 
+    }
+  };
+
+  const finalizePayment = async (metode) => {
+    const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmount;
     const dataTrans = {
       userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty, satuan: i.satuan || 'Pcs'})),
-      total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metodePembayaran, waktu: new Date()
+      total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metode, waktu: new Date()
     };
+
+    if (metode === 'Bon') {
+      if (!namaPelangganBon.trim()) return alert("Nama pelanggan wajib diisi!");
+      dataTrans.namaPelanggan = namaPelangganBon;
+      dataTrans.statusBon = 'Belum Lunas';
+    }
+
     try {
       await addDoc(collection(db, "transaksi"), { ...dataTrans, waktu: serverTimestamp() });
       for (const item of cart) { await updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); }
-      setStrukData(dataTrans); setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); setShowQrisModal(false);
+      setStrukData(dataTrans); setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); 
+      setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon('');
     } catch (err) { alert("Gagal memproses transaksi"); }
   };
 
@@ -298,7 +323,7 @@ function App() {
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
     const cari = searchLaporan.toLowerCase();
-    const matchCari = cari === '' || t.items.some(i => i.nama.toLowerCase().includes(cari)) || (t.metode && t.metode.toLowerCase().includes(cari));
+    const matchCari = cari === '' || t.items.some(i => i.nama.toLowerCase().includes(cari)) || (t.metode && t.metode.toLowerCase().includes(cari)) || (t.namaPelanggan && t.namaPelanggan.toLowerCase().includes(cari));
     if (!matchCari) return false;
 
     const dateObj = t.waktu.toDate ? t.waktu.toDate() : new Date(); const today = new Date();
@@ -308,16 +333,22 @@ function App() {
     return true;
   });
 
+  // LOGIKA "LUNAS = HAPUS" DARI TABEL BON
+  // Jika tab Bon aktif, hanya tampilkan yang metodenya Bon DAN statusnya BUKAN Lunas.
+  const displayedLaporan = laporanTab === 'bon' 
+    ? filteredTransaksi.filter(t => t.metode === 'Bon' && t.statusBon !== 'Lunas') 
+    : filteredTransaksi;
+
   const exportExcel = () => {
-    const headers = ["Tanggal,Jam,Metode Pembayaran,Item,Total,Tunai,Kembali"];
-    const rows = filteredTransaksi.map(t => {
+    const headers = ["Tanggal,Jam,Metode Pembayaran,Nama Pelanggan (Bon),Status Bon,Item,Total,Tunai,Kembali"];
+    const rows = displayedLaporan.map(t => {
       const d = t.waktu?.toDate ? t.waktu.toDate() : new Date();
       const items = t.items.map(i => `${i.qty} ${i.satuan || 'Pcs'} ${i.nama}`).join(' + ');
-      return `${d.toLocaleDateString('id-ID')},${d.toLocaleTimeString('id-ID')},${t.metode || 'Tunai'},"${items}",${t.total},${t.uangBayar},${t.kembalian}`;
+      return `${d.toLocaleDateString('id-ID')},${d.toLocaleTimeString('id-ID')},${t.metode || 'Tunai'},"${t.namaPelanggan || '-'}","${t.statusBon || '-'}","${items}",${t.total},${t.uangBayar},${t.kembalian}`;
     });
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + headers.concat(rows).join("\n")));
-    link.setAttribute("download", `Laporan_Kasir.csv`);
+    link.setAttribute("download", `Laporan_${laporanTab === 'bon' ? 'Bon' : 'Transaksi'}_Kasir.csv`);
     document.body.appendChild(link); link.click();
   };
 
@@ -326,30 +357,28 @@ function App() {
     if (chartFilter === 'jam') {
       const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === now.toDateString());
       for(let i=8; i<=22; i+=2) {
-        labels.push(`${i}:00`); values.push(todayTrans.filter(t => t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0));
+        labels.push(`${i}:00`); values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'hari') {
       for(let i=6; i>=0; i--) {
         const d = new Date(now); d.setDate(d.getDate() - i);
-        labels.push(`${d.getDate()}/${d.getMonth()+1}`); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === d.toDateString()).reduce((s, t) => s + t.total, 0));
+        labels.push(`${d.getDate()}/${d.getMonth()+1}`); values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === d.toDateString()).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'bulan') {
       for(let i=5; i>=0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString('default', { month: 'short' })); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().getMonth() === d.getMonth() && t.waktu.toDate().getFullYear() === d.getFullYear()).reduce((s, t) => s + t.total, 0));
+        labels.push(d.toLocaleString('default', { month: 'short' })); values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().getMonth() === d.getMonth() && t.waktu.toDate().getFullYear() === d.getFullYear()).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'tahun') {
       for(let i=4; i>=0; i--) {
         const year = now.getFullYear() - i;
-        labels.push(year); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().getFullYear() === year).reduce((s, t) => s + t.total, 0));
+        labels.push(year); values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().getFullYear() === year).reduce((s, t) => s + t.total, 0));
       }
     }
     const max = Math.max(...values, 1);
     return { data: labels.map((l, i) => ({ label: l, total: values[i] })), max };
   };
   const chartData = getChartData();
-
-  // VARIABEL LOGIKA LABA BERSIH
   const isProfit = dashboardStats.labaBersih >= 0;
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}><strong>Memuat Sistem...</strong></div>;
@@ -370,7 +399,6 @@ function App() {
               {isRegister ? 'BUAT AKUN BARU' : 'MASUK KE SISTEM'}
             </button>
           </form>
-          
           <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#FF7835', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>
             {isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}
           </p>
@@ -383,25 +411,22 @@ function App() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc', overflow: 'hidden' }}>
       
-      {/* HEADER STATIC DENGAN JAM & TANGGAL LIVE */}
+      {/* HEADER */}
       <header className="no-print" style={{ flex: 'none', height: '70px', background: 'white', padding: '0 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, boxSizing: 'border-box' }}>
         <div style={{ flex: 1, minWidth: 0, paddingRight: '10px' }}>
           <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{namaToko || 'POS MODERN PRO'}</h1>
           <p className="header-email" style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Akun: {user.email}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
-          
           <div className="live-clock" style={{ textAlign: 'right', paddingRight: '16px', borderRight: '2px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div className="date-text" style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>{currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</div>
             <div className="time-text" style={{ fontSize: '15px', fontWeight: '900', color: '#272734', letterSpacing: '0.5px' }}>{currentTime.toLocaleTimeString('id-ID')}</div>
           </div>
-
           <button tabIndex="0" onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #FF7835', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#FF7835' }}>👤</button>
           <button tabIndex="0" onClick={() => signOut(auth)} style={{ padding: '8px 16px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}>Logout</button>
         </div>
       </header>
 
-      {/* CONTAINER HALAMAN UTAMA */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
           
         {/* --- TAB DASHBOARD --- */}
@@ -418,15 +443,12 @@ function App() {
                   <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Pengeluaran Hari Ini</div>
                   <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
                 </div>
-                
-                {/* FITUR BARU: WARNA LABA BERSIH DINAMIS */}
                 <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                   <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '700', color: '#64748b' }}>Laba Bersih Hari Ini</div>
                   <div style={{ fontSize: '26px', fontWeight: '900', color: isProfit ? '#10b981' : '#ef4444' }}>
                     {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
                   </div>
                 </div>
-
                 <div style={{ background: '#0ea5e9', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(14, 165, 233, 0.15)' }}>
                   <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Produk & Stok Tipis</div>
                   <div style={{ fontSize: '26px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
@@ -531,18 +553,19 @@ function App() {
                   <span style={{ fontSize: '20px', fontWeight: '900', color: '#272734' }}>Rp {totalAmount.toLocaleString()}</span>
                 </div>
                 
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
-                  {['Tunai', 'QRIS', 'Transfer'].map(metode => (
+                <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
+                  {['Tunai', 'QRIS', 'Transfer', 'Bon'].map(metode => (
                     <button
-                      key={metode} tabIndex="0"
-                      onClick={() => { setMetodePembayaran(metode); if(metode !== 'Tunai') setPaymentAmount(totalAmount); else setPaymentAmount(''); }}
+                      key={metode} tabIndex="0" className="btn-metode"
+                      onClick={() => { setMetodePembayaran(metode); if(metode !== 'Tunai' && metode !== 'Bon') setPaymentAmount(totalAmount); else setPaymentAmount(''); }}
                       style={{
-                        flex: 1, padding: '8px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
+                        flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
                         background: metodePembayaran === metode ? '#FF7835' : 'white', color: metodePembayaran === metode ? 'white' : '#27274F',
-                        border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1', transition: 'all 0.2s'
+                        border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1', transition: 'all 0.2s',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                       }}
                     >
-                      {metode === 'Tunai' ? '💵 Tunai' : metode === 'QRIS' ? '📱 QRIS' : '💳 Transfer'}
+                      {metode === 'Tunai' ? '💵 Tunai' : metode === 'QRIS' ? '📱 QRIS' : metode === 'Transfer' ? '💳 Transfer' : '📝 Bon'}
                     </button>
                   ))}
                 </div>
@@ -554,9 +577,13 @@ function App() {
                     <button tabIndex="0" onClick={() => setShowQrisModal(true)} disabled={!qrisImage} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: !qrisImage ? '#cbd5e1' : '#272734', color: 'white', border: 'none', fontWeight: '800', cursor: !qrisImage ? 'not-allowed' : 'pointer', fontSize: '13px', textTransform: 'uppercase' }}>
                       {qrisImage ? '📱 TAMPILKAN QRIS' : '⚠️ QRIS BELUM DIATUR'}
                     </button>
-                  ) : (
+                  ) : metodePembayaran === 'Transfer' ? (
                     <div style={{ padding: '10px', background: '#eff6ff', color: '#0369a1', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #bae6fd' }}>
                       💳 Pastikan transfer masuk sebelum cetak struk.
+                    </div>
+                  ) : (
+                    <div style={{ padding: '10px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #ffedd5' }}>
+                      📝 Tagihan akan dicatat sebagai Bon (Piutang).
                     </div>
                   )}
                 </div>
@@ -729,29 +756,51 @@ function App() {
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
             </div>
+
+            <div style={{ flex: 'none', display: 'flex', gap: '8px', width: '100%', marginBottom: '16px' }}>
+              <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('transaksi')} style={{ flex: 1, padding: '12px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '12px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '14px', transition: '0.2s' }}>Semua Transaksi</button>
+              <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('bon')} style={{ flex: 1, padding: '12px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '12px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '14px', transition: '0.2s' }}>Buku Bon (Piutang)</button>
+            </div>
             
             <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
-              <input type="text" placeholder="🔍 Cari transaksi, nama barang, atau metode bayar..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
+              <input type="text" placeholder="🔍 Cari nama barang, metode bayar, atau nama pelanggan..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
                 <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
               </select>
             </div>
 
             <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
-              {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
-                filteredTransaksi.map(t => (
-                <div key={t.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              {displayedLaporan.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data di tabel ini.</div> : 
+                displayedLaporan.map(t => (
+                <div key={t.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: '800', color: '#272734', fontSize: '13px', marginBottom: '6px' }}>{t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }) : 'Baru saja'} - {t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleTimeString('id-ID') : ''}</div>
-                    <div style={{ color: '#27274F', fontSize: '12px', background: '#fff7ed', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
+                    
+                    {t.metode === 'Bon' && (
+                      <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '900', color: '#272734' }}>👤 {t.namaPelanggan}</span>
+                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900', background: t.statusBon === 'Lunas' ? '#dcfce7' : '#fee2e2', color: t.statusBon === 'Lunas' ? '#16a34a' : '#dc2626' }}>
+                          {t.statusBon === 'Lunas' ? '✓ LUNAS' : '⚠️ BELUM LUNAS'}
+                        </span>
+                      </div>
+                    )}
+
+                    <div style={{ color: '#27274F', fontSize: '12px', background: '#fff7ed', padding: '6px 10px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '6px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
                     <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#FF7835' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
                   </div>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                  
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
+                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '18px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
                       {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
                     </div>
-                    <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak Ulang</button>
+                    
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {t.metode === 'Bon' && t.statusBon === 'Belum Lunas' && (
+                        <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) await updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: serverTimestamp() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
+                      )}
+                      <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak</button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -760,6 +809,24 @@ function App() {
         )}
 
       </main>
+
+      {/* --- POP-UP MODAL BON (PIUTANG) --- */}
+      {showBonModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'left', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '22px', fontWeight: '900' }}>📝 Catat Bon Pelanggan</h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '600' }}>Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '20px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
+            
+            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', marginBottom: '8px', display: 'block' }}>Nama Pelanggan / Nomor WA <span style={{color: '#ef4444'}}>*</span></label>
+            <input autoFocus value={namaPelangganBon} onChange={e => setNamaPelangganBon(e.target.value)} placeholder="Contoh: Pak Budi" style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '15px', fontWeight: '700', outline: 'none' }} />
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button tabIndex="0" onClick={() => setShowBonModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
+              <button tabIndex="0" onClick={() => finalizePayment('Bon')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SIMPAN BON</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL EDIT PROFIL TOKO --- */}
       {showProfileModal && (
@@ -804,7 +871,7 @@ function App() {
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button tabIndex="0" onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>TUTUP</button>
-              <button tabIndex="0" onClick={processPayment} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH DIBAYAR</button>
+              <button tabIndex="0" onClick={() => finalizePayment('QRIS')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH DIBAYAR</button>
             </div>
           </div>
         </div>
@@ -817,7 +884,9 @@ function App() {
             <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
             <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-            <p style={{ fontSize: '12px', textAlign: 'left' }}>Tgl: {strukData.waktu && typeof strukData.waktu.toDate === 'function' ? strukData.waktu.toDate().toLocaleString('id-ID') : (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date().toLocaleString('id-ID'))}<br/>Metode: {strukData.metode}</p>
+            <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>Tgl: {strukData.waktu && typeof strukData.waktu.toDate === 'function' ? strukData.waktu.toDate().toLocaleString('id-ID') : (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date().toLocaleString('id-ID'))}</p>
+            <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>Metode: {strukData.metode}</p>
+            {strukData.metode === 'Bon' && <p style={{ fontSize: '13px', textAlign: 'left', margin: '4px 0', fontWeight: 'bold' }}>PELANGGAN: {strukData.namaPelanggan}</p>}
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             {strukData.items.map((it, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
@@ -862,7 +931,7 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH (EFEK KAPSUL DIHILANGKAN, TEKS DESKTOP DIBESARKAN) */}
+      {/* NAVIGASI BAWAH */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(255, 120, 53, 0.1)', zIndex: 10, boxSizing: 'border-box' }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
           <button key={tab.id} tabIndex="0" className="nav-btn" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', margin: '0', border: 'none', background: 'transparent', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s' }}>
@@ -890,25 +959,23 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
 
-        /* FOKUS WARNA ORANGE SAAT PAKE KEYBOARD (TAB/PANAH) */
         button:focus, [tabindex="0"]:focus { outline: none !important; box-shadow: 0 0 0 4px rgba(255, 120, 53, 0.4) !important; border-radius: inherit; }
         input:focus, select:focus { border-color: #FF7835 !important; outline: none !important; box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; }
         
-        /* EFEK NAVIGASI KLIK NATURAL (TANPA KOTAK) */
         .nav-btn:active { transform: scale(0.95); opacity: 0.7; }
         .nav-btn:focus { box-shadow: none !important; outline: none !important; }
-        .nav-text { font-size: 14px; } /* Ukuran Teks Menu Desktop */
+        .nav-text { font-size: 14px; } 
 
-        /* MENGATASI KELUHAN HP */
         @media (max-width: 768px) {
-          .nav-text { font-size: 11px !important; } /* Ukuran Teks Menu HP */
+          .nav-text { font-size: 11px !important; } 
           
-          /* MEMPERBAIKI KAMERA HP AGAR PERSEGI PANJANG (TIDAK NUTUPI KERANJANG) */
+          .btn-metode { font-size: 10px !important; padding: 8px 2px !important; letter-spacing: -0.2px; }
+          .tab-laporan-btn { font-size: 11px !important; padding: 10px !important; }
+
           #camera-popup-container { padding: 10px !important; margin-bottom: 10px !important; }
           #reader-kasir { height: 150px !important; }
           #reader-kasir video { object-fit: cover !important; height: 150px !important; }
 
-          /* Menyembunyikan elemen header berlebih agar nama toko tidak patah */
           .header-title { font-size: 15px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
           .header-email { display: none !important; }
           .live-clock { display: none !important; }
