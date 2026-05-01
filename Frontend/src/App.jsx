@@ -26,6 +26,9 @@ function App() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // FITUR BARU: WAKTU & TANGGAL LIVE SEKARANG
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   const [produk, setProduk] = useState([]);
   const [transaksi, setTransaksi] = useState([]);
   const [pengeluaran, setPengeluaran] = useState([]); 
@@ -70,6 +73,12 @@ function App() {
   const [reportFilter, setReportFilter] = useState('hari');
   const [chartFilter, setChartFilter] = useState('hari'); 
   const [dashboardStats, setDashboardStats] = useState({ todaySales: 0, totalProducts: 0, lowStock: 0, totalPengeluaran: 0, labaBersih: 0 });
+
+  // PENGATURAN JAM OTOMATIS (LIVE CLOCK)
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // NAVIGASI KEYBOARD
   useEffect(() => {
@@ -242,7 +251,6 @@ function App() {
       await updateDoc(doc(db, "produk", editingProductId), { 
         nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: barcodeProd, satuan: satuanProd 
       });
-      alert("Produk Berhasil Diperbarui!");
       setEditingProductId(null);
     } else {
       const checkDuplicate = produk.find(p => p.barcode === barcodeProd && barcodeProd !== "");
@@ -250,7 +258,6 @@ function App() {
       
       const bcode = barcodeProd || Math.floor(100000000000 + Math.random() * 900000000000).toString();
       await addDoc(collection(db, "produk"), { nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() });
-      alert("Produk Berhasil Ditambah!");
     }
     setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
   };
@@ -258,7 +265,7 @@ function App() {
   const simpanPengeluaran = async (e) => {
     e.preventDefault();
     await addDoc(collection(db, "pengeluaran"), { nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: serverTimestamp() });
-    setNamaPengeluaran(''); setNominalPengeluaran(''); alert("Pengeluaran Berhasil Dicatat!");
+    setNamaPengeluaran(''); setNominalPengeluaran(''); 
   };
 
   const simpanProfil = async () => {
@@ -346,25 +353,32 @@ function App() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc', overflow: 'hidden' }}>
       
-      {/* HEADER STATIC */}
+      {/* HEADER STATIC DENGAN JAM & TANGGAL LIVE */}
       <header className="no-print" style={{ flex: 'none', height: '70px', background: 'white', padding: '0 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, boxSizing: 'border-box' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835' }}>{namaToko || 'POS MODERN PRO'}</h1>
           <p style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600' }}>Akun: {user.email}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          
+          {/* FITUR BARU: JAM & TANGGAL */}
+          <div className="live-clock" style={{ textAlign: 'right', paddingRight: '16px', borderRight: '2px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="date-text" style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>{currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</div>
+            <div className="time-text" style={{ fontSize: '15px', fontWeight: '900', color: '#272734', letterSpacing: '0.5px' }}>{currentTime.toLocaleTimeString('id-ID')}</div>
+          </div>
+
           <button tabIndex="0" onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #FF7835', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#FF7835' }}>👤</button>
           <button tabIndex="0" onClick={() => signOut(auth)} style={{ padding: '8px 16px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}>Logout</button>
         </div>
       </header>
 
-      {/* CONTAINER HALAMAN UTAMA */}
+      {/* CONTAINER HALAMAN UTAMA (TIDAK BISA DI-SCROLL FULL) */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
           
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
           <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box', width: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '1200px', margin: '0 auto' }}>
               
               <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ background: '#272734', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(39, 39, 52, 0.15)' }}>
@@ -408,9 +422,8 @@ function App() {
 
         {/* --- TAB KASIR (FIXED LAYOUT KIRI KANAN) --- */}
         {activeTab === 'kasir' && (
-          <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box' }}>
+          <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
-            {/* KIRI: AREA PRODUK & PENCARIAN */}
             <div className="kasir-left-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ flex: 'none', display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="🔍 Cari nama produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '12px 16px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '14px', outline: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
@@ -429,18 +442,13 @@ function App() {
                 </div>
               )}
 
-              {/* AREA LIST PRODUK YANG BISA DI-SCROLL */}
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', paddingBottom: '20px' }}>
                 <div className="grid-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
                   {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
-                    <div key={p.id} 
-                         tabIndex="0" 
-                         onClick={() => addToCart(p)} 
-                         onKeyDown={(e) => { if(e.key === 'Enter') addToCart(p); }} 
+                    <div key={p.id} tabIndex="0" onClick={() => addToCart(p)} onKeyDown={(e) => { if(e.key === 'Enter') addToCart(p); }} 
                          style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', border: p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.1s, border 0.1s' }} 
                          onMouseEnter={(e) => {e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.border = '2px solid #FF7835';}} 
                          onMouseLeave={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent';}}>
-                      
                       {p.stok < 50 && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
                       <h3 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '700', color: '#272734', lineHeight: '1.2' }}>{p.nama}</h3>
                       <div style={{ fontSize: '18px', fontWeight: '900', color: '#0ea5e9', marginBottom: '8px' }}>Rp {p.harga.toLocaleString()}</div>
@@ -453,16 +461,14 @@ function App() {
               </div>
             </div>
 
-            {/* KANAN: KERANJANG DIPERLEBAR JADI 420px */}
             <div className="kasir-right-panel" style={{ flex: '0 0 420px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
               <div style={{ flex: 'none', padding: '16px 20px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5' }}>
                 <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#272734' }}>🛒 Keranjang ({cart.length})</h2>
                 {cart.length > 0 && <button tabIndex="0" onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}>Kosongkan</button>}
               </div>
               
-              {/* SCROLL AREA KERANJANG */}
               <div className="cart-list" style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
-                {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>Belum ada pesanan...</div> : 
+                {cart.length === 0 ? <div style={{ textAlign: 'center', color: '#27274F', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>Belum ada pesanan...</div> : 
                   cart.map(item => (
                   <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -481,7 +487,6 @@ function App() {
                 ))}
               </div>
 
-              {/* AREA PEMBAYARAN BAWAH */}
               <div style={{ flex: 'none', padding: '16px 20px', background: '#fffaf5', borderTop: '2px solid #fed7aa' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#27274F' }}>Total Pembelian:</span>
@@ -553,11 +558,11 @@ function App() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: '#fff7ed', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Nama Produk</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Harga</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Stok</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Barcode</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Aksi</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Nama Produk</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Harga</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Stok</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Barcode</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -642,17 +647,17 @@ function App() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: '#fff7ed', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Tanggal & Waktu</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Keterangan</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Nominal</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed' }}>Aksi</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Tanggal & Waktu</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Keterangan</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Nominal</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada pengeluaran.</td></tr> : 
                       pengeluaran.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500' }}>{p.waktu?.toDate().toLocaleString('id-ID')}</td>
+                        <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500' }}>{p.waktu ? p.waktu.toDate().toLocaleString('id-ID') : 'Baru saja'}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px' }}>{p.nama}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '800', color: '#e11d48', fontSize: '14px' }}>- Rp {p.nominal.toLocaleString()}</td>
                         <td style={{ padding: '12px 16px' }}>
@@ -678,15 +683,16 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB LAPORAN (COMPACT, FILTER LENGKAP, SCROLL INTERNAL) --- */}
+        {/* --- TAB LAPORAN (FULL WIDTH, SCROLL INTERNAL, ADA TOMBOL CETAK ULANG) --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
-            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
             </div>
             
-            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Kolom Pencarian & Filter */}
+            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
               <input type="text" placeholder="🔍 Cari transaksi, nama barang, atau metode bayar..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
                 <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
@@ -694,18 +700,22 @@ function App() {
             </div>
 
             {/* TABEL DATA TRANSAKSI */}
-            <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+            <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
               {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
                 filteredTransaksi.map(t => (
                 <div key={t.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontWeight: '800', color: '#272734', fontSize: '13px', marginBottom: '6px' }}>{t.waktu?.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })} - {t.waktu?.toDate().toLocaleTimeString('id-ID')}</div>
+                    <div style={{ fontWeight: '800', color: '#272734', fontSize: '13px', marginBottom: '6px' }}>{t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }) : 'Baru saja'} - {t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleTimeString('id-ID') : ''}</div>
                     <div style={{ color: '#27274F', fontSize: '12px', background: '#fff7ed', padding: '4px 8px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
                     <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#FF7835' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
-                    {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                    <div>
+                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
+                      {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
+                    </div>
+                    {/* FITUR BARU: TOMBOL CETAK ULANG STRUK */}
+                    <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak Ulang</button>
                   </div>
                 </div>
               ))}
@@ -771,7 +781,8 @@ function App() {
             <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
             <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-            <p style={{ fontSize: '12px', textAlign: 'left' }}>Tgl: {strukData.waktu.toLocaleString()}<br/>Metode: {strukData.metode}</p>
+            {/* PENYESUAIAN FORMAT WAKTU AGAR BISA DIBACA SAAT CETAK ULANG */}
+            <p style={{ fontSize: '12px', textAlign: 'left' }}>Tgl: {strukData.waktu && typeof strukData.waktu.toDate === 'function' ? strukData.waktu.toDate().toLocaleString('id-ID') : (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date().toLocaleString('id-ID'))}<br/>Metode: {strukData.metode}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             {strukData.items.map((it, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
@@ -816,7 +827,7 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH (NAMA KEMBALI KE AWAL) */}
+      {/* NAVIGASI BAWAH */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(255, 120, 53, 0.1)', zIndex: 10, boxSizing: 'border-box' }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
           <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
@@ -846,6 +857,9 @@ function App() {
         input:focus, select:focus { border-color: #FF7835 !important; outline: none !important; box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; }
 
         @media (max-width: 768px) {
+          .live-clock .date-text { display: none !important; }
+          .live-clock .time-text { font-size: 13px !important; }
+          
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           
