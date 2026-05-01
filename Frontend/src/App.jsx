@@ -274,12 +274,10 @@ function App() {
   const totalAmount = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
   const kembalian = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalAmount : 0;
 
-  // FITUR BON: Pisahkan logika cek bayar dan simpan database
   const processPayment = async () => {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
     
-    // JIKA METODE BON, MUNCULKAN POP-UP SETELAH KLIK BAYAR & CETAK
     if (metodePembayaran === 'Bon') {
       setShowBonModal(true); 
     } else {
@@ -575,7 +573,6 @@ function App() {
                     <button
                       key={metode} tabIndex="0" className="btn-metode"
                       onClick={() => {
-                        // KEMBALI KE INSTRUKSI AWAL: POP-UP TIDAK MUNCUL DI SINI!
                         setMetodePembayaran(metode);
                         if(metode !== 'Tunai' && metode !== 'Bon') setPaymentAmount(totalAmount);
                         else setPaymentAmount('');
@@ -804,34 +801,41 @@ function App() {
             <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
               {displayedLaporan.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data di tabel ini.</div> : 
                 displayedLaporan.map(t => (
-                <div key={t.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                
+                /* REVISI DESAIN: PADDING DIKURANGI AGAR KOTAK LEBIH TIPIS & MUAT BANYAK DI LAYAR */
+                <div key={t.id} style={{ padding: '8px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontWeight: '800', color: '#272734', fontSize: '13px', marginBottom: '6px' }}>{t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }) : 'Baru saja'} - {t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleTimeString('id-ID') : ''}</div>
+                    {/* REVISI DESAIN: MARGIN BAWAH & FONT DIKECILKAN SEDIKIT */}
+                    <div style={{ fontWeight: '800', color: '#272734', fontSize: '12px', marginBottom: '4px' }}>{t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }) : 'Baru saja'} - {t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleTimeString('id-ID') : ''}</div>
                     
+                    {/* INFO PELANGGAN BON */}
                     {t.metode === 'Bon' && (
-                      <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                         <span style={{ fontSize: '13px', fontWeight: '900', color: '#272734' }}>👤 {t.namaPelanggan}</span>
-                        <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '900', background: t.statusBon === 'Lunas' ? '#dcfce7' : '#fee2e2', color: t.statusBon === 'Lunas' ? '#16a34a' : '#dc2626' }}>
+                        <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '900', background: t.statusBon === 'Lunas' ? '#dcfce7' : '#fee2e2', color: t.statusBon === 'Lunas' ? '#16a34a' : '#dc2626' }}>
                           {t.statusBon === 'Lunas' ? '✓ LUNAS' : '⚠️ BELUM LUNAS'}
                         </span>
                       </div>
                     )}
 
-                    <div style={{ color: '#27274F', fontSize: '12px', background: '#fff7ed', padding: '6px 10px', borderRadius: '6px', display: 'inline-block', fontWeight: '700', marginBottom: '6px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
+                    {/* REVISI DESAIN: PADDING & FONT BARANG DIKECILKAN SEDIKIT */}
+                    <div style={{ color: '#27274F', fontSize: '11px', background: '#fff7ed', padding: '4px 8px', borderRadius: '4px', display: 'inline-block', fontWeight: '700', marginBottom: '4px' }}>{t.items.map(i => `${i.qty} ${i.satuan||'Pcs'} ${i.nama}`).join(', ')}</div>
                     <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '700' }}>Metode: <span style={{ color: t.metode === 'Tunai' ? '#FF7835' : '#0ea5e9' }}>{t.metode || 'Tunai'}</span></div>
                   </div>
                   
                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '18px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
-                      {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
+                      {/* REVISI DESAIN: UKURAN HARGA TOTAL SEDIKIT DIPADATKAN */}
+                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '15px', marginBottom: '2px' }}>Rp {t.total.toLocaleString()}</div>
+                      {t.metode === 'Tunai' && <div style={{ fontSize: '10px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {/* TOMBOL PELUNASAN KHUSUS BON */}
                       {t.metode === 'Bon' && t.statusBon === 'Belum Lunas' && (
-                        <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) await updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: serverTimestamp() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
+                        <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) await updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: serverTimestamp() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
                       )}
-                      <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak</button>
+                      <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak</button>
                     </div>
                   </div>
                 </div>
