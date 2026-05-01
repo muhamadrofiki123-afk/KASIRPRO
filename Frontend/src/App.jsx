@@ -726,7 +726,7 @@ function App() {
                         <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
                           <button tabIndex="0" onClick={() => { setNamaProd(p.nama); setHargaProd(p.harga); setStokProd(p.stok); setBarcodeProd(p.barcode); setSatuanProd(p.satuan || 'Pcs'); setEditingProductId(p.id); }} style={{ background: '#272734', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
                           <button tabIndex="0" onClick={() => { setPrintData([p]); setPrintMode('label'); }} style={{ background: '#FF7835', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Cetak</button>
-                          <button tabIndex="0" onClick={() => { if(window.confirm('Yakin ingin menghapus produk ini?')) deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin ingin menghapus produk ini?')) deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                         </td>
                       </tr>
                     ))}
@@ -809,11 +809,11 @@ function App() {
                     {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada pengeluaran.</td></tr> : 
                       pengeluaran.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500' }}>{p.waktu ? p.waktu.toDate().toLocaleString('id-ID') : 'Baru saja'}</td>
+                        <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500' }}>{p.waktu ? (p.waktu.toDate ? p.waktu.toDate().toLocaleString('id-ID') : new Date(p.waktu).toLocaleString('id-ID')) : 'Baru saja'}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px' }}>{p.nama}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '800', color: '#e11d48', fontSize: '14px' }}>- Rp {p.nominal.toLocaleString()}</td>
                         <td style={{ padding: '12px 16px' }}>
-                          <button tabIndex="0" onClick={() => { if(window.confirm('Yakin hapus data ini?')) deleteDoc(doc(db, "pengeluaran", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin hapus data ini?')) deleteDoc(doc(db, "pengeluaran", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                         </td>
                       </tr>
                     ))}
@@ -839,14 +839,14 @@ function App() {
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
             
-            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '10px', width: '100%' }}>
+            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
               <h2 style={{ margin: 0, fontSize: '20px', color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('transaksi')} style={{ padding: '6px 12px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '6px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }}>Semua Transaksi</button>
-                <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('bon')} style={{ padding: '6px 12px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '6px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '12px', transition: '0.2s' }}>Buku Bon (Piutang)</button>
-                <button tabIndex="0" onClick={exportExcel} style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}>📥 Download Excel</button>
-                <button tabIndex="0" onClick={() => setShowResetModal(true)} style={{ padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}>🗑️ Hapus Data Lama</button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('transaksi')} style={{ padding: '8px 16px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Semua Transaksi</button>
+                <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('bon')} style={{ padding: '8px 16px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Buku Bon (Piutang)</button>
+                <button tabIndex="0" onClick={exportExcel} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
+                <button tabIndex="0" onClick={() => setShowResetModal(true)} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>🗑️ Hapus Data Lama</button>
               </div>
             </div>
 
@@ -890,7 +890,7 @@ function App() {
                     
                     <div style={{ display: 'flex', gap: '4px' }}>
                       {t.metode === 'Bon' && t.statusBon === 'Belum Lunas' && (
-                        <button tabIndex="0" onClick={() => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: new Date() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 1px 2px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
+                        <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: new Date() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 1px 2px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
                       )}
                       <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak</button>
                     </div>
@@ -1004,7 +1004,7 @@ function App() {
             <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
             <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-            <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>Tgl: {strukData.waktu && typeof strukData.waktu.toDate === 'function' ? strukData.waktu.toDate().toLocaleString('id-ID') : (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date().toLocaleString('id-ID'))}</p>
+            <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>Tgl: {strukData.waktu ? (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date(strukData.waktu).toLocaleString('id-ID')) : new Date().toLocaleString('id-ID')}</p>
             <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>Metode: {strukData.metode}</p>
             {strukData.metode === 'Bon' && <p style={{ fontSize: '13px', textAlign: 'left', margin: '4px 0', fontWeight: 'bold' }}>PELANGGAN: {strukData.namaPelanggan}</p>}
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
@@ -1040,11 +1040,90 @@ function App() {
           </div>
           <div id="print-area" style={{ background: '#fff', width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'center', fontFamily: 'monospace' }}>
             {printData.map((p, i) => (
-              <div key={i} style={{ border: '2px dashed #000', padding: '16px 20px', textAlign: 'center', width: '260px', height: 'fit-content', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '6px', color: '#27274F', textTransform: 'uppercase', letterSpacing: '1px' }}>{namaToko || 'TOKO'}</div>
-                <div style={{ fontSize: '15px', marginBottom: '10px', fontWeight: '900', color: '#000', lineHeight: '1.2' }}>{p.nama}</div>
-                <img src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=12&includetext`} alt={p.barcode} style={{ width: '100%', height: 'auto', marginBottom: '8px' }} />
-                <div style={{ fontWeight: '900', fontSize: '20px', color: '#000' }}>Rp {p.harga.toLocaleString()}</div>
+              <div key={i} style={{ 
+                border: '1px solid #000', 
+                width: '280px', 
+                height: '130px', 
+                display: 'flex', 
+                background: '#fff',
+                margin: '5px',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+                fontFamily: 'Arial, sans-serif'
+              }}>
+                {/* SISI KIRI: NAMA TOKO BERDIRI */}
+                <div style={{ 
+                  width: '40px', 
+                  borderRight: '1px solid #000', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  background: '#fff'
+                }}>
+                  <div style={{ 
+                    writingMode: 'vertical-rl', 
+                    transform: 'rotate(180deg)', 
+                    fontSize: '10px', 
+                    fontWeight: 'bold', 
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    ** {namaToko || 'TOKO'} **
+                  </div>
+                </div>
+                
+                {/* SISI KANAN: INFO PRODUK */}
+                <div style={{ 
+                  flex: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  padding: '6px', 
+                  textAlign: 'left',
+                  justifyContent: 'space-between'
+                }}>
+                  {/* ATAS: NAMA BARANG */}
+                  <div style={{ 
+                    fontSize: '13px', 
+                    fontWeight: 'bold', 
+                    color: '#000', 
+                    lineHeight: '1.2',
+                    display: '-webkit-box',
+                    WebkitLineClamp: '2',
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {p.nama}
+                  </div>
+                  
+                  {/* TENGAH: BARCODE */}
+                  <div style={{ textAlign: 'center' }}>
+                    <img 
+                      src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=10`} 
+                      alt={p.barcode} 
+                      style={{ width: '90%', height: '35px' }} 
+                    />
+                    <div style={{ 
+                      fontSize: '12px', 
+                      fontFamily: 'monospace', 
+                      fontWeight: 'bold', 
+                      marginTop: '-2px',
+                      letterSpacing: '1px'
+                    }}>
+                      {p.barcode}
+                    </div>
+                  </div>
+                  
+                  {/* BAWAH: HARGA + SATUAN */}
+                  <div style={{ 
+                    fontSize: '19px', 
+                    fontWeight: '900', 
+                    color: '#000', 
+                    textAlign: 'right',
+                    lineHeight: '1'
+                  }}>
+                    Rp {p.harga.toLocaleString()} / {p.satuan || 'Pcs'}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
