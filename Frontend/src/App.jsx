@@ -132,7 +132,6 @@ function App() {
       setProduk(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    // MENGAKALI FIREBASE AGAR DATA TIDAK HILANG TANPA COMPOSITE INDEX
     const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid)), (snap) => {
       let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       data.sort((a, b) => {
@@ -143,7 +142,6 @@ function App() {
       setTransaksi(data);
     });
 
-    // MENGAKALI FIREBASE AGAR DATA PENGELUARAN TIDAK HILANG TANPA COMPOSITE INDEX
     const unsubPengeluaran = onSnapshot(query(collection(db, "pengeluaran"), where("userId", "==", user.uid)), (snap) => {
       let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       data.sort((a, b) => {
@@ -207,8 +205,16 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try { setLoading(true); if (isRegister) await createUserWithEmailAndPassword(auth, email, password); else await signInWithEmailAndPassword(auth, email, password); } 
-    catch (error) { alert('Gagal: ' + error.message); } finally { setLoading(false); }
+    try { 
+      setLoading(true); 
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password); 
+      } else {
+        await signInWithEmailAndPassword(auth, email, password); 
+      }
+    } 
+    catch (error) { alert('Gagal: ' + error.message); } 
+    finally { setLoading(false); }
   };
 
   const handleManualScan = (e) => {
@@ -343,6 +349,9 @@ function App() {
   };
   const chartData = getChartData();
 
+  // VARIABEL LOGIKA LABA BERSIH
+  const isProfit = dashboardStats.labaBersih >= 0;
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}><strong>Memuat Sistem...</strong></div>;
 
   if (!user) {
@@ -357,9 +366,14 @@ function App() {
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '20px' }}><input type="email" placeholder="Alamat Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} /></div>
             <div style={{ marginBottom: '32px' }}><input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} /></div>
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 10px 15px -3px rgba(39, 39, 52, 0.4)' }}>{isRegister ? 'BUAT AKUN BARU' : 'MASUK KE SISTEM'}</button>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 10px 15px -3px rgba(39, 39, 52, 0.4)' }}>
+              {isRegister ? 'BUAT AKUN BARU' : 'MASUK KE SISTEM'}
+            </button>
           </form>
-          <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#FF7835', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>{isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}</p>
+          
+          <p onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', color: '#FF7835', marginTop: '24px', textAlign: 'center', fontSize: '14px', fontWeight: '700' }}>
+            {isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}
+          </p>
         </div>
         <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>created by : Muhamad Rofiki</div>
       </div>
@@ -404,10 +418,15 @@ function App() {
                   <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Pengeluaran Hari Ini</div>
                   <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
                 </div>
-                <div style={{ background: '#10b981', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.15)' }}>
-                  <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Laba Bersih Hari Ini</div>
-                  <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.labaBersih.toLocaleString()}</div>
+                
+                {/* FITUR BARU: WARNA LABA BERSIH DINAMIS */}
+                <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '700', color: '#64748b' }}>Laba Bersih Hari Ini</div>
+                  <div style={{ fontSize: '26px', fontWeight: '900', color: isProfit ? '#10b981' : '#ef4444' }}>
+                    {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
+                  </div>
                 </div>
+
                 <div style={{ background: '#0ea5e9', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(14, 165, 233, 0.15)' }}>
                   <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Produk & Stok Tipis</div>
                   <div style={{ fontSize: '26px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
@@ -435,7 +454,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB KASIR (FIXED LAYOUT KIRI KANAN) --- */}
+        {/* --- TAB KASIR --- */}
         {activeTab === 'kasir' && (
           <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -451,7 +470,7 @@ function App() {
               </div>
 
               {isScanningKasir && (
-                <div style={{ flex: 'none', background: '#272734', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center' }}>
+                <div id="camera-popup-container" style={{ flex: 'none', background: '#272734', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center' }}>
                   <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
                   <div id="reader-kasir" style={{ width: '100%', maxWidth: '300px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', border: '2px solid #FF7835' }}></div>
                 </div>
@@ -561,7 +580,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB TOKO (FULL LAYOUT KIRI-KANAN) --- */}
+        {/* --- TAB TOKO --- */}
         {activeTab === 'toko' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -655,7 +674,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB PENGELUARAN (FULL LAYOUT KIRI-KANAN) --- */}
+        {/* --- TAB PENGELUARAN --- */}
         {activeTab === 'pengeluaran' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -702,15 +721,15 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB LAPORAN (FULL WIDTH, SCROLL INTERNAL, ADA TOMBOL CETAK ULANG) --- */}
+        {/* --- TAB LAPORAN --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
+            
             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
             </div>
             
-            {/* Kolom Pencarian & Filter */}
             <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
               <input type="text" placeholder="🔍 Cari transaksi, nama barang, atau metode bayar..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
@@ -718,7 +737,6 @@ function App() {
               </select>
             </div>
 
-            {/* TABEL DATA TRANSAKSI */}
             <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
               {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
                 filteredTransaksi.map(t => (
@@ -733,7 +751,6 @@ function App() {
                       <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
                       {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
                     </div>
-                    {/* TOMBOL CETAK ULANG STRUK */}
                     <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak Ulang</button>
                   </div>
                 </div>
@@ -845,12 +862,12 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH */}
+      {/* NAVIGASI BAWAH (EFEK KAPSUL DIHILANGKAN, TEKS DESKTOP DIBESARKAN) */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(255, 120, 53, 0.1)', zIndex: 10, boxSizing: 'border-box' }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
-          <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', margin: '4px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', borderRadius: '30px' }}>
+          <button key={tab.id} tabIndex="0" className="nav-btn" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', margin: '0', border: 'none', background: 'transparent', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s' }}>
             <span style={{ transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s' }}>{tab.icon}</span>
-            <span style={{ fontSize: '11px', fontWeight: activeTab === tab.id ? '800' : '600', textAlign: 'center' }}>{tab.label}</span>
+            <span className="nav-text" style={{ fontWeight: activeTab === tab.id ? '800' : '600', textAlign: 'center' }}>{tab.label}</span>
           </button>
         ))}
       </nav>
@@ -873,11 +890,25 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
 
+        /* FOKUS WARNA ORANGE SAAT PAKE KEYBOARD (TAB/PANAH) */
         button:focus, [tabindex="0"]:focus { outline: none !important; box-shadow: 0 0 0 4px rgba(255, 120, 53, 0.4) !important; border-radius: inherit; }
         input:focus, select:focus { border-color: #FF7835 !important; outline: none !important; box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; }
-        nav button:focus { box-shadow: none !important; background-color: #ffedd5 !important; border-radius: 50px !important; }
+        
+        /* EFEK NAVIGASI KLIK NATURAL (TANPA KOTAK) */
+        .nav-btn:active { transform: scale(0.95); opacity: 0.7; }
+        .nav-btn:focus { box-shadow: none !important; outline: none !important; }
+        .nav-text { font-size: 14px; } /* Ukuran Teks Menu Desktop */
 
+        /* MENGATASI KELUHAN HP */
         @media (max-width: 768px) {
+          .nav-text { font-size: 11px !important; } /* Ukuran Teks Menu HP */
+          
+          /* MEMPERBAIKI KAMERA HP AGAR PERSEGI PANJANG (TIDAK NUTUPI KERANJANG) */
+          #camera-popup-container { padding: 10px !important; margin-bottom: 10px !important; }
+          #reader-kasir { height: 150px !important; }
+          #reader-kasir video { object-fit: cover !important; height: 150px !important; }
+
+          /* Menyembunyikan elemen header berlebih agar nama toko tidak patah */
           .header-title { font-size: 15px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
           .header-email { display: none !important; }
           .live-clock { display: none !important; }
