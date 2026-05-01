@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp, deleteDoc, limit, getDocs, enableIndexedDbPersistence } from 'firebase/firestore';
+// --- REVISI: IMPORT SISTEM OFFLINE VERSI TERBARU DAN PALING KUAT ---
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, deleteDoc, limit, getDocs } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -16,16 +17,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-// --- FITUR BARU: MODE DATABASE OFFLINE ---
-// Menyimpan salinan data ke HP kasir agar tetap bisa jualan walau internet mati
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.log('Mode offline hanya bisa aktif di satu tab browser pada waktu yang sama.');
-  } else if (err.code == 'unimplemented') {
-    console.log('Browser ini tidak mendukung fitur mode offline.');
-  }
+// --- REVISI: MENGGUNAKAN MODE OFFLINE MODERN ---
+// Ini menjamin aplikasi bisa dipakai berjualan tanpa internet dengan sangat lancar
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 const auth = getAuth(app);
@@ -53,7 +49,7 @@ function App() {
   const [searchLaporan, setSearchLaporan] = useState(''); 
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // STATE UNTUK FITUR BON & LAPORAN
+  // STATE BARU UNTUK FITUR BON & LAPORAN
   const [laporanTab, setLaporanTab] = useState('transaksi'); 
   const [showBonModal, setShowBonModal] = useState(false);
   const [namaPelangganBon, setNamaPelangganBon] = useState('');
@@ -291,7 +287,7 @@ function App() {
   const totalAmount = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
   const kembalian = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalAmount : 0;
 
-  const processPayment = async () => {
+  const processPayment = () => {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
     
@@ -299,15 +295,17 @@ function App() {
     if (metodePembayaran === 'Bon') {
       setShowBonModal(true); 
     } else {
-      await finalizePayment(metodePembayaran); 
+      finalizePayment(metodePembayaran); 
     }
   };
 
-  const finalizePayment = async (metode) => {
+  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
+  const finalizePayment = (metode) => {
     const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmount;
     const dataTrans = {
       userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty, satuan: i.satuan || 'Pcs'})),
-      total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metode, waktu: new Date()
+      total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metode, 
+      waktu: new Date() // REVISI: Pakai new Date() agar tidak hilang saat offline
     };
 
     if (metode === 'Bon') {
@@ -317,20 +315,26 @@ function App() {
     }
 
     try {
-      await addDoc(collection(db, "transaksi"), { ...dataTrans, waktu: serverTimestamp() });
-      for (const item of cart) { await updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); }
+      // Perintah nulis ke database tidak lagi ditunggu (tanpa await). Langsung dieksekusi di background.
+      addDoc(collection(db, "transaksi"), dataTrans);
+      for (const item of cart) { 
+        updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
+      }
+      
+      // UI Langsung Re-render dengan super cepat!
       setStrukData(dataTrans); setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); 
       setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon('');
     } catch (err) { alert("Gagal memproses transaksi"); }
   };
 
-  const simpanProduk = async (e) => {
+  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
+  const simpanProduk = (e) => {
     e.preventDefault();
     if (editingProductId) {
       const checkDuplicate = produk.find(p => p.barcode === barcodeProd && barcodeProd !== "" && p.id !== editingProductId);
       if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
       
-      await updateDoc(doc(db, "produk", editingProductId), { 
+      updateDoc(doc(db, "produk", editingProductId), { 
         nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: barcodeProd, satuan: satuanProd 
       });
       setEditingProductId(null);
@@ -339,19 +343,21 @@ function App() {
       if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
       
       const bcode = barcodeProd || Math.floor(100000000000 + Math.random() * 900000000000).toString();
-      await addDoc(collection(db, "produk"), { nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() });
+      addDoc(collection(db, "produk"), { nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() });
     }
     setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
   };
 
-  const simpanPengeluaran = async (e) => {
+  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
+  const simpanPengeluaran = (e) => {
     e.preventDefault();
-    await addDoc(collection(db, "pengeluaran"), { nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: serverTimestamp() });
+    addDoc(collection(db, "pengeluaran"), { nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: new Date() });
     setNamaPengeluaran(''); setNominalPengeluaran(''); 
   };
 
-  const simpanProfil = async () => {
-    await setDoc(doc(db, "profilToko", user.uid), { nama: namaToko, alamat, noTelp, qrisImage });
+  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
+  const simpanProfil = () => {
+    setDoc(doc(db, "profilToko", user.uid), { nama: namaToko, alamat, noTelp, qrisImage });
     alert("Profil Tersimpan!"); setShowProfileModal(false);
   };
 
@@ -378,7 +384,7 @@ function App() {
       
       let deletedCount = 0;
       for (const document of snapshot.docs) {
-        await deleteDoc(doc(db, "transaksi", document.id));
+        deleteDoc(doc(db, "transaksi", document.id)); // Tanpa await agar cepat
         deletedCount++;
       }
       
@@ -720,7 +726,7 @@ function App() {
                         <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
                           <button tabIndex="0" onClick={() => { setNamaProd(p.nama); setHargaProd(p.harga); setStokProd(p.stok); setBarcodeProd(p.barcode); setSatuanProd(p.satuan || 'Pcs'); setEditingProductId(p.id); }} style={{ background: '#272734', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
                           <button tabIndex="0" onClick={() => { setPrintData([p]); setPrintMode('label'); }} style={{ background: '#FF7835', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Cetak</button>
-                          <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin ingin menghapus produk ini?')) await deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          <button tabIndex="0" onClick={() => { if(window.confirm('Yakin ingin menghapus produk ini?')) deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                         </td>
                       </tr>
                     ))}
@@ -807,7 +813,7 @@ function App() {
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px' }}>{p.nama}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '800', color: '#e11d48', fontSize: '14px' }}>- Rp {p.nominal.toLocaleString()}</td>
                         <td style={{ padding: '12px 16px' }}>
-                          <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin hapus data ini?')) await deleteDoc(doc(db, "pengeluaran", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          <button tabIndex="0" onClick={() => { if(window.confirm('Yakin hapus data ini?')) deleteDoc(doc(db, "pengeluaran", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                         </td>
                       </tr>
                     ))}
@@ -833,7 +839,7 @@ function App() {
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
             
-            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '10px', width: '100%' }}>
               <h2 style={{ margin: 0, fontSize: '20px', color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -884,7 +890,7 @@ function App() {
                     
                     <div style={{ display: 'flex', gap: '4px' }}>
                       {t.metode === 'Bon' && t.statusBon === 'Belum Lunas' && (
-                        <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) await updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: serverTimestamp() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 1px 2px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
+                        <button tabIndex="0" onClick={() => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: new Date() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 1px 2px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
                       )}
                       <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak</button>
                     </div>
