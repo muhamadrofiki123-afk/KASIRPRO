@@ -26,7 +26,7 @@ function App() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // FITUR BARU: WAKTU & TANGGAL LIVE SEKARANG
+  // WAKTU & TANGGAL LIVE SEKARANG
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [produk, setProduk] = useState([]);
@@ -131,11 +131,27 @@ function App() {
     const unsubProduk = onSnapshot(query(collection(db, "produk"), where("userId", "==", user.uid)), (snap) => {
       setProduk(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc")), (snap) => {
-      setTransaksi(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+    // MENGAKALI FIREBASE AGAR DATA TIDAK HILANG TANPA COMPOSITE INDEX
+    const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid)), (snap) => {
+      let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      data.sort((a, b) => {
+        const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+        const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+        return timeB - timeA;
+      });
+      setTransaksi(data);
     });
-    const unsubPengeluaran = onSnapshot(query(collection(db, "pengeluaran"), where("userId", "==", user.uid), orderBy("waktu", "desc")), (snap) => {
-      setPengeluaran(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+
+    // MENGAKALI FIREBASE AGAR DATA PENGELUARAN TIDAK HILANG TANPA COMPOSITE INDEX
+    const unsubPengeluaran = onSnapshot(query(collection(db, "pengeluaran"), where("userId", "==", user.uid)), (snap) => {
+      let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      data.sort((a, b) => {
+        const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+        const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+        return timeB - timeA;
+      });
+      setPengeluaran(data);
     });
 
     return () => { unsubProduk(); unsubTrans(); unsubPengeluaran(); };
@@ -144,8 +160,8 @@ function App() {
   useEffect(() => {
     if (!user) return;
     const today = new Date().toISOString().split('T')[0];
-    const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate().toISOString().split('T')[0] === today);
-    const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate().toISOString().split('T')[0] === today);
+    const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toISOString().split('T')[0] === today);
+    const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today);
     const omzetHariIni = todayTrans.reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -279,7 +295,7 @@ function App() {
     const matchCari = cari === '' || t.items.some(i => i.nama.toLowerCase().includes(cari)) || (t.metode && t.metode.toLowerCase().includes(cari));
     if (!matchCari) return false;
 
-    const dateObj = t.waktu.toDate(); const today = new Date();
+    const dateObj = t.waktu.toDate ? t.waktu.toDate() : new Date(); const today = new Date();
     if (reportFilter === 'hari') return dateObj.toDateString() === today.toDateString();
     else if (reportFilter === 'minggu') return dateObj >= new Date(today.setDate(today.getDate() - today.getDay()));
     else if (reportFilter === 'bulan') return dateObj.getMonth() === today.getMonth() && dateObj.getFullYear() === today.getFullYear();
@@ -289,7 +305,7 @@ function App() {
   const exportExcel = () => {
     const headers = ["Tanggal,Jam,Metode Pembayaran,Item,Total,Tunai,Kembali"];
     const rows = filteredTransaksi.map(t => {
-      const d = t.waktu?.toDate();
+      const d = t.waktu?.toDate ? t.waktu.toDate() : new Date();
       const items = t.items.map(i => `${i.qty} ${i.satuan || 'Pcs'} ${i.nama}`).join(' + ');
       return `${d.toLocaleDateString('id-ID')},${d.toLocaleTimeString('id-ID')},${t.metode || 'Tunai'},"${items}",${t.total},${t.uangBayar},${t.kembalian}`;
     });
@@ -302,24 +318,24 @@ function App() {
   const getChartData = () => {
     let labels = []; let values = []; const now = new Date();
     if (chartFilter === 'jam') {
-      const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate().toDateString() === now.toDateString());
+      const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === now.toDateString());
       for(let i=8; i<=22; i+=2) {
         labels.push(`${i}:00`); values.push(todayTrans.filter(t => t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'hari') {
       for(let i=6; i>=0; i--) {
         const d = new Date(now); d.setDate(d.getDate() - i);
-        labels.push(`${d.getDate()}/${d.getMonth()+1}`); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate().toDateString() === d.toDateString()).reduce((s, t) => s + t.total, 0));
+        labels.push(`${d.getDate()}/${d.getMonth()+1}`); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === d.toDateString()).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'bulan') {
       for(let i=5; i>=0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(d.toLocaleString('default', { month: 'short' })); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate().getMonth() === d.getMonth() && t.waktu.toDate().getFullYear() === d.getFullYear()).reduce((s, t) => s + t.total, 0));
+        labels.push(d.toLocaleString('default', { month: 'short' })); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().getMonth() === d.getMonth() && t.waktu.toDate().getFullYear() === d.getFullYear()).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'tahun') {
       for(let i=4; i>=0; i--) {
         const year = now.getFullYear() - i;
-        labels.push(year); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate().getFullYear() === year).reduce((s, t) => s + t.total, 0));
+        labels.push(year); values.push(transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().getFullYear() === year).reduce((s, t) => s + t.total, 0));
       }
     }
     const max = Math.max(...values, 1);
@@ -355,13 +371,12 @@ function App() {
       
       {/* HEADER STATIC DENGAN JAM & TANGGAL LIVE */}
       <header className="no-print" style={{ flex: 'none', height: '70px', background: 'white', padding: '0 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, boxSizing: 'border-box' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835' }}>{namaToko || 'POS MODERN PRO'}</h1>
-          <p style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600' }}>Akun: {user.email}</p>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: '10px' }}>
+          <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{namaToko || 'POS MODERN PRO'}</h1>
+          <p className="header-email" style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Akun: {user.email}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
           
-          {/* FITUR BARU: JAM & TANGGAL */}
           <div className="live-clock" style={{ textAlign: 'right', paddingRight: '16px', borderRight: '2px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div className="date-text" style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>{currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</div>
             <div className="time-text" style={{ fontSize: '15px', fontWeight: '900', color: '#272734', letterSpacing: '0.5px' }}>{currentTime.toLocaleTimeString('id-ID')}</div>
@@ -372,7 +387,7 @@ function App() {
         </div>
       </header>
 
-      {/* CONTAINER HALAMAN UTAMA (TIDAK BISA DI-SCROLL FULL) */}
+      {/* CONTAINER HALAMAN UTAMA */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
           
         {/* --- TAB DASHBOARD --- */}
@@ -420,7 +435,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB KASIR (FIXED LAYOUT KIRI KANAN) --- */}
+        {/* --- TAB KASIR --- */}
         {activeTab === 'kasir' && (
           <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -445,10 +460,14 @@ function App() {
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', paddingBottom: '20px' }}>
                 <div className="grid-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
                   {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
-                    <div key={p.id} tabIndex="0" onClick={() => addToCart(p)} onKeyDown={(e) => { if(e.key === 'Enter') addToCart(p); }} 
+                    <div key={p.id} 
+                         tabIndex="0" 
+                         onClick={() => addToCart(p)} 
+                         onKeyDown={(e) => { if(e.key === 'Enter') addToCart(p); }} 
                          style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', border: p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.1s, border 0.1s' }} 
                          onMouseEnter={(e) => {e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.border = '2px solid #FF7835';}} 
                          onMouseLeave={(e) => {e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent';}}>
+                      
                       {p.stok < 50 && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
                       <h3 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '700', color: '#272734', lineHeight: '1.2' }}>{p.nama}</h3>
                       <div style={{ fontSize: '18px', fontWeight: '900', color: '#0ea5e9', marginBottom: '8px' }}>Rp {p.harga.toLocaleString()}</div>
@@ -542,7 +561,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB TOKO (FULL LAYOUT KIRI-KANAN) --- */}
+        {/* --- TAB TOKO --- */}
         {activeTab === 'toko' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -636,7 +655,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB PENGELUARAN (FULL LAYOUT KIRI-KANAN) --- */}
+        {/* --- TAB PENGELUARAN --- */}
         {activeTab === 'pengeluaran' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -683,24 +702,22 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB LAPORAN (FULL WIDTH, SCROLL INTERNAL, ADA TOMBOL CETAK ULANG) --- */}
+        {/* --- TAB LAPORAN --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
-            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', maxWidth: '1000px', margin: '0 auto 16px auto', width: '100%' }}>
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
             </div>
             
-            {/* Kolom Pencarian & Filter */}
-            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto 16px auto', width: '100%', boxSizing: 'border-box' }}>
               <input type="text" placeholder="🔍 Cari transaksi, nama barang, atau metode bayar..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
                 <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
               </select>
             </div>
 
-            {/* TABEL DATA TRANSAKSI */}
-            <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
+            <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
               {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
                 filteredTransaksi.map(t => (
                 <div key={t.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -714,7 +731,6 @@ function App() {
                       <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
                       {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
                     </div>
-                    {/* FITUR BARU: TOMBOL CETAK ULANG STRUK */}
                     <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak Ulang</button>
                   </div>
                 </div>
@@ -781,7 +797,6 @@ function App() {
             <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
             <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-            {/* PENYESUAIAN FORMAT WAKTU AGAR BISA DIBACA SAAT CETAK ULANG */}
             <p style={{ fontSize: '12px', textAlign: 'left' }}>Tgl: {strukData.waktu && typeof strukData.waktu.toDate === 'function' ? strukData.waktu.toDate().toLocaleString('id-ID') : (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date().toLocaleString('id-ID'))}<br/>Metode: {strukData.metode}</p>
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             {strukData.items.map((it, i) => (
@@ -827,18 +842,22 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH */}
+      {/* NAVIGASI BAWAH (DENGAN EFEK KAPSUL SAAT DIPILIH) */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(255, 120, 53, 0.1)', zIndex: 10, boxSizing: 'border-box' }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
-          <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', height: '100%' }}>
+          <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', margin: '4px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', borderRadius: '30px' }}>
             <span style={{ transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s' }}>{tab.icon}</span>
             <span style={{ fontSize: '11px', fontWeight: activeTab === tab.id ? '800' : '600', textAlign: 'center' }}>{tab.label}</span>
           </button>
         ))}
       </nav>
 
-      {/* CSS KHUSUS */}
+      {/* CSS KHUSUS (DI SINI ADA ANTI-KOTAK) */}
       <style>{`
+        * {
+          -webkit-tap-highlight-color: transparent;
+        }
+        
         @media print {
           .no-print { display: none !important; }
           body * { visibility: hidden; }
@@ -853,23 +872,45 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
 
-        *:focus { outline: 3px solid #FF7835 !important; outline-offset: 2px !important; }
-        input:focus, select:focus { border-color: #FF7835 !important; outline: none !important; box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; }
+        /* FOKUS EFEK GLOBAL HALUS (BUKAN GARIS KOTAK) */
+        button:focus, [tabindex="0"]:focus { 
+          outline: none !important; 
+          box-shadow: 0 0 0 4px rgba(255, 120, 53, 0.4) !important; 
+          border-radius: inherit;
+        }
+        input:focus, select:focus { 
+          border-color: #FF7835 !important; 
+          outline: none !important; 
+          box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; 
+        }
 
+        /* EFEK KAPSUL KHUSUS NAVIGASI BAWAH SAAT DIPENCET/FOKUS */
+        nav button:focus { 
+          box-shadow: none !important;
+          background-color: #ffedd5 !important; 
+          border-radius: 50px !important; 
+        }
+
+        /* MENGATASI KELUHAN HP */
         @media (max-width: 768px) {
-          .live-clock .date-text { display: none !important; }
-          .live-clock .time-text { font-size: 13px !important; }
+          /* Menyembunyikan elemen header berlebih agar nama toko tidak patah */
+          .header-title { font-size: 15px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+          .header-email { display: none !important; }
+          .live-clock { display: none !important; }
           
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           
+          /* KASIR MOBILE: Batasi tinggi daftar produk agar keranjang tidak tenggelam */
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
           
+          /* Kecilkan Grid Produk HP agar lebih banyak muat */
           .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 8px !important; }
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
           
+          /* Tabel Section & Form untuk HP */
           .table-section { max-height: 50vh !important; flex: none !important; }
           .form-section { height: auto !important; flex: none !important; }
         }
