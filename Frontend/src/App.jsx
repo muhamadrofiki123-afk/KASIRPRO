@@ -540,10 +540,7 @@ function App() {
                 <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '15px', paddingTop: '10px' }}>
                   {chartData.data.map((d, i) => (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                      {/* --- REVISI: Mengubah tampilan k (kilo) menjadi angka bulat murni untuk Grafik --- */}
-                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>
-                        {d.total > 0 ? d.total.toLocaleString() : ''}
-                      </div>
+                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>{d.total > 0 ? d.total.toLocaleString() : ''}</div>
                       <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #fdba74, #FF7835)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
                       <div style={{ fontSize: '12px', color: '#27274F', marginTop: '10px', fontWeight: '700', textAlign: 'center' }}>{d.label}</div>
                     </div>
@@ -1053,7 +1050,7 @@ function App() {
                 boxSizing: 'border-box',
                 overflow: 'hidden'
               }}>
-                {/* SISI KIRI: NAMA TOKO BERDIRI (CENTER) */}
+                {/* SISI KIRI: NAMA TOKO BERDIRI (DINAMIS & TENGAH) */}
                 <div style={{ 
                   width: '40px', 
                   borderRight: '1px solid #000', 
@@ -1065,13 +1062,13 @@ function App() {
                   <div style={{ 
                     writingMode: 'vertical-rl', 
                     transform: 'rotate(180deg)', 
-                    fontSize: '10px', 
+                    fontSize: (namaToko || 'TOKO').length <= 15 ? '16px' : '10px', 
                     fontWeight: 'bold', 
                     textTransform: 'uppercase',
                     textAlign: 'center',
                     lineHeight: '1.2'
                   }}>
-                    ** {namaToko || 'TOKO'} **
+                    {namaToko || 'TOKO'}
                   </div>
                 </div>
                 
@@ -1083,9 +1080,9 @@ function App() {
                   padding: '6px 8px', 
                   justifyContent: 'space-between'
                 }}>
-                  {/* ATAS: NAMA BARANG (CENTER HORIZONTAL) */}
+                  {/* ATAS: NAMA BARANG (DINAMIS & TENGAH) */}
                   <div style={{ 
-                    fontSize: '14px', 
+                    fontSize: p.nama.length <= 15 ? '18px' : '14px', 
                     fontWeight: 'bold', 
                     color: '#000', 
                     lineHeight: '1.2',
@@ -1098,7 +1095,7 @@ function App() {
                     {p.nama}
                   </div>
                   
-                  {/* TENGAH: BARCODE */}
+                  {/* TENGAH: BARCODE (NOMOR BESAR) */}
                   <div style={{ textAlign: 'center' }}>
                     <img 
                       src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=10`} 
@@ -1106,7 +1103,7 @@ function App() {
                       style={{ width: '95%', height: '35px' }} 
                     />
                     <div style={{ 
-                      fontSize: '14px', 
+                      fontSize: '16px', 
                       fontFamily: 'monospace', 
                       fontWeight: 'bold', 
                       marginTop: '-2px',
@@ -1117,9 +1114,9 @@ function App() {
                     </div>
                   </div>
                   
-                  {/* BAWAH: HARGA + SATUAN (BESAR & BOLD) */}
+                  {/* BAWAH: HARGA + SATUAN (DIPERBESAR) */}
                   <div style={{ 
-                    fontSize: '20px', 
+                    fontSize: '22px', 
                     fontWeight: '900', 
                     color: '#000', 
                     textAlign: 'right',
