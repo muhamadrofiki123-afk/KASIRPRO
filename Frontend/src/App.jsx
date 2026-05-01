@@ -435,7 +435,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB KASIR --- */}
+        {/* --- TAB KASIR (FIXED LAYOUT KIRI KANAN) --- */}
         {activeTab === 'kasir' && (
           <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -561,7 +561,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB TOKO --- */}
+        {/* --- TAB TOKO (FULL LAYOUT KIRI-KANAN) --- */}
         {activeTab === 'toko' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -655,7 +655,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB PENGELUARAN --- */}
+        {/* --- TAB PENGELUARAN (FULL LAYOUT KIRI-KANAN) --- */}
         {activeTab === 'pengeluaran' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -702,22 +702,24 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB LAPORAN --- */}
+        {/* --- TAB LAPORAN (FULL WIDTH, SCROLL INTERNAL, ADA TOMBOL CETAK ULANG) --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
-            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', maxWidth: '1000px', margin: '0 auto 16px auto', width: '100%' }}>
+            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               <button tabIndex="0" onClick={exportExcel} style={{ padding: '10px 20px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
             </div>
             
-            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto 16px auto', width: '100%', boxSizing: 'border-box' }}>
+            {/* Kolom Pencarian & Filter */}
+            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
               <input type="text" placeholder="🔍 Cari transaksi, nama barang, atau metode bayar..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
                 <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
               </select>
             </div>
 
-            <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+            {/* TABEL DATA TRANSAKSI */}
+            <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
               {filteredTransaksi.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data transaksi sesuai pencarian.</div> : 
                 filteredTransaksi.map(t => (
                 <div key={t.id} style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -731,6 +733,7 @@ function App() {
                       <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '16px', marginBottom: '4px' }}>Rp {t.total.toLocaleString()}</div>
                       {t.metode === 'Tunai' && <div style={{ fontSize: '11px', color: '#27274F', fontWeight: '600' }}>Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}</div>}
                     </div>
+                    {/* TOMBOL CETAK ULANG STRUK */}
                     <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak Ulang</button>
                   </div>
                 </div>
@@ -842,7 +845,7 @@ function App() {
         </div>
       )}
 
-      {/* NAVIGASI BAWAH (DENGAN EFEK KAPSUL SAAT DIPILIH) */}
+      {/* NAVIGASI BAWAH */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', boxShadow: '0 -4px 15px rgba(255, 120, 53, 0.1)', zIndex: 10, boxSizing: 'border-box' }}>
         {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
           <button key={tab.id} tabIndex="0" onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '5px', margin: '4px', border: 'none', background: 'none', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: activeTab === tab.id ? '22px' : '18px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', position: 'relative', transition: 'all 0.2s', borderRadius: '30px' }}>
@@ -852,11 +855,9 @@ function App() {
         ))}
       </nav>
 
-      {/* CSS KHUSUS (DI SINI ADA ANTI-KOTAK) */}
+      {/* CSS KHUSUS */}
       <style>{`
-        * {
-          -webkit-tap-highlight-color: transparent;
-        }
+        * { -webkit-tap-highlight-color: transparent; }
         
         @media print {
           .no-print { display: none !important; }
@@ -872,28 +873,11 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
 
-        /* FOKUS EFEK GLOBAL HALUS (BUKAN GARIS KOTAK) */
-        button:focus, [tabindex="0"]:focus { 
-          outline: none !important; 
-          box-shadow: 0 0 0 4px rgba(255, 120, 53, 0.4) !important; 
-          border-radius: inherit;
-        }
-        input:focus, select:focus { 
-          border-color: #FF7835 !important; 
-          outline: none !important; 
-          box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; 
-        }
+        button:focus, [tabindex="0"]:focus { outline: none !important; box-shadow: 0 0 0 4px rgba(255, 120, 53, 0.4) !important; border-radius: inherit; }
+        input:focus, select:focus { border-color: #FF7835 !important; outline: none !important; box-shadow: 0 0 0 3px rgba(255, 120, 53, 0.3) !important; }
+        nav button:focus { box-shadow: none !important; background-color: #ffedd5 !important; border-radius: 50px !important; }
 
-        /* EFEK KAPSUL KHUSUS NAVIGASI BAWAH SAAT DIPENCET/FOKUS */
-        nav button:focus { 
-          box-shadow: none !important;
-          background-color: #ffedd5 !important; 
-          border-radius: 50px !important; 
-        }
-
-        /* MENGATASI KELUHAN HP */
         @media (max-width: 768px) {
-          /* Menyembunyikan elemen header berlebih agar nama toko tidak patah */
           .header-title { font-size: 15px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
           .header-email { display: none !important; }
           .live-clock { display: none !important; }
@@ -901,16 +885,13 @@ function App() {
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           
-          /* KASIR MOBILE: Batasi tinggi daftar produk agar keranjang tidak tenggelam */
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
           
-          /* Kecilkan Grid Produk HP agar lebih banyak muat */
           .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 8px !important; }
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
           
-          /* Tabel Section & Form untuk HP */
           .table-section { max-height: 50vh !important; flex: none !important; }
           .form-section { height: auto !important; flex: none !important; }
         }
