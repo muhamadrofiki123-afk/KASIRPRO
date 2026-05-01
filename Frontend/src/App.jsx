@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp, deleteDoc, limit } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -124,8 +124,11 @@ function App() {
 
   useEffect(() => { localStorage.setItem('kasirCart', JSON.stringify(cart)); }, [cart]);
 
+  // LOGIKA PULL DATA DENGAN BATASAN (LIMIT 500) AGAR HEMAT KUOTA BACA FIREBASE
   useEffect(() => {
     if (!user) return;
+    
+    // Tarik Profil Toko
     getDoc(doc(db, "profilToko", user.uid)).then(d => {
       if(d.exists()) { 
         setNamaToko(d.data().nama || ''); setAlamat(d.data().alamat || ''); 
@@ -133,29 +136,50 @@ function App() {
       }
     });
 
+    // Tarik Produk (Tidak dilimit agar kasir bisa scan semua barang)
     const unsubProduk = onSnapshot(query(collection(db, "produk"), where("userId", "==", user.uid)), (snap) => {
       setProduk(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid)), (snap) => {
-      let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      data.sort((a, b) => {
-        const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
-        const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
-        return timeB - timeA;
-      });
-      setTransaksi(data);
-    });
+    // Tarik Transaksi (DIBATASI 500 TERBARU SAJA)
+    const qTrans = query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500));
+    const unsubTrans = onSnapshot(qTrans, 
+      (snap) => {
+        let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        data.sort((a, b) => {
+          const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+          const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+          return timeB - timeA;
+        });
+        setTransaksi(data);
+      },
+      (error) => {
+        console.error("ERROR INDEX TRANSAKSI (Klik Link ini): ", error.message);
+        if(error.message.includes('index')) {
+          alert("⚠️ PENTING: Firebase butuh 'Indeks'. Buka Inspect Element (Console) lalu klik Link berwarna biru dari pesan Error Firebase untuk membuat indeks Transaksi!");
+        }
+      }
+    );
 
-    const unsubPengeluaran = onSnapshot(query(collection(db, "pengeluaran"), where("userId", "==", user.uid)), (snap) => {
-      let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      data.sort((a, b) => {
-        const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
-        const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
-        return timeB - timeA;
-      });
-      setPengeluaran(data);
-    });
+    // Tarik Pengeluaran (DIBATASI 500 TERBARU SAJA)
+    const qPeng = query(collection(db, "pengeluaran"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500));
+    const unsubPengeluaran = onSnapshot(qPeng, 
+      (snap) => {
+        let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        data.sort((a, b) => {
+          const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+          const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+          return timeB - timeA;
+        });
+        setPengeluaran(data);
+      },
+      (error) => {
+        console.error("ERROR INDEX PENGELUARAN (Klik Link ini): ", error.message);
+        if(error.message.includes('index')) {
+          alert("⚠️ PENTING: Firebase butuh 'Indeks'. Buka Inspect Element (Console) lalu klik Link berwarna biru dari pesan Error Firebase untuk membuat indeks Pengeluaran!");
+        }
+      }
+    );
 
     return () => { unsubProduk(); unsubTrans(); unsubPengeluaran(); };
   }, [user]);
@@ -261,6 +285,7 @@ function App() {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
     
+    // JIKA METODE BON, MUNCULKAN POP-UP SETELAH KLIK BAYAR & CETAK
     if (metodePembayaran === 'Bon') {
       setShowBonModal(true); 
     } else {
@@ -553,11 +578,17 @@ function App() {
                   <span style={{ fontSize: '20px', fontWeight: '900', color: '#272734' }}>Rp {totalAmount.toLocaleString()}</span>
                 </div>
                 
+                {/* TOMBOL METODE PEMBAYARAN: SEJAJAR 1 BARIS (RESPONSIVE) */}
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
                   {['Tunai', 'QRIS', 'Transfer', 'Bon'].map(metode => (
                     <button
                       key={metode} tabIndex="0" className="btn-metode"
-                      onClick={() => { setMetodePembayaran(metode); if(metode !== 'Tunai' && metode !== 'Bon') setPaymentAmount(totalAmount); else setPaymentAmount(''); }}
+                      onClick={() => {
+                        // KEMBALI KE INSTRUKSI AWAL: POP-UP TIDAK MUNCUL DI SINI!
+                        setMetodePembayaran(metode);
+                        if(metode !== 'Tunai' && metode !== 'Bon') setPaymentAmount(totalAmount);
+                        else setPaymentAmount('');
+                      }}
                       style={{
                         flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
                         background: metodePembayaran === metode ? '#FF7835' : 'white', color: metodePembayaran === metode ? 'white' : '#27274F',
@@ -583,7 +614,7 @@ function App() {
                     </div>
                   ) : (
                     <div style={{ padding: '10px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #ffedd5' }}>
-                      📝 Tagihan akan dicatat sebagai Bon (Piutang).
+                      📝 Klik Bayar & Cetak di bawah untuk mencatat Bon.
                     </div>
                   )}
                 </div>
@@ -706,16 +737,23 @@ function App() {
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              <h3 style={{ flex: 'none', margin: '0 0 20px 0', color: '#272734', fontSize: '18px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
+              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>💸 Riwayat Pengeluaran Toko</h3>
+              </div>
+
+              {/* PERINGATAN HEMAT KUOTA */}
+              <div style={{ padding: '10px 16px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', fontSize: '12px', fontWeight: '600', marginBottom: '16px', border: '1px solid #ffedd5' }}>
+                💡 Menampilkan 500 pengeluaran terbaru agar aplikasi tetap kencang.
+              </div>
               
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: '#fff7ed', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Tanggal & Waktu</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Keterangan</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Nominal</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Aksi</th>
+                    <tr style={{ background: '#f8fafc', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Tanggal & Waktu</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Keterangan</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Nominal</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -748,7 +786,7 @@ function App() {
           </div>
         )}
 
-        {/* --- TAB LAPORAN --- */}
+        {/* --- TAB LAPORAN (DENGAN 2 PILIHAN TABEL) --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
             
@@ -762,6 +800,11 @@ function App() {
               <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('bon')} style={{ flex: 1, padding: '12px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '12px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '14px', transition: '0.2s' }}>Buku Bon (Piutang)</button>
             </div>
             
+            {/* PERINGATAN HEMAT KUOTA */}
+            <div style={{ flex: 'none', padding: '10px 16px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', fontSize: '12px', fontWeight: '600', marginBottom: '16px', border: '1px solid #ffedd5' }}>
+              💡 Menampilkan 500 transaksi terbaru agar aplikasi tetap kencang. Jika ingin melihat data lama, silakan ketik di kolom pencarian.
+            </div>
+
             <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
               <input type="text" placeholder="🔍 Cari nama barang, metode bayar, atau nama pelanggan..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
@@ -776,6 +819,7 @@ function App() {
                   <div>
                     <div style={{ fontWeight: '800', color: '#272734', fontSize: '13px', marginBottom: '6px' }}>{t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }) : 'Baru saja'} - {t.waktu && typeof t.waktu.toDate === 'function' ? t.waktu.toDate().toLocaleTimeString('id-ID') : ''}</div>
                     
+                    {/* INFO PELANGGAN BON */}
                     {t.metode === 'Bon' && (
                       <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: '900', color: '#272734' }}>👤 {t.namaPelanggan}</span>
@@ -796,6 +840,7 @@ function App() {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      {/* TOMBOL PELUNASAN KHUSUS BON */}
                       {t.metode === 'Bon' && t.statusBon === 'Belum Lunas' && (
                         <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) await updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: serverTimestamp() }); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
                       )}
@@ -810,7 +855,7 @@ function App() {
 
       </main>
 
-      {/* --- POP-UP MODAL BON (PIUTANG) --- */}
+      {/* --- POP-UP MODAL BON (PIUTANG) MUNCUL SAAT KLIK BAYAR & CETAK --- */}
       {showBonModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'left', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -821,7 +866,7 @@ function App() {
             <input autoFocus value={namaPelangganBon} onChange={e => setNamaPelangganBon(e.target.value)} placeholder="Contoh: Pak Budi" style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '15px', fontWeight: '700', outline: 'none' }} />
             
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button tabIndex="0" onClick={() => setShowBonModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
+              <button tabIndex="0" onClick={() => { setShowBonModal(false); setMetodePembayaran('Tunai'); }} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
               <button tabIndex="0" onClick={() => finalizePayment('Bon')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SIMPAN BON</button>
             </div>
           </div>
