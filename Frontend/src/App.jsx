@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp, deleteDoc, limit } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, serverTimestamp, deleteDoc, limit, getDocs } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -46,6 +46,10 @@ function App() {
   const [laporanTab, setLaporanTab] = useState('transaksi'); // 'transaksi' atau 'bon'
   const [showBonModal, setShowBonModal] = useState(false);
   const [namaPelangganBon, setNamaPelangganBon] = useState('');
+
+  // STATE UNTUK FITUR HAPUS DATA TAHUNAN
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [selectedYearReset, setSelectedYearReset] = useState('2025');
 
   const [barcodeInput, setBarcodeInput] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -151,6 +155,7 @@ function App() {
         setTransaksi(data);
       },
       (error) => {
+        console.error("ERROR INDEX TRANSAKSI (Klik Link ini): ", error.message);
         if(error.message.includes('index')) {
           alert("⚠️ PENTING: Firebase butuh 'Indeks'. Buka Inspect Element (Console) lalu klik Link berwarna biru dari pesan Error Firebase untuk membuat indeks Transaksi!");
         }
@@ -169,6 +174,7 @@ function App() {
         setPengeluaran(data);
       },
       (error) => {
+        console.error("ERROR INDEX PENGELUARAN (Klik Link ini): ", error.message);
         if(error.message.includes('index')) {
           alert("⚠️ PENTING: Firebase butuh 'Indeks'. Buka Inspect Element (Console) lalu klik Link berwarna biru dari pesan Error Firebase untuk membuat indeks Pengeluaran!");
         }
@@ -278,6 +284,7 @@ function App() {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
     
+    // JIKA METODE BON, MUNCULKAN POP-UP SETELAH KLIK BAYAR & CETAK
     if (metodePembayaran === 'Bon') {
       setShowBonModal(true); 
     } else {
@@ -335,6 +342,45 @@ function App() {
   const simpanProfil = async () => {
     await setDoc(doc(db, "profilToko", user.uid), { nama: namaToko, alamat, noTelp, qrisImage });
     alert("Profil Tersimpan!"); setShowProfileModal(false);
+  };
+
+  // LOGIKA MESIN HAPUS DATA TAHUNAN
+  const handleResetTahunan = async () => {
+    if (!window.confirm(`⚠️ PERINGATAN TERAKHIR: Apakah Anda yakin ingin menghapus SEMUA transaksi pada tahun ${selectedYearReset}? Tindakan ini permanen dan tidak bisa dibatalkan!`)) return;
+    
+    // Tentukan batasan awal dan akhir tahun
+    const startOfYear = new Date(`${selectedYearReset}-01-01T00:00:00`);
+    const endOfYear = new Date(`${selectedYearReset}-12-31T23:59:59`);
+    
+    try {
+      // Cari transaksi yang ada di rentang tahun tersebut
+      const qReset = query(
+        collection(db, "transaksi"), 
+        where("userId", "==", user.uid), 
+        where("waktu", ">=", startOfYear), 
+        where("waktu", "<=", endOfYear)
+      );
+      
+      const snapshot = await getDocs(qReset);
+      
+      if (snapshot.empty) {
+        return alert(`Tidak ada data transaksi yang ditemukan di tahun ${selectedYearReset}.`);
+      }
+      
+      // Hapus satu per satu
+      let deletedCount = 0;
+      for (const document of snapshot.docs) {
+        await deleteDoc(doc(db, "transaksi", document.id));
+        deletedCount++;
+      }
+      
+      alert(`Berhasil! Sebanyak ${deletedCount} transaksi di tahun ${selectedYearReset} telah dihapus permanen.`);
+      setShowResetModal(false);
+      
+    } catch (error) {
+      console.error(error);
+      alert("Gagal menghapus data. Pastikan indeks Firebase sudah dibuat. Cek Console (F12) untuk detail error.");
+    }
   };
 
   const filteredTransaksi = transaksi.filter(t => {
@@ -775,7 +821,7 @@ function App() {
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
             
-            {/* REVISI DESAIN: GABUNG JUDUL, TAB MENU, & TOMBOL EXCEL JADI SATU BARIS (LEBIH LUAS) */}
+            {/* REVISI DESAIN: GABUNG JUDUL, TAB MENU, & TOMBOL EXCEL, TOMBOL HAPUS JADI SATU BARIS (LEBIH LUAS) */}
             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
               <h2 style={{ fontSize: '22px', margin: 0, color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               
@@ -783,10 +829,11 @@ function App() {
                 <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('transaksi')} style={{ padding: '8px 16px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Semua Transaksi</button>
                 <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('bon')} style={{ padding: '8px 16px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Buku Bon (Piutang)</button>
                 <button tabIndex="0" onClick={exportExcel} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
+                <button tabIndex="0" onClick={() => setShowResetModal(true)} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>🗑️ Hapus Data Lama</button>
               </div>
             </div>
 
-            <div style={{ flex: 'none', background: 'white', padding: '16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
+            <div style={{ flex: 'none', background: 'white', padding: '12px 16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '8px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
               <input type="text" placeholder="🔍 Cari nama barang, metode bayar, atau nama pelanggan..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
               <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
                 <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
@@ -794,7 +841,7 @@ function App() {
             </div>
 
             {/* REVISI DESAIN: PERINGATAN LEBIH KECIL & DI BAWAH PENCARIAN (DEKAT TABEL) */}
-            <div style={{ flex: 'none', padding: '8px 12px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', fontSize: '11px', fontWeight: '600', marginBottom: '12px', border: '1px solid #ffedd5' }}>
+            <div style={{ flex: 'none', padding: '6px 12px', background: '#fff7ed', color: '#ea580c', borderRadius: '6px', fontSize: '11px', fontWeight: '600', marginBottom: '8px', border: '1px solid #ffedd5' }}>
               💡 Menampilkan 500 transaksi terbaru agar aplikasi kencang. Gunakan kolom pencarian di atas untuk melihat data lama.
             </div>
 
@@ -908,6 +955,33 @@ function App() {
             <div style={{ display: 'flex', gap: '12px' }}>
               <button tabIndex="0" onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>TUTUP</button>
               <button tabIndex="0" onClick={() => finalizePayment('QRIS')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH DIBAYAR</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL RESET DATA TAHUNAN --- */}
+      {showResetModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 10px 0', color: '#dc2626', fontSize: '22px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>⚠️ Hapus Data Tahunan</h2>
+            
+            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: '700', lineHeight: '1.5' }}>
+                PERINGATAN! Data yang dihapus tidak dapat dikembalikan. Pastikan Anda sudah men-download data (Excel) untuk tahun tersebut sebelum menghapus.
+              </p>
+            </div>
+
+            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>Pilih Tahun Transaksi yang Ingin Dihapus:</label>
+            <select tabIndex="0" value={selectedYearReset} onChange={e => setSelectedYearReset(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid #cbd5e1', marginBottom: '24px', fontSize: '15px', fontWeight: 'bold', color: '#272734', outline: 'none' }}>
+              {Array.from({ length: 26 }, (_, i) => 2025 + i).map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button tabIndex="0" onClick={() => setShowResetModal(false)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#f1f5f9', color: '#27274F', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
+              <button tabIndex="0" onClick={handleResetTahunan} style={{ flex: 2, padding: '14px', borderRadius: '12px', border: 'none', background: '#dc2626', color: 'white', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}>HAPUS PERMANEN</button>
             </div>
           </div>
         </div>
