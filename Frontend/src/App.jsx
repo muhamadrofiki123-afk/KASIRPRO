@@ -19,7 +19,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // --- REVISI: MENGGUNAKAN MODE OFFLINE MODERN ---
-// Ini menjamin aplikasi bisa dipakai berjualan tanpa internet dengan sangat lancar
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
@@ -82,7 +81,6 @@ function App() {
   
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
-  // --- REVISI: STATE BARU UNTUK HARGA PROMO ---
   const [hargaPromoProd, setHargaPromoProd] = useState('');
   
   const [stokProd, setStokProd] = useState('');
@@ -90,11 +88,9 @@ function App() {
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
   const [editingProductId, setEditingProductId] = useState(null);
 
-  // --- REVISI: STATE BARU UNTUK FITUR CETAK CEKLIS & FILTER ---
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [sortOrder, setSortOrder] = useState('terbaru');
 
-  // --- REVISI: STATE BARU UNTUK SAKELAR GRAFIK BALOK / KURVA ---
   const [chartVisualType, setChartVisualType] = useState('bar');
 
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
@@ -104,12 +100,16 @@ function App() {
   const [chartFilter, setChartFilter] = useState('hari'); 
   const [dashboardStats, setDashboardStats] = useState({ todaySales: 0, totalProducts: 0, lowStock: 0, totalPengeluaran: 0, labaBersih: 0 });
 
+  // --- REVISI FATAL BUG: REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG ---
+  const produkRef = useRef(produk);
+  useEffect(() => { produkRef.current = produk; }, [produk]);
+
   // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
     const goOffline = () => {
       setIsOnline(false);
-      setShowOfflineWarning(true); // Memunculkan popup saat internet terputus
+      setShowOfflineWarning(true); 
     };
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
@@ -189,9 +189,6 @@ function App() {
       },
       (error) => {
         console.error("ERROR INDEX TRANSAKSI: ", error.message);
-        if(error.message.includes('index')) {
-          alert("⚠️ PENTING: Firebase butuh 'Indeks'. Buka Inspect Element (Console) lalu klik Link berwarna biru dari pesan Error Firebase untuk membuat indeks Transaksi!");
-        }
       }
     );
 
@@ -208,9 +205,6 @@ function App() {
       },
       (error) => {
         console.error("ERROR INDEX PENGELUARAN: ", error.message);
-        if(error.message.includes('index')) {
-          alert("⚠️ PENTING: Firebase butuh 'Indeks'. Buka Inspect Element (Console) lalu klik Link berwarna biru dari pesan Error Firebase untuk membuat indeks Pengeluaran!");
-        }
       }
     );
 
@@ -223,7 +217,6 @@ function App() {
     const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toISOString().split('T')[0] === today);
     const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today);
     
-    // FITUR BON: Omzet hanya menghitung yang Lunas/Tunai/QRIS/Transfer
     const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -236,25 +229,35 @@ function App() {
     });
   }, [produk, transaksi, pengeluaran, user]);
 
+  // --- REVISI FATAL BUG: MENGAMANKAN FUNGSI KAMERA AGAR TIDAK LOOPING (MENCEGAH WHITE SCREEN) ---
+  const addToCartRef = useRef();
+  useEffect(() => { addToCartRef.current = addToCart; }, [cart]);
+
   useEffect(() => {
     let html5QrCode;
     const scannerId = isScanningKasir ? "reader-kasir" : (isScanningToko ? "reader-toko" : null);
     if (scannerId) {
       html5QrCode = new Html5Qrcode(scannerId);
       html5QrCode.start(
-        { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } },
+        // RUMUS KAMERA KOTAK PERSEGI PANJANG (qrbox width 250, height 150)
+        { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } },
         (decodedText) => {
           if (isScanningKasir) {
-            const found = produk.find(p => p.barcode === decodedText);
-            if (found) { addToCart(found); setIsScanningKasir(false); } 
+            const found = produkRef.current.find(p => p.barcode === decodedText);
+            if (found) { addToCartRef.current(found); setIsScanningKasir(false); } 
             else { alert('❌ Barcode tidak terdaftar di database!'); setIsScanningKasir(false); }
-          } else { setBarcodeProd(decodedText); setIsScanningToko(false); }
-          html5QrCode.stop();
+          } else { 
+            setBarcodeProd(decodedText); setIsScanningToko(false); 
+          }
+          html5QrCode.stop().catch(console.error);
         }, (error) => {}
-      ).catch(err => { alert("Gagal membuka kamera!"); setIsScanningKasir(false); setIsScanningToko(false); });
+      ).catch(err => { 
+        alert("Gagal membuka kamera! Pastikan izin kamera telah diberikan di browser."); 
+        setIsScanningKasir(false); setIsScanningToko(false); 
+      });
     }
     return () => { if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().catch(console.error); };
-  }, [isScanningKasir, isScanningToko, produk]);
+  }, [isScanningKasir, isScanningToko]); // DIHAPUSNYA PRODUK DARI SINI ADALAH OBAT WHITE SCREEN
 
   useEffect(() => { if (strukData) setTimeout(() => { window.print(); }, 800); }, [strukData]);
 
@@ -289,8 +292,6 @@ function App() {
 
   const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
-    
-    // --- REVISI: Logika harga promo di kasir. Jika ada promo, gunakan harga promo ---
     const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
     
     setCart(prev => {
@@ -320,8 +321,6 @@ function App() {
   const processPayment = () => {
     if (cart.length === 0) return alert('Keranjang kosong!');
     if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
-    
-    // JIKA METODE BON, MUNCULKAN POP-UP SETELAH KLIK BAYAR & CETAK
     if (metodePembayaran === 'Bon') {
       setShowBonModal(true); 
     } else {
@@ -348,7 +347,6 @@ function App() {
       for (const item of cart) { 
         updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
-      
       setStrukData(dataTrans); setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); 
       setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon('');
     } catch (err) { alert("Gagal memproses transaksi"); }
@@ -483,7 +481,6 @@ function App() {
   const chartData = getChartData();
   const isProfit = dashboardStats.labaBersih >= 0;
 
-  // --- REVISI: FITUR FILTER PENGURUTAN (TERBARU & A-Z) ---
   const sortedProduk = [...produk].sort((a, b) => {
     if (sortOrder === 'terbaru') {
       const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
@@ -552,6 +549,7 @@ function App() {
           <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box', width: '100%' }}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '1200px', margin: '0 auto' }}>
               
+              {/* --- REVISI: KOTAK LABA BERSIH OTOMATIS MERAH/HIJAU SESUAI KONDISI --- */}
               <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
                   <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
@@ -561,13 +559,16 @@ function App() {
                   <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
                   <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pengeluaran Hari Ini</div>
                 </div>
-                <div style={{ background: 'linear-gradient(135deg, #EA580C, #F59E0B)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.3)' }}>
+                
+                {/* --- LABA BERSIH DYNAMIC COLOR --- */}
+                <div style={{ background: isProfit ? 'linear-gradient(135deg, #16A34A, #22C55E)' : 'linear-gradient(135deg, #DC2626, #EF4444)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: isProfit ? '0 10px 15px -3px rgba(34, 197, 94, 0.3)' : '0 10px 15px -3px rgba(220, 38, 38, 0.3)' }}>
                   <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px' }}>
                     {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Laba Bersih Hari Ini</div>
                 </div>
-                <div style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(34, 197, 94, 0.3)' }}>
+
+                <div style={{ background: 'linear-gradient(135deg, #EA580C, #F59E0B)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.3)' }}>
                   <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
                   <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Produk & Stok Tipis</div>
                 </div>
@@ -608,11 +609,9 @@ function App() {
                   {chartData.data.map((d, i) => (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
                       
-                      {d.total > 0 && (
-                        <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
-                          {d.total.toLocaleString()}
-                        </div>
-                      )}
+                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>
+                        {d.total > 0 ? d.total.toLocaleString() : ''}
+                      </div>
                       
                       {chartVisualType === 'bar' ? (
                         <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartData.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out', boxShadow: '0 4px 6px rgba(37,99,235,0.2)' }}></div>
@@ -1030,7 +1029,7 @@ function App() {
             <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '600' }}>Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '20px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
             
             <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', marginBottom: '8px', display: 'block' }}>Nama Pelanggan / Nomor WA <span style={{color: '#ef4444'}}>*</span></label>
-            <input autoFocus value={namaPelangganBon} onChange={e => setNamaPelangganBon(e.target.value)} placeholder="Contoh: Pak Budi" style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '15px', fontWeight: '700', outline: 'none' }} />
+            <input value={namaPelangganBon} onChange={e => setNamaPelangganBon(e.target.value)} placeholder="Contoh: Pak Budi" style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '15px', fontWeight: '700', outline: 'none' }} />
             
             <div style={{ display: 'flex', gap: '12px' }}>
               <button tabIndex="0" onClick={() => { setShowBonModal(false); setMetodePembayaran('Tunai'); }} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
@@ -1188,67 +1187,72 @@ function App() {
                 boxSizing: 'border-box',
                 overflow: 'hidden'
               }}>
-                {/* SISI KIRI: NAMA TOKO BERDIRI (DINAMIS & TENGAH) */}
+                {/* --- REVISI: SISI KIRI NAMA TOKO (LEBIH AMAN DI HP LAIN) --- */}
                 <div style={{ 
                   width: '40px', 
-                  borderRight: '1px solid #000', 
+                  borderRight: '1px dashed #000', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  background: p.hargaPromo ? '#fef08a' : '#fff'
+                  background: p.hargaPromo ? '#fef08a' : '#fff',
+                  overflow: 'hidden'
                 }}>
                   <div style={{ 
-                    writingMode: 'vertical-rl', 
-                    transform: 'rotate(180deg)', 
-                    fontSize: (namaToko || 'TOKO').length <= 15 ? '16px' : '10px', 
+                    transform: 'rotate(-90deg)', 
+                    fontSize: (namaToko || 'TOKO').length <= 15 ? '13px' : '10px', 
                     fontWeight: 'bold', 
                     textTransform: 'uppercase',
                     textAlign: 'center',
-                    lineHeight: '1.2'
+                    width: '120px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
                   }}>
                     {namaToko || 'TOKO'}
                   </div>
                 </div>
                 
-                {/* SISI KANAN: INFO PRODUK (MEMAKAI SISTEM JARAK PASTI / FIXED) */}
+                {/* --- REVISI: INFO PRODUK (MEMAKAI SISTEM JARAK PASTI) --- */}
                 <div style={{ 
                   flex: 1, 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  padding: '6px 8px', 
-                  justifyContent: 'flex-start', // Mendorong semua elemen merapat ke atas dulu
-                  overflow: 'hidden',
-                  position: 'relative' // Untuk pengaman harga di bawah
+                  padding: '4px 8px', 
+                  justifyContent: 'space-between', 
+                  overflow: 'hidden'
                 }}>
                   
-                  {/* ATAS: NAMA BARANG (DINAMIS & TENGAH) */}
+                  {/* ATAS: NAMA BARANG */}
                   <div style={{ 
-                    fontSize: p.nama.length <= 15 ? '18px' : '14px', 
+                    fontSize: p.nama.length <= 15 ? '16px' : '13px', 
                     fontWeight: 'bold', 
                     color: '#000', 
-                    lineHeight: '1.1',
+                    lineHeight: '1.2',
                     textAlign: 'center',
                     display: '-webkit-box',
                     WebkitLineClamp: '2',
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    marginBottom: '4px' // Jarak pasti ke barcode
+                    minHeight: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
                     {p.nama}
                   </div>
                   
-                  {/* TENGAH: BARCODE (NOMOR BESAR & JARAK AMAN) */}
-                  <div style={{ textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
+                  {/* TENGAH: BARCODE */}
+                  <div style={{ textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <img 
                       src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=10`} 
                       alt={p.barcode} 
-                      style={{ width: '95%', height: '35px' }} 
+                      style={{ width: '90%', height: '30px', margin: '0 auto', display: 'block' }} 
                     />
                     <div style={{ 
-                      fontSize: '16px', 
+                      fontSize: '15px', 
                       fontFamily: 'monospace', 
                       fontWeight: 'bold', 
-                      marginTop: '-2px',
+                      marginTop: '2px',
                       letterSpacing: '1.5px',
                       color: '#000'
                     }}>
@@ -1256,26 +1260,24 @@ function App() {
                     </div>
                   </div>
                   
-                  {/* BAWAH: HARGA + SATUAN (DIKUNCI DI BAWAH) */}
+                  {/* BAWAH: HARGA + SATUAN */}
                   <div style={{ 
                     textAlign: 'right',
                     whiteSpace: 'nowrap',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    marginTop: '4px' // Jarak pasti dari barcode
+                    justifyContent: 'flex-end'
                   }}>
                     {p.hargaPromo && (
-                      <span style={{ fontSize: '12px', textDecoration: 'line-through', color: '#525252', fontWeight: 'bold' }}>
+                      <span style={{ fontSize: '11px', textDecoration: 'line-through', color: '#525252', fontWeight: 'bold' }}>
                         Rp {p.harga.toLocaleString()}
                       </span>
                     )}
                     <div style={{ 
-                      fontSize: (p.hargaPromo || p.harga).toString().length > 6 ? '17px' : '22px', 
+                      fontSize: (p.hargaPromo || p.harga).toString().length > 6 ? '18px' : '22px', 
                       fontWeight: '900', 
                       color: '#000', 
-                      lineHeight: '1',
-                      marginBottom: '2px'
+                      lineHeight: '1'
                     }}>
                       Rp {(p.hargaPromo || p.harga).toLocaleString()} / {p.satuan || 'Pcs'}
                     </div>
@@ -1322,7 +1324,6 @@ function App() {
         .nav-btn:focus { box-shadow: none !important; outline: none !important; }
         .nav-text { font-size: 14px; } 
 
-        /* CSS KHUSUS INDIKATOR KONEKSI (DESKTOP & HP) */
         .indicator-dot {
           display: inline-block;
           width: 8px;
@@ -1342,41 +1343,43 @@ function App() {
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        /* PERLINDUNGAN DESAIN HP (RESPONSIVE) */
+        /* --- REVISI: PERLINDUNGAN DESAIN HP YANG LEBIH PRESISI --- */
         @media (max-width: 768px) {
           .nav-text { font-size: 11px !important; } 
           .btn-metode { font-size: 10px !important; padding: 8px 2px !important; letter-spacing: -0.2px; }
           .tab-laporan-btn { font-size: 11px !important; padding: 10px !important; }
 
-          #camera-popup-container { padding: 10px !important; margin-bottom: 10px !important; }
-          #reader-kasir { height: 150px !important; }
-          #reader-kasir video { object-fit: cover !important; height: 150px !important; }
-
           /* TATA LETAK HEADER HP */
-          .header-title { font-size: 24px !important; margin-bottom: 4px !important; white-space: normal !important; max-width: 100% !important; line-height: 1.1 !important; }
+          .header-title { font-size: 16px !important; margin-bottom: 4px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; max-width: 180px !important; line-height: 1.2 !important; }
           .live-clock { display: none !important; }
           .header-info-desktop { display: none !important; }
           .header-info-mobile { display: flex !important; flex-direction: column; gap: 4px; margin-top: 4px; }
           .header-date { font-size: 12px; color: #64748b; font-weight: 600; }
           
-          /* REVISI: Mengatur column-reverse agar merapat ke atas dan MENGUNCI HALAMAN agar form tegak */
+          /* LAYOUT KASIR & PENGELUARAN HP */
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
           
           .mobile-reverse { flex-direction: column-reverse !important; justify-content: flex-end !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow: hidden !important; padding-bottom: 16px !important; }
           
+          /* MENCEGAH ELEMEN MEMBESAR DI KASIR */
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
+          .kasir-left-panel input, .kasir-left-panel button { padding: 10px !important; font-size: 13px !important; height: 42px !important; box-sizing: border-box !important; }
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
           
           .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 8px !important; }
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
+
+          /* KAMERA KOTAK PERSEGI PANJANG DI KASIR DAN PRODUK */
+          #camera-popup-container { padding: 10px !important; margin-bottom: 10px !important; }
+          #reader-kasir, #reader-toko { width: 100% !important; max-height: 180px !important; overflow: hidden !important; }
+          #reader-kasir video, #reader-toko video { object-fit: cover !important; max-height: 180px !important; width: 100% !important; }
           
-          /* REVISI: Table memanjang dengan min-height agar flex scroll aktif, Form di atas fix dengan max-height agar tidak menutupi tabel */
+          /* TABEL DAN FORM HP */
           .table-section { max-height: none !important; flex: 1 !important; min-height: 40vh !important; padding: 16px !important; }
-          
           .form-section { height: auto !important; flex: none !important; margin-bottom: 12px; max-height: 42vh !important; overflow-y: auto !important; padding: 16px !important; }
           
-          /* RUMUS PINTAR: Mengecilkan elemen form khusus di HP agar muat banyak dan proporsional */
+          /* RUMUS PINTAR: Mengecilkan elemen form khusus di HP */
           .form-section h3 { margin-bottom: 12px !important; font-size: 16px !important; }
           .form-section label { margin-bottom: 4px !important; font-size: 11px !important; }
           .form-section input, .form-section select { padding: 10px !important; font-size: 12px !important; margin-bottom: 8px !important; }
