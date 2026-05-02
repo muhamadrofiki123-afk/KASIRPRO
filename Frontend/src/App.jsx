@@ -94,6 +94,9 @@ function App() {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [sortOrder, setSortOrder] = useState('terbaru');
 
+  // --- REVISI: STATE BARU UNTUK SAKELAR GRAFIK BALOK / KURVA ---
+  const [chartVisualType, setChartVisualType] = useState('bar');
+
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
   const [nominalPengeluaran, setNominalPengeluaran] = useState('');
 
@@ -326,13 +329,12 @@ function App() {
     }
   };
 
-  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
   const finalizePayment = (metode) => {
     const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmount;
     const dataTrans = {
       userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty, satuan: i.satuan || 'Pcs'})),
       total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metode, 
-      waktu: new Date() // REVISI: Pakai new Date() agar tidak hilang saat offline
+      waktu: new Date() 
     };
 
     if (metode === 'Bon') {
@@ -342,19 +344,16 @@ function App() {
     }
 
     try {
-      // Perintah nulis ke database tidak lagi ditunggu (tanpa await). Langsung dieksekusi di background.
       addDoc(collection(db, "transaksi"), dataTrans);
       for (const item of cart) { 
         updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
       
-      // UI Langsung Re-render dengan super cepat!
       setStrukData(dataTrans); setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); 
       setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon('');
     } catch (err) { alert("Gagal memproses transaksi"); }
   };
 
-  // --- REVISI: SIMPAN PRODUK DENGAN FITUR HARGA PROMO ---
   const simpanProduk = (e) => {
     e.preventDefault();
     const promoVal = hargaPromoProd ? Number(hargaPromoProd) : null;
@@ -412,7 +411,7 @@ function App() {
       
       let deletedCount = 0;
       for (const document of snapshot.docs) {
-        deleteDoc(doc(db, "transaksi", document.id)); // Tanpa await agar cepat
+        deleteDoc(doc(db, "transaksi", document.id)); 
         deletedCount++;
       }
       
@@ -554,44 +553,80 @@ function App() {
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '1200px', margin: '0 auto' }}>
               
               <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <div style={{ background: '#272734', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(39, 39, 52, 0.15)' }}>
-                  <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Omzet Hari Ini</div>
-                  <div style={{ fontSize: '26px', fontWeight: '800', color: '#FF7835' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
+                <div style={{ background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
+                  <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Omzet Hari Ini</div>
                 </div>
-                <div style={{ background: '#FF7835', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(255, 120, 53, 0.15)' }}>
-                  <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Pengeluaran Hari Ini</div>
-                  <div style={{ fontSize: '26px', fontWeight: '800' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
+                <div style={{ background: 'linear-gradient(135deg, #0D9488, #14B8A6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(20, 184, 166, 0.3)' }}>
+                  <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pengeluaran Hari Ini</div>
                 </div>
-                <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '700', color: '#64748b' }}>Laba Bersih Hari Ini</div>
-                  <div style={{ fontSize: '26px', fontWeight: '900', color: isProfit ? '#10b981' : '#ef4444' }}>
+                <div style={{ background: 'linear-gradient(135deg, #EA580C, #F59E0B)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.3)' }}>
+                  <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px' }}>
                     {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
                   </div>
+                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Laba Bersih Hari Ini</div>
                 </div>
-                <div style={{ background: '#0ea5e9', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(14, 165, 233, 0.15)' }}>
-                  <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '4px', fontWeight: '600' }}>Produk & Stok Tipis</div>
-                  <div style={{ fontSize: '26px', fontWeight: '800' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
+                <div style={{ background: 'linear-gradient(135deg, #16A34A, #22C55E)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(34, 197, 94, 0.3)' }}>
+                  <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
+                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Produk & Stok Tipis</div>
                 </div>
               </div>
 
               <div style={{ flex: 1, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, color: '#272734', fontSize: '18px' }}>📈 Grafik Pendapatan</h3>
-                  <select tabIndex="0" value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #FF7835', outline: 'none', fontWeight: '700', color: '#27274F', background: '#fff7ed', fontSize: '13px' }}>
-                    <option value="jam">Hari Ini (Per Jam)</option><option value="hari">7 Hari Terakhir</option><option value="bulan">6 Bulan Terakhir</option><option value="tahun">5 Tahun Terakhir</option>
-                  </select>
+                <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                  <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>📈 Grafik Pendapatan</h3>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    
+                    <div style={{ background: '#f1f5f9', borderRadius: '8px', padding: '4px', display: 'flex', gap: '4px' }}>
+                       <button tabIndex="0" onClick={() => setChartVisualType('bar')} style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'bar' ? 'white' : 'transparent', color: chartVisualType === 'bar' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'bar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '12px', transition: '0.2s' }}>📊 Balok</button>
+                       <button tabIndex="0" onClick={() => setChartVisualType('line')} style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'line' ? 'white' : 'transparent', color: chartVisualType === 'line' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'line' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '12px', transition: '0.2s' }}>📈 Kurva</button>
+                    </div>
+
+                    <select tabIndex="0" value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', color: '#27274F', background: '#fff', fontSize: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                      <option value="jam">Hari Ini (Per Jam)</option><option value="hari">7 Hari Terakhir</option><option value="bulan">6 Bulan Terakhir</option><option value="tahun">5 Tahun Terakhir</option>
+                    </select>
+                  </div>
                 </div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '15px', paddingTop: '10px' }}>
+
+                <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: '150px' }}>
+                  
+                  {chartVisualType === 'line' && (
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
+                      <polyline 
+                        points={chartData.data.map((d, i) => `${(i / (chartData.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartData.max || 1)) * 100)}`).join(' ')} 
+                        fill="none" 
+                        stroke="#3b82f6" 
+                        strokeWidth="3" 
+                        vectorEffect="non-scaling-stroke"
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                      />
+                    </svg>
+                  )}
+
                   {chartData.data.map((d, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
-                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>
-                        {d.total > 0 ? d.total.toLocaleString() : ''}
-                      </div>
-                      <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #fdba74, #FF7835)', borderRadius: '6px 6px 0 0', height: `${(d.total / chartData.max) * 100}%`, minHeight: '8px', transition: '1s ease-out' }}></div>
-                      <div style={{ fontSize: '12px', color: '#27274F', marginTop: '10px', fontWeight: '700', textAlign: 'center' }}>{d.label}</div>
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
+                      
+                      {d.total > 0 && (
+                        <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
+                          {d.total.toLocaleString()}
+                        </div>
+                      )}
+                      
+                      {chartVisualType === 'bar' ? (
+                        <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartData.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out', boxShadow: '0 4px 6px rgba(37,99,235,0.2)' }}></div>
+                      ) : (
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartData.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}>
+                           <div style={{ width: '12px', height: '12px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-6px)', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}></div>
+                        </div>
+                      )}
+                      
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>{d.label}</div>
                     </div>
                   ))}
                 </div>
+
               </div>
             </div>
           </div>
@@ -632,7 +667,6 @@ function App() {
                       
                       {p.stok < 50 && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
                       <h3 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '700', color: '#272734', lineHeight: '1.2' }}>{p.nama}</h3>
-                      {/* --- REVISI: TAMPILAN HARGA PROMO DI KASIR --- */}
                       <div style={{ fontSize: '18px', fontWeight: '900', color: p.hargaPromo ? '#e11d48' : '#0ea5e9', marginBottom: '8px' }}>
                         {p.hargaPromo && <span style={{textDecoration: 'line-through', fontSize: '11px', color: '#94a3b8', marginRight: '4px'}}>Rp{p.harga.toLocaleString()}</span>}
                         Rp {(p.hargaPromo || p.harga).toLocaleString()}
@@ -746,7 +780,6 @@ function App() {
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
-              {/* --- REVISI: TATA LETAK MENU FILTER & CETAK CEKLIS (TIDAK MERUSAK TABEL) --- */}
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>📦 Database Produk</h3>
                 
@@ -820,7 +853,6 @@ function App() {
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Nama Produk</label>
                 <input value={namaProd} onChange={e => setNamaProd(e.target.value)} required style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                 
-                {/* --- REVISI: FORM HARGA NORMAL & HARGA PROMO --- */}
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Normal (Rp)</label>
@@ -1136,7 +1168,7 @@ function App() {
         </div>
       )}
 
-      {/* --- CETAK LABEL BARCODE --- */}
+      {/* --- CETAK LABEL BARCODE (DIPERBAIKI JARAKNYA AGAR TIDAK BENTROK) --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
@@ -1151,7 +1183,7 @@ function App() {
                 width: '280px', 
                 height: '130px', 
                 display: 'flex', 
-                background: p.hargaPromo ? '#fef08a' : '#fff', // --- REVISI: LABEL KUNING JIKA PROMO ---
+                background: p.hargaPromo ? '#fef08a' : '#fff', 
                 margin: '5px',
                 boxSizing: 'border-box',
                 overflow: 'hidden'
@@ -1163,7 +1195,7 @@ function App() {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  background: p.hargaPromo ? '#fef08a' : '#fff' // IKUT KUNING
+                  background: p.hargaPromo ? '#fef08a' : '#fff'
                 }}>
                   <div style={{ 
                     writingMode: 'vertical-rl', 
@@ -1178,32 +1210,35 @@ function App() {
                   </div>
                 </div>
                 
-                {/* SISI KANAN: INFO PRODUK */}
+                {/* SISI KANAN: INFO PRODUK (MEMAKAI SISTEM JARAK PASTI / FIXED) */}
                 <div style={{ 
                   flex: 1, 
                   display: 'flex', 
                   flexDirection: 'column', 
                   padding: '6px 8px', 
-                  justifyContent: 'space-between',
-                  overflow: 'hidden'
+                  justifyContent: 'flex-start', // Mendorong semua elemen merapat ke atas dulu
+                  overflow: 'hidden',
+                  position: 'relative' // Untuk pengaman harga di bawah
                 }}>
+                  
                   {/* ATAS: NAMA BARANG (DINAMIS & TENGAH) */}
                   <div style={{ 
                     fontSize: p.nama.length <= 15 ? '18px' : '14px', 
                     fontWeight: 'bold', 
                     color: '#000', 
-                    lineHeight: '1.2',
+                    lineHeight: '1.1',
                     textAlign: 'center',
                     display: '-webkit-box',
                     WebkitLineClamp: '2',
                     WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    marginBottom: '4px' // Jarak pasti ke barcode
                   }}>
                     {p.nama}
                   </div>
                   
-                  {/* TENGAH: BARCODE (NOMOR BESAR) */}
-                  <div style={{ textAlign: 'center' }}>
+                  {/* TENGAH: BARCODE (NOMOR BESAR & JARAK AMAN) */}
+                  <div style={{ textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
                     <img 
                       src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=10`} 
                       alt={p.barcode} 
@@ -1221,13 +1256,14 @@ function App() {
                     </div>
                   </div>
                   
-                  {/* BAWAH: HARGA + SATUAN (ANTI-BENTROK, DINAMIS & FITUR CORET PROMO) */}
+                  {/* BAWAH: HARGA + SATUAN (DIKUNCI DI BAWAH) */}
                   <div style={{ 
                     textAlign: 'right',
                     whiteSpace: 'nowrap',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-end'
+                    justifyContent: 'flex-end',
+                    marginTop: '4px' // Jarak pasti dari barcode
                   }}>
                     {p.hargaPromo && (
                       <span style={{ fontSize: '12px', textDecoration: 'line-through', color: '#525252', fontWeight: 'bold' }}>
@@ -1323,8 +1359,9 @@ function App() {
           .header-info-mobile { display: flex !important; flex-direction: column; gap: 4px; margin-top: 4px; }
           .header-date { font-size: 12px; color: #64748b; font-weight: 600; }
           
-          /* KASIR & PENGELUARAN LAYOUT HP */
+          /* REVISI: Mengatur column-reverse agar merapat ke atas dan MENGUNCI HALAMAN agar form tegak */
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
+          
           .mobile-reverse { flex-direction: column-reverse !important; justify-content: flex-end !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow: hidden !important; padding-bottom: 16px !important; }
           
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
@@ -1334,8 +1371,17 @@ function App() {
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
           
-          .table-section { max-height: none !important; flex: 1 !important; min-height: 0 !important; }
-          .form-section { height: auto !important; flex: none !important; margin-bottom: 12px; }
+          /* REVISI: Table memanjang dengan min-height agar flex scroll aktif, Form di atas fix dengan max-height agar tidak menutupi tabel */
+          .table-section { max-height: none !important; flex: 1 !important; min-height: 40vh !important; padding: 16px !important; }
+          
+          .form-section { height: auto !important; flex: none !important; margin-bottom: 12px; max-height: 42vh !important; overflow-y: auto !important; padding: 16px !important; }
+          
+          /* RUMUS PINTAR: Mengecilkan elemen form khusus di HP agar muat banyak dan proporsional */
+          .form-section h3 { margin-bottom: 12px !important; font-size: 16px !important; }
+          .form-section label { margin-bottom: 4px !important; font-size: 11px !important; }
+          .form-section input, .form-section select { padding: 10px !important; font-size: 12px !important; margin-bottom: 8px !important; }
+          .form-section div { margin-bottom: 8px !important; }
+          .form-section button { padding: 12px !important; font-size: 12px !important; }
         }
       `}</style>
     </div>
