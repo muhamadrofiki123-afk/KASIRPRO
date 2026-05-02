@@ -1,18 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
-// --- IMPORT SISTEM OFFLINE VERSI TERBARU ---
-import { 
-  initializeFirestore, persistentLocalCache, persistentMultipleTabManager, 
-  collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, 
-  query, where, orderBy, onSnapshot, deleteDoc, limit, getDocs 
-} from 'firebase/firestore';
-import { 
-  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-  onAuthStateChanged, signOut, setPersistence, browserLocalPersistence 
-} from 'firebase/auth';
+// --- IMPORT SISTEM OFFLINE VERSI TERBARU DAN PALING KUAT ---
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, addDoc, doc, setDoc, getDoc, updateDoc, increment, query, where, orderBy, onSnapshot, deleteDoc, limit, getDocs } from 'firebase/firestore';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { Html5Qrcode } from 'html5-qrcode';
 
-// --- CONFIG FIREBASE ---
+// --- CONFIG FIREBASE ASLI MILIK VICKY ---
 const firebaseConfig = {
   apiKey: "AIzaSyBq9lMekzm_aq-2Buvub7E7f7dx1V5kTiA",
   authDomain: "kasir-pintar-93e03.firebaseapp.com",
@@ -24,104 +17,108 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
+// --- MENGGUNAKAN MODE OFFLINE MODERN ---
 const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
+
 const auth = getAuth(app);
 
 function App() {
-  // === STATE AUTENTIKASI ===
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // === STATE GLOBAL ===
+  // WAKTU & TANGGAL LIVE SEKARANG
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // STATE UNTUK STATUS INTERNET (ONLINE/OFFLINE) & POPUP PERINGATAN
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
   const [showOfflineWarning, setShowOfflineWarning] = useState(!window.navigator.onLine);
-  const [activeTab, setActiveTab] = useState('dashboard');
 
-  // === STATE DATABASE ===
   const [produk, setProduk] = useState([]);
   const [transaksi, setTransaksi] = useState([]);
   const [pengeluaran, setPengeluaran] = useState([]); 
   
-  // === STATE KASIR & KERANJANG ===
   const [cart, setCart] = useState(() => {
     try { const saved = localStorage.getItem('kasirCart'); return saved ? JSON.parse(saved) : []; } 
     catch(e) { return []; }
   });
+  
   const [search, setSearch] = useState('');
+  const [searchLaporan, setSearchLaporan] = useState(''); 
+  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // STATE UNTUK FITUR BON & LAPORAN
+  const [laporanTab, setLaporanTab] = useState('transaksi'); 
+  const [showBonModal, setShowBonModal] = useState(false);
+  const [namaPelangganBon, setNamaPelangganBon] = useState('');
+
+  // STATE UNTUK FITUR HAPUS DATA TAHUNAN
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [selectedYearReset, setSelectedYearReset] = useState('2025');
+
   const [barcodeInput, setBarcodeInput] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [metodePembayaran, setMetodePembayaran] = useState('Tunai'); 
   const [isScanningKasir, setIsScanningKasir] = useState(false);
-  
-  // === STATE TOKO / PRODUK ===
   const [isScanningToko, setIsScanningToko] = useState(false);
-  const [namaProd, setNamaProd] = useState('');
-  const [hargaProd, setHargaProd] = useState('');
-  const [hargaPromoProd, setHargaPromoProd] = useState('');
-  const [stokProd, setStokProd] = useState('');
-  const [barcodeProd, setBarcodeProd] = useState('');
-  const [satuanProd, setSatuanProd] = useState('Pcs'); 
-  const [editingProductId, setEditingProductId] = useState(null);
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [sortOrder, setSortOrder] = useState('terbaru');
-
-  // === STATE PENGELUARAN ===
-  const [namaPengeluaran, setNamaPengeluaran] = useState('');
-  const [nominalPengeluaran, setNominalPengeluaran] = useState('');
-
-  // === STATE LAPORAN & DASHBOARD ===
-  const [searchLaporan, setSearchLaporan] = useState(''); 
-  const [laporanTab, setLaporanTab] = useState('transaksi'); 
-  const [reportFilter, setReportFilter] = useState('hari');
-  const [chartFilter, setChartFilter] = useState('hari'); 
-  const [chartVisualType, setChartVisualType] = useState('bar');
-  const [dashboardStats, setDashboardStats] = useState({ 
-    todaySales: 0, totalProducts: 0, lowStock: 0, totalPengeluaran: 0, labaBersih: 0 
-  });
-
-  // === STATE MODAL & POPUP ===
-  const [showBonModal, setShowBonModal] = useState(false);
-  const [namaPelangganBon, setNamaPelangganBon] = useState('');
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [selectedYearReset, setSelectedYearReset] = useState('2025');
+  
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false); 
   const [showQrisModal, setShowQrisModal] = useState(false);
-
-  // === STATE PRINT STRUK & LABEL ===
+  
   const [strukData, setStrukData] = useState(null);
   const [printMode, setPrintMode] = useState(null);
   const [printData, setPrintData] = useState(null);
 
-  // === STATE PROFIL TOKO & LABEL KUSTOM ===
   const [namaToko, setNamaToko] = useState('');
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
   const [qrisImage, setQrisImage] = useState(''); 
+
+  // --- STATE UKURAN LABEL KUSTOM ---
   const [labelWidth, setLabelWidth] = useState(185);
   const [labelHeight, setLabelHeight] = useState(95);
   const [labelScale, setLabelScale] = useState(100);
   const [labelGap, setLabelGap] = useState(5);
   const [labelCols, setLabelColumns] = useState(4);
+  
+  const [namaProd, setNamaProd] = useState('');
+  const [hargaProd, setHargaProd] = useState('');
+  const [hargaPromoProd, setHargaPromoProd] = useState('');
+  
+  const [stokProd, setStokProd] = useState('');
+  const [barcodeProd, setBarcodeProd] = useState('');
+  const [satuanProd, setSatuanProd] = useState('Pcs'); 
+  const [editingProductId, setEditingProductId] = useState(null);
 
-  // REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [sortOrder, setSortOrder] = useState('terbaru');
+
+  const [chartVisualType, setChartVisualType] = useState('bar');
+
+  const [namaPengeluaran, setNamaPengeluaran] = useState('');
+  const [nominalPengeluaran, setNominalPengeluaran] = useState('');
+
+  const [reportFilter, setReportFilter] = useState('hari');
+  const [chartFilter, setChartFilter] = useState('hari'); 
+  const [dashboardStats, setDashboardStats] = useState({ todaySales: 0, totalProducts: 0, lowStock: 0, totalPengeluaran: 0, labaBersih: 0 });
+
+  // REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG (MENCEGAH WHITE SCREEN)
   const produkRef = useRef(produk);
   useEffect(() => { produkRef.current = produk; }, [produk]);
 
-  const addToCartRef = useRef();
-  useEffect(() => { addToCartRef.current = addToCart; }, [cart]);
-
-  // === EFFECT: WAKTU & KONEKSI ===
+  // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
-    const goOffline = () => { setIsOnline(false); setShowOfflineWarning(true); };
-    
+    const goOffline = () => {
+      setIsOnline(false);
+      setShowOfflineWarning(true); // Memunculkan popup saat internet terputus
+    };
     window.addEventListener('online', goOnline);
     window.addEventListener('offline', goOffline);
     
@@ -133,12 +130,12 @@ function App() {
     };
   }, []);
 
-  // === EFFECT: NAVIGASI KEYBOARD KASIR ===
+  // NAVIGASI KEYBOARD
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
       const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT');
-      
+
       if (isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return; 
 
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -149,15 +146,14 @@ function App() {
         
         const currentIndex = focusableElements.indexOf(activeElement);
         let nextIndex = currentIndex;
-        
         if (e.key === 'ArrowDown' || (!isInput && e.key === 'ArrowRight')) {
           nextIndex = currentIndex + 1 < focusableElements.length ? currentIndex + 1 : 0;
         } else if (e.key === 'ArrowUp' || (!isInput && e.key === 'ArrowLeft')) {
           nextIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : focusableElements.length - 1;
         }
         
-        if (nextIndex !== currentIndex && focusableElements[nextIndex]) { 
-          focusableElements[nextIndex].focus(); 
+        if (nextIndex !== currentIndex && focusableElements[nextIndex]) {
+          focusableElements[nextIndex].focus();
         }
       }
     };
@@ -165,26 +161,18 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // === EFFECT: AUTENTIKASI FIREBASE ===
   useEffect(() => {
     setPersistence(auth, browserLocalPersistence).then(() => {
-      onAuthStateChanged(auth, (u) => { 
-        setUser(u); 
-        setLoading(false); 
-      });
+      onAuthStateChanged(auth, (u) => { setUser(u); setLoading(false); });
     });
   }, []);
 
-  // === EFFECT: SAVE KERANJANG KE LOKAL ===
-  useEffect(() => { 
-    localStorage.setItem('kasirCart', JSON.stringify(cart)); 
-  }, [cart]);
+  useEffect(() => { localStorage.setItem('kasirCart', JSON.stringify(cart)); }, [cart]);
 
-  // === EFFECT: AMBIL DATA DARI FIREBASE (PULL DATA) ===
+  // LOGIKA PULL DATA DENGAN BATASAN (LIMIT 500)
   useEffect(() => {
     if (!user) return;
     
-    // Tarik Profil Toko
     getDoc(doc(db, "profilToko", user.uid)).then(d => {
       if(d.exists()) { 
         setNamaToko(d.data().nama || ''); 
@@ -199,38 +187,52 @@ function App() {
       }
     });
 
-    // Tarik Produk
     const unsubProduk = onSnapshot(query(collection(db, "produk"), where("userId", "==", user.uid)), (snap) => {
       setProduk(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
-    // Tarik Transaksi
-    const unsubTrans = onSnapshot(query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500)), (snap) => {
+    const qTrans = query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500));
+    const unsubTrans = onSnapshot(qTrans, 
+      (snap) => {
         let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        data.sort((a, b) => {
+          const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+          const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+          return timeB - timeA;
+        });
         setTransaksi(data);
-    });
+      },
+      (error) => {
+        console.error("ERROR INDEX TRANSAKSI: ", error.message);
+      }
+    );
 
-    // Tarik Pengeluaran
-    const unsubPengeluaran = onSnapshot(query(collection(db, "pengeluaran"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500)), (snap) => {
+    const qPeng = query(collection(db, "pengeluaran"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500));
+    const unsubPengeluaran = onSnapshot(qPeng, 
+      (snap) => {
         let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        data.sort((a, b) => {
+          const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+          const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+          return timeB - timeA;
+        });
         setPengeluaran(data);
-    });
+      },
+      (error) => {
+        console.error("ERROR INDEX PENGELUARAN: ", error.message);
+      }
+    );
 
-    return () => { 
-      unsubProduk(); 
-      unsubTrans(); 
-      unsubPengeluaran(); 
-    };
+    return () => { unsubProduk(); unsubTrans(); unsubPengeluaran(); };
   }, [user]);
 
-  // === EFFECT: HITUNG STATISTIK DASHBOARD ===
   useEffect(() => {
     if (!user) return;
     const today = new Date().toISOString().split('T')[0];
     const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toISOString().split('T')[0] === today);
     const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today);
     
-    // Omzet Lunas/Tunai/QRIS/Transfer
+    // FITUR BON: Omzet hanya menghitung yang Lunas/Tunai/QRIS/Transfer
     const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -243,7 +245,10 @@ function App() {
     });
   }, [produk, transaksi, pengeluaran, user]);
 
-  // === EFFECT: KAMERA BARCODE (ANTI BLANK/WHITE SCREEN) ===
+  const addToCartRef = useRef();
+  useEffect(() => { addToCartRef.current = addToCart; }, [cart]);
+
+  // --- FUNGSI KAMERA ANTI BLANK & HD ---
   useEffect(() => {
     let html5QrCode;
     let isComponentMounted = true; 
@@ -260,48 +265,38 @@ function App() {
           (decodedText) => {
             if (isScanningKasir) {
               const found = produkRef.current.find(p => p.barcode === decodedText);
-              if (found) { 
-                addToCartRef.current(found); 
-                setIsScanningKasir(false); 
-              } else { 
-                alert('❌ Barcode tidak terdaftar!'); 
-                setIsScanningKasir(false); 
-              }
+              if (found) { addToCartRef.current(found); setIsScanningKasir(false); } 
+              else { alert('❌ Barcode tidak terdaftar di database!'); setIsScanningKasir(false); }
             } else { 
-              setBarcodeProd(decodedText); 
-              setIsScanningToko(false); 
+              setBarcodeProd(decodedText); setIsScanningToko(false); 
             }
           }, 
-          undefined
+          undefined // Ignore warnings
         );
-      } catch (err) { 
-        if(isComponentMounted) console.error("Kamera Error:", err); 
+      } catch (err) {
+        if (isComponentMounted) {
+          console.error("Kamera Error:", err);
+        }
       }
     };
 
-    if (isScanningKasir || isScanningToko) { 
-      startScanner(); 
+    if (isScanningKasir || isScanningToko) {
+      startScanner();
     }
 
     return () => {
       isComponentMounted = false;
       if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop()
-          .then(() => html5QrCode.clear())
-          .catch(console.error);
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch(console.error);
       }
     };
   }, [isScanningKasir, isScanningToko]);
 
-  // === EFFECT: PRINT OTOMATIS STRUK ===
-  useEffect(() => { 
-    if (strukData) {
-      setTimeout(() => { window.print(); }, 800); 
-    }
-  }, [strukData]);
+  useEffect(() => { if (strukData) setTimeout(() => { window.print(); }, 800); }, [strukData]);
 
-
-  // === FUNGSI: UPLOAD QRIS ===
+  // --- MENU UPLOAD GAMBAR QRIS ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -311,7 +306,6 @@ function App() {
     }
   };
 
-  // === FUNGSI: LOGIN & REGISTER ===
   const handleLogin = async (e) => {
     e.preventDefault();
     try { 
@@ -321,37 +315,27 @@ function App() {
       } else {
         await signInWithEmailAndPassword(auth, email, password); 
       }
-    } catch (error) { 
-      alert('Gagal: ' + error.message); 
-    } finally { 
-      setLoading(false); 
-    }
+    } 
+    catch (error) { alert('Gagal: ' + error.message); } 
+    finally { setLoading(false); }
   };
 
-  // === FUNGSI: KERANJANG KASIR ===
   const handleManualScan = (e) => {
     e.preventDefault();
     const found = produk.find(p => p.barcode === barcodeInput || p.barcode === String(barcodeInput));
-    if (found) { 
-      addToCart(found); 
-      setBarcodeInput(''); 
-    } else { 
-      alert('Barcode tidak ditemukan!'); 
-      setBarcodeInput(''); 
-    }
+    if (found) { addToCart(found); setBarcodeInput(''); } else { alert('Barcode tidak ditemukan!'); setBarcodeInput(''); }
   };
 
   const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
+    
+    // Logika harga promo di kasir
     const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
     
     setCart(prev => {
       const existing = prev.find(item => item.id === p.id);
       if (existing) {
-        if(existing.qty >= p.stok) { 
-          alert("Stok tidak mencukupi!"); 
-          return prev; 
-        }
+        if(existing.qty >= p.stok) { alert("Stok tidak mencukupi!"); return prev; }
         return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
       }
       return [...prev, { ...p, harga: hargaAktif, hargaAsli: p.harga, qty: 1 }];
@@ -359,23 +343,16 @@ function App() {
   };
 
   const updateQuantity = (id, newQty) => {
-    if (newQty <= 0) { 
-      setCart(prev => prev.filter(item => item.id !== id)); 
-      return; 
-    }
+    if (newQty <= 0) { setCart(prev => prev.filter(item => item.id !== id)); return; }
     setCart(prev => prev.map(item => {
       if (item.id === id) {
-        if(newQty > item.stok) { 
-          alert(`Stok sisa ${item.stok}!`); 
-          return { ...item, qty: item.stok }; 
-        }
+        if(newQty > item.stok) { alert(`Stok sisa ${item.stok}!`); return { ...item, qty: item.stok }; }
         return { ...item, qty: newQty };
       }
       return item;
     }));
   };
 
-  // === PERHITUNGAN TRANSAKSI ===
   const totalAmount = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
   const kembalian = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalAmount : 0;
 
@@ -393,18 +370,8 @@ function App() {
   const finalizePayment = (metode) => {
     const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmount;
     const dataTrans = {
-      userId: user.uid, 
-      items: cart.map(i => ({
-        nama: i.nama, 
-        harga: i.harga, 
-        hargaAsli: i.hargaAsli, 
-        qty: i.qty, 
-        satuan: i.satuan || 'Pcs'
-      })),
-      total: totalAmount, 
-      uangBayar: finalUangBayar, 
-      kembalian: kembalian, 
-      metode: metode, 
+      userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, hargaAsli: i.hargaAsli, qty: i.qty, satuan: i.satuan || 'Pcs'})),
+      total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metode, 
       waktu: new Date() 
     };
 
@@ -419,19 +386,12 @@ function App() {
       for (const item of cart) { 
         updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
-      setStrukData(dataTrans); 
-      setCart([]); 
-      setPaymentAmount(''); 
-      setMetodePembayaran('Tunai'); 
-      setShowQrisModal(false); 
-      setShowBonModal(false); 
-      setNamaPelangganBon('');
-    } catch (err) { 
-      alert("Gagal memproses transaksi"); 
-    }
+      
+      setStrukData(dataTrans); setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); 
+      setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon('');
+    } catch (err) { alert("Gagal memproses transaksi"); }
   };
 
-  // === FUNGSI: PRODUK & PENGELUARAN ===
   const simpanProduk = (e) => {
     e.preventDefault();
     const promoVal = hargaPromoProd ? Number(hargaPromoProd) : null;
@@ -441,12 +401,7 @@ function App() {
       if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
       
       updateDoc(doc(db, "produk", editingProductId), { 
-        nama: namaProd, 
-        harga: Number(hargaProd), 
-        hargaPromo: promoVal, 
-        stok: Number(stokProd), 
-        barcode: barcodeProd, 
-        satuan: satuanProd 
+        nama: namaProd, harga: Number(hargaProd), hargaPromo: promoVal, stok: Number(stokProd), barcode: barcodeProd, satuan: satuanProd 
       });
       setEditingProductId(null);
     } else {
@@ -455,14 +410,7 @@ function App() {
       
       const bcode = barcodeProd || Math.floor(100000000000 + Math.random() * 900000000000).toString();
       addDoc(collection(db, "produk"), { 
-        nama: namaProd, 
-        harga: Number(hargaProd), 
-        hargaPromo: promoVal, 
-        stok: Number(stokProd), 
-        barcode: bcode, 
-        satuan: satuanProd, 
-        userId: user.uid, 
-        createdAt: new Date() 
+        nama: namaProd, harga: Number(hargaProd), hargaPromo: promoVal, stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() 
       });
     }
     setNamaProd(''); setHargaProd(''); setHargaPromoProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
@@ -470,14 +418,8 @@ function App() {
 
   const simpanPengeluaran = (e) => {
     e.preventDefault();
-    addDoc(collection(db, "pengeluaran"), { 
-      nama: namaPengeluaran, 
-      nominal: Number(nominalPengeluaran), 
-      userId: user.uid, 
-      waktu: new Date() 
-    });
-    setNamaPengeluaran(''); 
-    setNominalPengeluaran(''); 
+    addDoc(collection(db, "pengeluaran"), { nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: new Date() });
+    setNamaPengeluaran(''); setNominalPengeluaran(''); 
   };
 
   const simpanProfil = () => {
@@ -496,7 +438,6 @@ function App() {
     setShowProfileModal(false);
   };
 
-  // === FUNGSI: HAPUS DATA TAHUNAN ===
   const handleResetTahunan = async () => {
     if (!window.confirm(`⚠️ PERINGATAN TERAKHIR: Apakah Anda yakin ingin menghapus SEMUA transaksi pada tahun ${selectedYearReset}? Tindakan ini permanen dan tidak bisa dibatalkan!`)) return;
     
@@ -510,6 +451,7 @@ function App() {
         where("waktu", ">=", startOfYear), 
         where("waktu", "<=", endOfYear)
       );
+      
       const snapshot = await getDocs(qReset);
       
       if (snapshot.empty) {
@@ -521,28 +463,26 @@ function App() {
         deleteDoc(doc(db, "transaksi", document.id)); 
         deletedCount++;
       }
+      
       alert(`Berhasil! Sebanyak ${deletedCount} transaksi di tahun ${selectedYearReset} telah dihapus permanen.`);
       setShowResetModal(false);
-    } catch (error) { 
+      
+    } catch (error) {
       console.error(error);
-      alert("Gagal menghapus data. Pastikan indeks Firebase sudah dibuat."); 
+      alert("Gagal menghapus data. Pastikan indeks Firebase sudah dibuat. Cek Console (F12) untuk detail error.");
     }
   };
 
-  // === FUNGSI: FILTER & EXPORT LAPORAN ===
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
     const cari = searchLaporan.toLowerCase();
     const matchCari = cari === '' || t.items.some(i => i.nama.toLowerCase().includes(cari)) || (t.metode && t.metode.toLowerCase().includes(cari)) || (t.namaPelanggan && t.namaPelanggan.toLowerCase().includes(cari));
     if (!matchCari) return false;
 
-    const dateObj = t.waktu.toDate ? t.waktu.toDate() : new Date(); 
-    const today = new Date();
-    
+    const dateObj = t.waktu.toDate ? t.waktu.toDate() : new Date(); const today = new Date();
     if (reportFilter === 'hari') return dateObj.toDateString() === today.toDateString();
     else if (reportFilter === 'minggu') return dateObj >= new Date(today.setDate(today.getDate() - today.getDay()));
     else if (reportFilter === 'bulan') return dateObj.getMonth() === today.getMonth() && dateObj.getFullYear() === today.getFullYear();
-    
     return true;
   });
 
@@ -560,49 +500,43 @@ function App() {
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + headers.concat(rows).join("\n")));
     link.setAttribute("download", `Laporan_${laporanTab === 'bon' ? 'Bon' : 'Transaksi'}_Kasir.csv`);
-    document.body.appendChild(link); 
-    link.click();
+    document.body.appendChild(link); link.click();
   };
 
-  // === FUNGSI: CHART DATA DASHBOARD ===
   const getChartData = () => {
     let labels = []; let values = []; const now = new Date();
     if (chartFilter === 'jam') {
       const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === now.toDateString());
-      for(let i=8; i<=22; i+=2) { 
-        labels.push(`${i}:00`); 
-        values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0)); 
+      for(let i=8; i<=22; i+=2) {
+        labels.push(`${i}:00`); values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'hari') {
-      for(let i=6; i>=0; i--) { 
-        const d = new Date(now); d.setDate(d.getDate() - i); 
-        labels.push(`${d.getDate()}/${d.getMonth()+1}`); 
-        values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === d.toDateString()).reduce((s, t) => s + t.total, 0)); 
+      for(let i=6; i>=0; i--) {
+        const d = new Date(now); d.setDate(d.getDate() - i);
+        labels.push(`${d.getDate()}/${d.getMonth()+1}`); values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === d.toDateString()).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'bulan') {
-      for(let i=5; i>=0; i--) { 
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1); 
-        labels.push(d.toLocaleString('default', { month: 'short' })); 
-        values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().getMonth() === d.getMonth() && t.waktu.toDate().getFullYear() === d.getFullYear()).reduce((s, t) => s + t.total, 0)); 
+      for(let i=5; i>=0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(d.toLocaleString('default', { month: 'short' })); values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().getMonth() === d.getMonth() && t.waktu.toDate().getFullYear() === d.getFullYear()).reduce((s, t) => s + t.total, 0));
       }
     } else if (chartFilter === 'tahun') {
-      for(let i=4; i>=0; i--) { 
-        const year = now.getFullYear() - i; 
-        labels.push(year); 
-        values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().getFullYear() === year).reduce((s, t) => s + t.total, 0)); 
+      for(let i=4; i>=0; i--) {
+        const year = now.getFullYear() - i;
+        labels.push(year); values.push(transaksi.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu && t.waktu.toDate && t.waktu.toDate().getFullYear() === year).reduce((s, t) => s + t.total, 0));
       }
     }
     const max = Math.max(...values, 1);
     return { data: labels.map((l, i) => ({ label: l, total: values[i] })), max };
   };
-
   const chartData = getChartData();
   const isProfit = dashboardStats.labaBersih >= 0;
 
-  // === FUNGSI: PENGURUTAN PRODUK ===
   const sortedProduk = [...produk].sort((a, b) => {
     if (sortOrder === 'terbaru') {
-      return (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
     } else {
       return a.nama.localeCompare(b.nama);
     }
@@ -612,7 +546,6 @@ function App() {
     setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  // === TAMPILAN: LOADING & LOGIN ===
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}><strong>Memuat Sistem...</strong></div>;
 
   if (!user) {
@@ -625,12 +558,8 @@ function App() {
             <p style={{ color: '#27274F', fontSize: '14px', margin: '8px 0 0 0', fontWeight: '600' }}>Sistem Kasir Bisnis Terpadu</p>
           </div>
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '20px' }}>
-              <input type="email" placeholder="Alamat Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-            <div style={{ marginBottom: '32px' }}>
-              <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
+            <div style={{ marginBottom: '20px' }}><input type="email" placeholder="Alamat Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} /></div>
+            <div style={{ marginBottom: '32px' }}><input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '16px 20px', border: '2px solid #e2e8f0', borderRadius: '12px', fontSize: '16px', background: '#f8fafc', outline: 'none', boxSizing: 'border-box' }} /></div>
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '18px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 10px 15px -3px rgba(39, 39, 52, 0.4)' }}>
               {isRegister ? 'BUAT AKUN BARU' : 'MASUK KE SISTEM'}
             </button>
@@ -644,11 +573,10 @@ function App() {
     );
   }
 
-  // === TAMPILAN UTAMA APLIKASI ===
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc', overflow: 'hidden' }}>
       
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <header className="no-print" style={{ flex: 'none', height: '70px', background: 'white', padding: '0 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, boxSizing: 'border-box' }}>
         <div style={{ flex: 1, minWidth: 0, paddingRight: '10px' }}>
           <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{namaToko || 'POS MODERN PRO'}</h1>
@@ -683,7 +611,6 @@ function App() {
                   <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pengeluaran Hari Ini</div>
                 </div>
                 
-                {/* LABA BERSIH (Border & Text dinamis) */}
                 <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                   <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: isProfit ? '#10b981' : '#ef4444' }}>
                     {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
@@ -735,9 +662,11 @@ function App() {
                   {chartData.data.map((d, i) => (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
                       
-                      <div style={{ fontSize: '11px', color: '#FF7835', fontWeight: '800', marginBottom: '6px', textAlign: 'center' }}>
-                        {d.total > 0 ? d.total.toLocaleString() : ''}
-                      </div>
+                      {d.total > 0 && (
+                        <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
+                          {d.total.toLocaleString()}
+                        </div>
+                      )}
                       
                       {chartVisualType === 'bar' ? (
                         <div style={{ width: '100%', maxWidth: '50px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartData.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out', boxShadow: '0 4px 6px rgba(37,99,235,0.2)' }}></div>
@@ -1188,10 +1117,9 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0 }}>⚙️ Profil & Label</h3>
               <div style={{ display: 'flex', gap: '10px' }}>
-                {/* --- REVISI: TOMBOL PUSAT BANTUAN (?) --- */}
                 <button 
                   onClick={() => setShowHelpModal(true)} 
-                  style={{ background: '#f1f5f9', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#2563eb' }}
+                  style={{ background: '#eff6ff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#2563eb' }}
                 >
                   ?
                 </button>
@@ -1204,42 +1132,58 @@ function App() {
               </div>
             </div>
             
-            <label>Nama Toko</label>
-            <input value={namaToko} onChange={e => setNamaToko(e.target.value)} />
-            <label>Alamat</label>
-            <input value={alamat} onChange={e => setAlamat(e.target.value)} />
-            <label>WhatsApp</label>
-            <input value={noTelp} onChange={e => setNoTelp(e.target.value)} />
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Nama Toko</label>
+            <input value={namaToko} onChange={e => setNamaToko(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box' }} />
             
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Alamat</label>
+            <input value={alamat} onChange={e => setAlamat(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>WhatsApp</label>
+            <input value={noTelp} onChange={e => setNoTelp(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box' }} />
+            
+            <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #fed7aa' }}>
+              <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '8px', display: 'block' }}>📱 Upload Gambar QRIS Toko</label>
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '12px', marginBottom: '12px', display: qrisImage ? 'none' : 'block' }} />
+              {qrisImage && (
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Gambar QRIS Tersimpan</p>
+                  <img src={qrisImage} alt="QRIS" style={{ maxWidth: '150px', maxHeight: '150px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
+                  <div>
+                    <button onClick={() => setQrisImage('')} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>🗑️ Hapus & Ganti</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>📏 Pengaturan Kertas Label (mm/px)</p>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#272734'}}>📏 Pengaturan Kertas Label (px)</p>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
                 <div>
-                  <label style={{fontSize: '11px'}}>Lebar</label>
-                  <input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{marginBottom: 0}} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Lebar</label>
+                  <input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px'}}>Tinggi</label>
-                  <input type="number" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{marginBottom: 0}} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Tinggi</label>
+                  <input type="number" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px'}}>Sekat/Gap</label>
-                  <input type="number" value={labelGap} onChange={e => setLabelGap(e.target.value)} style={{marginBottom: 0}} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Sekat/Gap</label>
+                  <input type="number" value={labelGap} onChange={e => setLabelGap(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px'}}>Jumlah Kolom</label>
-                  <input type="number" value={labelCols} onChange={e => setLabelColumns(e.target.value)} style={{marginBottom: 0}} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Jml Kolom</label>
+                  <input type="number" value={labelCols} onChange={e => setLabelColumns(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
                 </div>
               </div>
               <div style={{marginTop:'15px'}}>
-                <label style={{fontSize: '11px'}}>Skala Isi Label (%)</label>
-                <input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{marginBottom: 0}} />
+                <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Skala Isi Label (%)</label>
+                <input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
               </div>
             </div>
 
             <button 
               onClick={simpanProfil} 
-              style={{ width: '100%', padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', marginTop: '20px', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', marginTop: '20px', cursor: 'pointer', fontSize: '14px' }}
             >
               SIMPAN PERUBAHAN
             </button>
@@ -1247,7 +1191,7 @@ function App() {
         </div>
       )}
 
-      {/* --- REVISI: MODAL PUSAT BANTUAN (FAQ ACCORDION) --- */}
+      {/* --- MODAL PUSAT BANTUAN (FAQ ACCORDION) --- */}
       {showHelpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
@@ -1284,7 +1228,7 @@ function App() {
 
             <button 
               onClick={() => setShowHelpModal(false)} 
-              style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
             >
               SAYA MENGERTI
             </button>
@@ -1328,6 +1272,23 @@ function App() {
         </div>
       )}
 
+      {/* --- MODAL TAMPIL QRIS --- */}
+      {showQrisModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px' }}>Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <img src={qrisImage} alt="QRIS Toko" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button tabIndex="0" onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>TUTUP</button>
+              <button tabIndex="0" onClick={() => finalizePayment('QRIS')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH DIBAYAR</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- STRUK AREA DENGAN HARGA PROMO --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -1346,7 +1307,7 @@ function App() {
                   <span>{it.qty} {it.satuan} {it.nama}</span>
                   <span>{(it.harga * it.qty).toLocaleString()}</span>
                 </div>
-                {/* --- KETERANGAN PROMO MUNCUL JIKA ADA DISKON --- */}
+                {/* KETERANGAN PROMO MUNCUL JIKA ADA DISKON */}
                 {it.hargaAsli && it.hargaAsli > it.harga && (
                   <div style={{ fontSize: '11px', textAlign: 'left', color: '#555' }}>
                     <span style={{textDecoration: 'line-through'}}>Rp {it.hargaAsli.toLocaleString()}</span> (Harga Promo)
@@ -1386,7 +1347,7 @@ function App() {
         </div>
       )}
 
-      {/* --- REVISI CETAK LABEL: LAYOUT GRID DENGAN SEKAT & SKALA KUSTOM --- */}
+      {/* --- CETAK LABEL: LAYOUT GRID DENGAN SEKAT & SKALA KUSTOM --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, zIndex: 10 }}>
@@ -1430,7 +1391,7 @@ function App() {
                     height: '100%', 
                     transform: `scale(${labelScale / 100})`, 
                     transformOrigin: 'top left',
-                    width: `${(100 / (labelScale / 100))}%`, // Menjaga batas kontainer tetap proporsional saat di-zoom
+                    width: `${(100 / (labelScale / 100))}%`, 
                     height: `${(100 / (labelScale / 100))}%`
                 }}>
                   <div style={{ width: '25px', borderRight: '1px dashed #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1471,7 +1432,7 @@ function App() {
         ))}
       </nav>
 
-      {/* CSS GLOBAL DAN MEDIA QUERIES (TETAP UTUH DAN ANTI HANCUR) */}
+      {/* CSS GLOBAL DAN MEDIA QUERIES (TETAP UTUH) */}
       <style>{`
         * { -webkit-tap-highlight-color: transparent; }
         
@@ -1489,9 +1450,6 @@ function App() {
         ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
 
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 12px; outline: none; font-family: inherit; }
-        label { font-size: 11px; font-weight: bold; color: #475569; display: block; margin-bottom: 3px; }
-        
         .nav-btn:active { transform: scale(0.95); opacity: 0.7; }
         
         @media (max-width: 768px) {
