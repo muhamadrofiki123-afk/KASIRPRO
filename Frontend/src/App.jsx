@@ -217,6 +217,7 @@ function App() {
     const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toISOString().split('T')[0] === today);
     const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today);
     
+    // FITUR BON: Omzet hanya menghitung yang Lunas/Tunai/QRIS/Transfer
     const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -229,43 +230,54 @@ function App() {
     });
   }, [produk, transaksi, pengeluaran, user]);
 
-  // --- REVISI FATAL BUG: MENGAMANKAN FUNGSI KAMERA (WHITE SCREEN FIX) ---
+  // --- REVISI: FUNGSI KAMERA ANTI CRASH/WHITE SCREEN & ANTI BURAM ---
   const addToCartRef = useRef();
   useEffect(() => { addToCartRef.current = addToCart; }, [cart]);
 
   useEffect(() => {
     let html5QrCode;
-    let isMounted = true; // --- PENGAMAN ASINKRON LAYAR PUTIH ---
-    const scannerId = isScanningKasir ? "reader-kasir" : (isScanningToko ? "reader-toko" : null);
+    let isComponentMounted = true; 
     
-    if (scannerId) {
+    const startScanner = async () => {
+      const scannerId = isScanningKasir ? "reader-kasir" : (isScanningToko ? "reader-toko" : null);
+      if (!scannerId) return;
+
       html5QrCode = new Html5Qrcode(scannerId);
-      html5QrCode.start(
-        // --- REVISI KAMERA: MEMAKSA RASIO PERSEGI PANJANG (16:9) AGAR TIDAK BOCOR ---
-        { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.7777 },
-        (decodedText) => {
-          if (isScanningKasir) {
-            const found = produkRef.current.find(p => p.barcode === decodedText);
-            if (found) { addToCartRef.current(found); setIsScanningKasir(false); } 
-            else { alert('❌ Barcode tidak terdaftar di database!'); setIsScanningKasir(false); }
-          } else { 
-            setBarcodeProd(decodedText); setIsScanningToko(false); 
-          }
-          if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.stop().catch(console.error);
-          }
-        }, (error) => {}
-      ).catch(err => { 
-        if(isMounted) {
-          alert("Gagal membuka kamera! Pastikan izin kamera telah diberikan di browser."); 
-          setIsScanningKasir(false); setIsScanningToko(false); 
+      try {
+        await html5QrCode.start(
+          // REVISI: aspectRatio DIHAPUS agar kamera native HP tidak ditarik/menjadi buram.
+          // qrbox dikembalikan ke 250x250 untuk area scan yang luas dan peka.
+          { facingMode: "environment" }, 
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            if (isScanningKasir) {
+              const found = produkRef.current.find(p => p.barcode === decodedText);
+              if (found) { addToCartRef.current(found); setIsScanningKasir(false); } 
+              else { alert('❌ Barcode tidak terdaftar di database!'); setIsScanningKasir(false); }
+            } else { 
+              setBarcodeProd(decodedText); setIsScanningToko(false); 
+            }
+          }, 
+          undefined // ignore warnings
+        );
+      } catch (err) {
+        if (isComponentMounted) {
+          console.error("Kamera Error:", err);
         }
-      });
+      }
+    };
+
+    if (isScanningKasir || isScanningToko) {
+      startScanner();
     }
-    return () => { 
-      isMounted = false;
+
+    return () => {
+      isComponentMounted = false;
       if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(console.error); 
+        // Harus menggunakan then/catch untuk menghentikan kamera dengan aman tanpa bikin blank
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+        }).catch(console.error);
       }
     };
   }, [isScanningKasir, isScanningToko]);
@@ -649,7 +661,7 @@ function App() {
             
             <div className="kasir-left-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               
-              {/* --- REVISI: TATA LETAK MENU PENCARIAN & KAMERA AGAR TIDAK TURUN DI HP --- */}
+              {/* --- REVISI: TATA LETAK MENU PENCARIAN & KAMERA (FLEX-NOWRAP AGAR TIDAK TURUN) --- */}
               <div className="kasir-tools" style={{ flex: 'none', display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'nowrap', width: '100%' }}>
                 <input type="text" placeholder="🔍 Cari nama..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
                 <form onSubmit={handleManualScan} style={{ flex: 1, minWidth: 0 }}>
@@ -660,12 +672,11 @@ function App() {
                 </button>
               </div>
 
-              {isScanningKasir && (
-                <div id="camera-popup-container" style={{ flex: 'none', background: '#272734', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center' }}>
-                  <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
-                  <div id="reader-kasir"></div>
-                </div>
-              )}
+              {/* --- REVISI: WADAH KAMERA (SELALU ADA, DI-HIDE SAAT MATI AGAR TIDAK WHITE SCREEN) --- */}
+              <div id="camera-popup-container" style={{ flex: 'none', background: '#272734', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center', display: isScanningKasir ? 'block' : 'none' }}>
+                <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
+                <div id="reader-kasir"></div>
+              </div>
 
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', paddingBottom: '20px' }}>
                 <div className="grid-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
@@ -898,12 +909,11 @@ function App() {
                   </button>
                 </div>
 
-                {isScanningToko && (
-                  <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center' }}>
-                    <p style={{ color: 'white', margin: '0 0 10px 0', fontSize: '12px', fontWeight: 'bold' }}>Arahkan Barcode ke Kamera</p>
-                    <div id="reader-toko"></div>
-                  </div>
-                )}
+                {/* --- REVISI: WADAH KAMERA (SELALU ADA, DI-HIDE SAAT MATI AGAR TIDAK WHITE SCREEN) --- */}
+                <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
+                  <p style={{ color: 'white', margin: '0 0 10px 0', fontSize: '12px', fontWeight: 'bold' }}>Arahkan Barcode ke Kamera</p>
+                  <div id="reader-toko"></div>
+                </div>
                 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button tabIndex="0" type="submit" style={{ flex: 1, padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -1184,7 +1194,7 @@ function App() {
         </div>
       )}
 
-      {/* --- REVISI CETAK LABEL BARCODE: JARAK PASTI & NAMA TOKO AMAN --- */}
+      {/* --- CETAK LABEL BARCODE --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
@@ -1204,7 +1214,7 @@ function App() {
                 boxSizing: 'border-box',
                 overflow: 'hidden'
               }}>
-                {/* SISI KIRI: NAMA TOKO (LEBIH AMAN DI HP LAIN) */}
+                {/* --- REVISI: SISI KIRI NAMA TOKO (LEBIH AMAN DI HP LAIN, TIDAK MENGGUNAKAN ELLIPSIS PAKSA) --- */}
                 <div style={{ 
                   width: '40px', 
                   borderRight: '1px dashed #000', 
@@ -1217,12 +1227,11 @@ function App() {
                   <div style={{ 
                     writingMode: 'vertical-rl', 
                     transform: 'rotate(180deg)', 
-                    fontSize: (namaToko || 'TOKO').length <= 15 ? '14px' : '10px', 
+                    fontSize: (namaToko || 'TOKO').length <= 15 ? '13px' : '10px', 
                     fontWeight: 'bold', 
                     textTransform: 'uppercase',
                     textAlign: 'center',
-                    lineHeight: '1.2',
-                    maxHeight: '120px'
+                    maxHeight: '120px' // Agar kalau kepanjangan dia melipat
                   }}>
                     {namaToko || 'TOKO'}
                   </div>
@@ -1375,16 +1384,38 @@ function App() {
           
           /* MENCEGAH ELEMEN MEMBESAR DI KASIR */
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
+          
+          /* --- REVISI: TOMBOL PENCARIAN & KAMERA DI HP LAIN AMAN DARI PECAH --- */
+          .kasir-tools input, .kasir-tools button { padding: 10px 8px !important; font-size: 12px !important; height: 40px !important; box-sizing: border-box !important; }
+          
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
           
           .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 8px !important; }
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
 
-          /* --- REVISI: KAMERA KOTAK PERSEGI PANJANG YANG TIDAK BOCOR --- */
+          /* --- REVISI: KAMERA KOTAK PERSEGI PANJANG (TIDAK BOCOR DI HP APAPUN) --- */
           #camera-popup-container { padding: 10px !important; margin-bottom: 10px !important; }
-          #reader-kasir, #reader-toko { width: 100% !important; border-radius: 8px; overflow: hidden; border: 2px solid #FF7835; }
-          #reader-kasir video, #reader-toko video { width: 100% !important; border-radius: 8px; }
+          
+          /* MEMAKSA KAMERA JADI KOTAK MEMANJANG (LANDSCAPE) */
+          #reader-kasir, #reader-toko { 
+            width: 100% !important; 
+            height: 200px !important; 
+            border-radius: 8px !important; 
+            overflow: hidden !important; 
+            border: 2px solid #FF7835 !important; 
+            position: relative !important;
+            background: black !important;
+          }
+          /* MEMAKSA VIDEO MENGISI KOTAK TANPA MERUSAK RASIO KUALITAS */
+          #reader-kasir video, #reader-toko video { 
+            object-fit: cover !important; 
+            width: 100% !important; 
+            height: 100% !important; 
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+          }
           
           /* TABEL DAN FORM HP */
           .table-section { max-height: none !important; flex: 1 !important; min-height: 40vh !important; padding: 16px !important; }
