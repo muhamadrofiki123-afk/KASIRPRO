@@ -36,6 +36,10 @@ function App() {
   // WAKTU & TANGGAL LIVE SEKARANG
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // STATE UNTUK STATUS INTERNET (ONLINE/OFFLINE) & POPUP PERINGATAN
+  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
+  const [showOfflineWarning, setShowOfflineWarning] = useState(!window.navigator.onLine);
+
   const [produk, setProduk] = useState([]);
   const [transaksi, setTransaksi] = useState([]);
   const [pengeluaran, setPengeluaran] = useState([]); 
@@ -78,10 +82,17 @@ function App() {
   
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
+  // --- REVISI: STATE BARU UNTUK HARGA PROMO ---
+  const [hargaPromoProd, setHargaPromoProd] = useState('');
+  
   const [stokProd, setStokProd] = useState('');
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
   const [editingProductId, setEditingProductId] = useState(null);
+
+  // --- REVISI: STATE BARU UNTUK FITUR CETAK CEKLIS & FILTER ---
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [sortOrder, setSortOrder] = useState('terbaru');
 
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
   const [nominalPengeluaran, setNominalPengeluaran] = useState('');
@@ -90,10 +101,22 @@ function App() {
   const [chartFilter, setChartFilter] = useState('hari'); 
   const [dashboardStats, setDashboardStats] = useState({ todaySales: 0, totalProducts: 0, lowStock: 0, totalPengeluaran: 0, labaBersih: 0 });
 
-  // PENGATURAN JAM OTOMATIS (LIVE CLOCK)
+  // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => {
+      setIsOnline(false);
+      setShowOfflineWarning(true); // Memunculkan popup saat internet terputus
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+      clearInterval(timer);
+    };
   }, []);
 
   // NAVIGASI KEYBOARD
@@ -263,13 +286,17 @@ function App() {
 
   const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
+    
+    // --- REVISI: Logika harga promo di kasir. Jika ada promo, gunakan harga promo ---
+    const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
+    
     setCart(prev => {
       const existing = prev.find(item => item.id === p.id);
       if (existing) {
         if(existing.qty >= p.stok) { alert("Stok tidak mencukupi!"); return prev; }
         return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
       }
-      return [...prev, { ...p, qty: 1 }];
+      return [...prev, { ...p, harga: hargaAktif, hargaAsli: p.harga, qty: 1 }];
     });
   };
 
@@ -327,15 +354,17 @@ function App() {
     } catch (err) { alert("Gagal memproses transaksi"); }
   };
 
-  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
+  // --- REVISI: SIMPAN PRODUK DENGAN FITUR HARGA PROMO ---
   const simpanProduk = (e) => {
     e.preventDefault();
+    const promoVal = hargaPromoProd ? Number(hargaPromoProd) : null;
+    
     if (editingProductId) {
       const checkDuplicate = produk.find(p => p.barcode === barcodeProd && barcodeProd !== "" && p.id !== editingProductId);
       if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
       
       updateDoc(doc(db, "produk", editingProductId), { 
-        nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: barcodeProd, satuan: satuanProd 
+        nama: namaProd, harga: Number(hargaProd), hargaPromo: promoVal, stok: Number(stokProd), barcode: barcodeProd, satuan: satuanProd 
       });
       setEditingProductId(null);
     } else {
@@ -343,25 +372,24 @@ function App() {
       if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
       
       const bcode = barcodeProd || Math.floor(100000000000 + Math.random() * 900000000000).toString();
-      addDoc(collection(db, "produk"), { nama: namaProd, harga: Number(hargaProd), stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() });
+      addDoc(collection(db, "produk"), { 
+        nama: namaProd, harga: Number(hargaProd), hargaPromo: promoVal, stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() 
+      });
     }
-    setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
+    setNamaProd(''); setHargaProd(''); setHargaPromoProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
   };
 
-  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
   const simpanPengeluaran = (e) => {
     e.preventDefault();
     addDoc(collection(db, "pengeluaran"), { nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: new Date() });
     setNamaPengeluaran(''); setNominalPengeluaran(''); 
   };
 
-  // --- REVISI: MENGHAPUS 'async/await' AGAR UI TIDAK FREEZE SAAT OFFLINE ---
   const simpanProfil = () => {
     setDoc(doc(db, "profilToko", user.uid), { nama: namaToko, alamat, noTelp, qrisImage });
     alert("Profil Tersimpan!"); setShowProfileModal(false);
   };
 
-  // LOGIKA MESIN HAPUS DATA TAHUNAN
   const handleResetTahunan = async () => {
     if (!window.confirm(`⚠️ PERINGATAN TERAKHIR: Apakah Anda yakin ingin menghapus SEMUA transaksi pada tahun ${selectedYearReset}? Tindakan ini permanen dan tidak bisa dibatalkan!`)) return;
     
@@ -456,6 +484,21 @@ function App() {
   const chartData = getChartData();
   const isProfit = dashboardStats.labaBersih >= 0;
 
+  // --- REVISI: FITUR FILTER PENGURUTAN (TERBARU & A-Z) ---
+  const sortedProduk = [...produk].sort((a, b) => {
+    if (sortOrder === 'terbaru') {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
+    } else {
+      return a.nama.localeCompare(b.nama);
+    }
+  });
+
+  const toggleSelectProduct = (id) => {
+    setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}><strong>Memuat Sistem...</strong></div>;
 
   if (!user) {
@@ -498,7 +541,8 @@ function App() {
             <div className="time-text" style={{ fontSize: '15px', fontWeight: '900', color: '#272734', letterSpacing: '0.5px' }}>{currentTime.toLocaleTimeString('id-ID')}</div>
           </div>
           <button tabIndex="0" onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #FF7835', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#FF7835' }}>👤</button>
-          <button tabIndex="0" onClick={() => signOut(auth)} style={{ padding: '8px 16px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' }}>Logout</button>
+          
+          <button tabIndex="0" onClick={() => { if(!isOnline) { alert("Sistem tidak bisa melakukan logout saat koneksi Offline!"); return; } signOut(auth); }} disabled={!isOnline} style={{ padding: '8px 16px', background: isOnline ? '#fee2e2' : '#e2e8f0', color: isOnline ? '#dc2626' : '#94a3b8', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: isOnline ? 'pointer' : 'not-allowed', fontSize: '12px', transition: '0.2s' }}>Logout</button>
         </div>
       </header>
 
@@ -561,7 +605,7 @@ function App() {
               <div style={{ flex: 'none', display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="🔍 Cari nama produk..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, padding: '12px 16px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '14px', outline: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
                 <form onSubmit={handleManualScan} style={{ flex: 1 }}>
-                  <input type="text" placeholder="🔫 Scan Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} autoFocus style={{ width: '100%', padding: '12px 16px', border: '2px solid #FF7835', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
+                  <input type="text" placeholder="🔫 Scan Barcode..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} style={{ width: '100%', padding: '12px 16px', border: '2px solid #FF7835', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }} />
                 </form>
                 <button tabIndex="0" onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ padding: '12px 16px', background: isScanningKasir ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
                   {isScanningKasir ? 'Tutup Kamera' : '📸 Kamera'}
@@ -588,7 +632,11 @@ function App() {
                       
                       {p.stok < 50 && <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
                       <h3 style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '700', color: '#272734', lineHeight: '1.2' }}>{p.nama}</h3>
-                      <div style={{ fontSize: '18px', fontWeight: '900', color: '#0ea5e9', marginBottom: '8px' }}>Rp {p.harga.toLocaleString()}</div>
+                      {/* --- REVISI: TAMPILAN HARGA PROMO DI KASIR --- */}
+                      <div style={{ fontSize: '18px', fontWeight: '900', color: p.hargaPromo ? '#e11d48' : '#0ea5e9', marginBottom: '8px' }}>
+                        {p.hargaPromo && <span style={{textDecoration: 'line-through', fontSize: '11px', color: '#94a3b8', marginRight: '4px'}}>Rp{p.harga.toLocaleString()}</span>}
+                        Rp {(p.hargaPromo || p.harga).toLocaleString()}
+                      </div>
                       <div style={{ fontSize: '11px', color: '#27274F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ background: p.stok < 50 ? '#fee2e2' : '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}><span style={{ color: p.stok < 50 ? '#dc2626' : '#16a34a' }}>{p.stok} {p.satuan || 'Pcs'}</span></span>
                       </div>
@@ -697,17 +745,34 @@ function App() {
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              
+              {/* --- REVISI: TATA LETAK MENU FILTER & CETAK CEKLIS (TIDAK MERUSAK TABEL) --- */}
+              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>📦 Database Produk</h3>
-                <button tabIndex="0" onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#FF7835', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
-                  🖨️ Cetak Semua Barcode
-                </button>
+                
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select tabIndex="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', fontSize: '12px', color: '#27274F', background: '#f8fafc' }}>
+                    <option value="terbaru">Terbaru</option>
+                    <option value="az">A - Z</option>
+                  </select>
+                  
+                  {selectedProducts.length > 0 && (
+                    <button tabIndex="0" onClick={() => { setPrintData(produk.filter(p => selectedProducts.includes(p.id))); setPrintMode('label'); }} style={{ background: '#0ea5e9', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
+                      🖨️ Cetak Pilihan ({selectedProducts.length})
+                    </button>
+                  )}
+                  
+                  <button tabIndex="0" onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#FF7835', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
+                    🖨️ Cetak Semua
+                  </button>
+                </div>
               </div>
               
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: '#fff7ed', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
+                      <th style={{ padding: '12px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5, width: '30px', textAlign: 'center' }}>☑️</th>
                       <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Nama Produk</th>
                       <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Harga</th>
                       <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Stok</th>
@@ -716,17 +781,29 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {produk.length === 0 ? <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada produk.</td></tr> : 
-                      produk.map(p => (
+                    {sortedProduk.length === 0 ? <tr><td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada produk.</td></tr> : 
+                      sortedProduk.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <input type="checkbox" checked={selectedProducts.includes(p.id)} onChange={() => toggleSelectProduct(p.id)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                        </td>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px' }}>{p.nama}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: '800', color: '#0ea5e9', fontSize: '13px' }}>Rp {p.harga.toLocaleString()}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: '800', color: '#0ea5e9', fontSize: '13px' }}>
+                          {p.hargaPromo ? (
+                            <>
+                              <span style={{ textDecoration: 'line-through', fontSize: '10px', color: '#94a3b8' }}>Rp {p.harga.toLocaleString()}</span><br/>
+                              <span style={{ color: '#e11d48', fontWeight: 'bold' }}>Rp {p.hargaPromo.toLocaleString()}</span>
+                            </>
+                          ) : (
+                            <span>Rp {p.harga.toLocaleString()}</span>
+                          )}
+                        </td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{ background: p.stok < 50 ? '#fee2e2' : '#dcfce7', color: p.stok < 50 ? '#dc2626' : '#16a34a', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px' }}>{p.stok} {p.satuan || 'Pcs'}</span>
                         </td>
                         <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: '#27274F', fontSize: '12px' }}>{p.barcode}</td>
                         <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
-                          <button tabIndex="0" onClick={() => { setNamaProd(p.nama); setHargaProd(p.harga); setStokProd(p.stok); setBarcodeProd(p.barcode); setSatuanProd(p.satuan || 'Pcs'); setEditingProductId(p.id); }} style={{ background: '#272734', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
+                          <button tabIndex="0" onClick={() => { setNamaProd(p.nama); setHargaProd(p.harga); setHargaPromoProd(p.hargaPromo || ''); setStokProd(p.stok); setBarcodeProd(p.barcode); setSatuanProd(p.satuan || 'Pcs'); setEditingProductId(p.id); }} style={{ background: '#272734', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
                           <button tabIndex="0" onClick={() => { setPrintData([p]); setPrintMode('label'); }} style={{ background: '#FF7835', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Cetak</button>
                           <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin ingin menghapus produk ini?')) deleteDoc(doc(db, "produk", p.id)); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                         </td>
@@ -742,11 +819,20 @@ function App() {
                 <h3 style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>{editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}</h3>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Nama Produk</label>
                 <input value={namaProd} onChange={e => setNamaProd(e.target.value)} required style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
+                
+                {/* --- REVISI: FORM HARGA NORMAL & HARGA PROMO --- */}
                 <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga (Rp)</label>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Normal (Rp)</label>
                     <input value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Promo (Rp)</label>
+                    <input value={hargaPromoProd} onChange={e => setHargaPromoProd(e.target.value)} placeholder="Opsional" type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none', background: '#fef08a' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Stok Awal</label>
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -776,7 +862,7 @@ function App() {
                     {editingProductId ? 'UPDATE' : 'SIMPAN'}
                   </button>
                   {editingProductId && (
-                    <button tabIndex="0" type="button" onClick={() => { setEditingProductId(null); setNamaProd(''); setHargaProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs'); }} style={{ flex: 1, padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    <button tabIndex="0" type="button" onClick={() => { setEditingProductId(null); setNamaProd(''); setHargaProd(''); setHargaPromoProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs'); }} style={{ flex: 1, padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                       BATAL
                     </button>
                   )}
@@ -842,7 +928,7 @@ function App() {
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
+              <h2 style={{ margin: '0', fontSize: '20px', color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('transaksi')} style={{ padding: '8px 16px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Semua Transaksi</button>
@@ -998,6 +1084,24 @@ function App() {
         </div>
       )}
 
+      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
+      {showOfflineWarning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <div style={{ fontSize: '50px', marginBottom: '16px' }}>⚠️</div>
+            <h2 style={{ margin: '0 0 16px 0', color: '#dc2626', fontSize: '20px', fontWeight: '900', lineHeight: '1.4' }}>
+              MODE OFFLINE AKTIF<br />INTERNET TERPUTUS
+            </h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '700', lineHeight: '1.6', background: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #ffedd5' }}>
+              Jangan refresh halaman atau menutup browser agar data transaksi tidak hilang!
+            </p>
+            <button tabIndex="0" onClick={() => setShowOfflineWarning(false)} style={{ width: '100%', padding: '16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}>
+              Oke, Saya Mengerti
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* --- STRUK AREA --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -1032,7 +1136,7 @@ function App() {
         </div>
       )}
 
-      {/* --- REVISI: CETAK LABEL BARCODE SESUAI REFERENSI FOTO --- */}
+      {/* --- CETAK LABEL BARCODE --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
@@ -1047,7 +1151,7 @@ function App() {
                 width: '280px', 
                 height: '130px', 
                 display: 'flex', 
-                background: '#fff',
+                background: p.hargaPromo ? '#fef08a' : '#fff', // --- REVISI: LABEL KUNING JIKA PROMO ---
                 margin: '5px',
                 boxSizing: 'border-box',
                 overflow: 'hidden'
@@ -1059,7 +1163,7 @@ function App() {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  background: '#fff'
+                  background: p.hargaPromo ? '#fef08a' : '#fff' // IKUT KUNING
                 }}>
                   <div style={{ 
                     writingMode: 'vertical-rl', 
@@ -1117,17 +1221,28 @@ function App() {
                     </div>
                   </div>
                   
-                  {/* BAWAH: HARGA + SATUAN (ANTI-BENTROK, DINAMIS) */}
+                  {/* BAWAH: HARGA + SATUAN (ANTI-BENTROK, DINAMIS & FITUR CORET PROMO) */}
                   <div style={{ 
-                    fontSize: p.harga.toString().length > 6 ? '17px' : '22px', 
-                    fontWeight: '900', 
-                    color: '#000', 
                     textAlign: 'right',
-                    lineHeight: '1',
-                    marginBottom: '2px',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end'
                   }}>
-                    Rp {p.harga.toLocaleString()} / {p.satuan || 'Pcs'}
+                    {p.hargaPromo && (
+                      <span style={{ fontSize: '12px', textDecoration: 'line-through', color: '#525252', fontWeight: 'bold' }}>
+                        Rp {p.harga.toLocaleString()}
+                      </span>
+                    )}
+                    <div style={{ 
+                      fontSize: (p.hargaPromo || p.harga).toString().length > 6 ? '17px' : '22px', 
+                      fontWeight: '900', 
+                      color: '#000', 
+                      lineHeight: '1',
+                      marginBottom: '2px'
+                    }}>
+                      Rp {(p.hargaPromo || p.harga).toLocaleString()} / {p.satuan || 'Pcs'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1208,9 +1323,9 @@ function App() {
           .header-info-mobile { display: flex !important; flex-direction: column; gap: 4px; margin-top: 4px; }
           .header-date { font-size: 12px; color: #64748b; font-weight: 600; }
           
-          /* KASIR LAYOUT HP */
+          /* KASIR & PENGELUARAN LAYOUT HP */
           .desktop-row-mobile-col { flex-direction: column !important; flex-wrap: nowrap !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
-          .mobile-reverse { flex-direction: column-reverse !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow-y: auto !important; padding-bottom: 30px !important; }
+          .mobile-reverse { flex-direction: column-reverse !important; justify-content: flex-end !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow: hidden !important; padding-bottom: 16px !important; }
           
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
@@ -1219,8 +1334,8 @@ function App() {
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
           
-          .table-section { max-height: 50vh !important; flex: none !important; }
-          .form-section { height: auto !important; flex: none !important; }
+          .table-section { max-height: none !important; flex: 1 !important; min-height: 0 !important; }
+          .form-section { height: auto !important; flex: none !important; margin-bottom: 12px; }
         }
       `}</style>
     </div>
