@@ -217,7 +217,6 @@ function App() {
     const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toISOString().split('T')[0] === today);
     const todayPeng = pengeluaran.filter(p => p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today);
     
-    // FITUR BON: Omzet hanya menghitung yang Lunas/Tunai/QRIS/Transfer
     const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -230,7 +229,6 @@ function App() {
     });
   }, [produk, transaksi, pengeluaran, user]);
 
-  // --- REVISI: FUNGSI KAMERA ANTI CRASH/WHITE SCREEN & ANTI BURAM ---
   const addToCartRef = useRef();
   useEffect(() => { addToCartRef.current = addToCart; }, [cart]);
 
@@ -245,8 +243,6 @@ function App() {
       html5QrCode = new Html5Qrcode(scannerId);
       try {
         await html5QrCode.start(
-          // REVISI: aspectRatio DIHAPUS agar kamera native HP tidak ditarik/menjadi buram.
-          // qrbox dikembalikan ke 250x250 untuk area scan yang luas dan peka.
           { facingMode: "environment" }, 
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
@@ -258,7 +254,7 @@ function App() {
               setBarcodeProd(decodedText); setIsScanningToko(false); 
             }
           }, 
-          undefined // ignore warnings
+          undefined
         );
       } catch (err) {
         if (isComponentMounted) {
@@ -274,7 +270,6 @@ function App() {
     return () => {
       isComponentMounted = false;
       if (html5QrCode && html5QrCode.isScanning) {
-        // Harus menggunakan then/catch untuk menghentikan kamera dengan aman tanpa bikin blank
         html5QrCode.stop().then(() => {
           html5QrCode.clear();
         }).catch(console.error);
@@ -356,7 +351,7 @@ function App() {
   const finalizePayment = (metode) => {
     const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmount;
     const dataTrans = {
-      userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, qty: i.qty, satuan: i.satuan || 'Pcs'})),
+      userId: user.uid, items: cart.map(i => ({nama: i.nama, harga: i.harga, hargaAsli: i.hargaAsli, qty: i.qty, satuan: i.satuan || 'Pcs'})),
       total: totalAmount, uangBayar: finalUangBayar, kembalian: kembalian, metode: metode, 
       waktu: new Date() 
     };
@@ -584,7 +579,6 @@ function App() {
                   <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pengeluaran Hari Ini</div>
                 </div>
                 
-                {/* --- REVISI: KOTAK LABA BERSIH WARNA PUTIH, TEKS WARNA --- */}
                 <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                   <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: isProfit ? '#10b981' : '#ef4444' }}>
                     {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
@@ -661,7 +655,6 @@ function App() {
             
             <div className="kasir-left-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               
-              {/* --- REVISI: TATA LETAK MENU PENCARIAN & KAMERA (FLEX-NOWRAP AGAR TIDAK TURUN) --- */}
               <div className="kasir-tools" style={{ flex: 'none', display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'nowrap', width: '100%' }}>
                 <input type="text" placeholder="🔍 Cari nama..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
                 <form onSubmit={handleManualScan} style={{ flex: 1, minWidth: 0 }}>
@@ -672,7 +665,6 @@ function App() {
                 </button>
               </div>
 
-              {/* --- REVISI: WADAH KAMERA (SELALU ADA, DI-HIDE SAAT MATI AGAR TIDAK WHITE SCREEN) --- */}
               <div id="camera-popup-container" style={{ flex: 'none', background: '#272734', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center', display: isScanningKasir ? 'block' : 'none' }}>
                 <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
                 <div id="reader-kasir"></div>
@@ -901,7 +893,6 @@ function App() {
                 </div>
                 <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 
-                {/* --- REVISI: TATA LETAK MENU PENCARIAN & KAMERA PRODUK HP --- */}
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
                   <input value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Kosong = Otomatis" style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
                   <button tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
@@ -909,7 +900,6 @@ function App() {
                   </button>
                 </div>
 
-                {/* --- REVISI: WADAH KAMERA (SELALU ADA, DI-HIDE SAAT MATI AGAR TIDAK WHITE SCREEN) --- */}
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
                   <p style={{ color: 'white', margin: '0 0 10px 0', fontSize: '12px', fontWeight: 'bold' }}>Arahkan Barcode ke Kamera</p>
                   <div id="reader-toko"></div>
@@ -1160,7 +1150,7 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA --- */}
+      {/* --- REVISI STRUK AREA: KETERANGAN HARGA PROMO --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace' }}>
@@ -1172,8 +1162,17 @@ function App() {
             {strukData.metode === 'Bon' && <p style={{ fontSize: '13px', textAlign: 'left', margin: '4px 0', fontWeight: 'bold' }}>PELANGGAN: {strukData.namaPelanggan}</p>}
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
             {strukData.items.map((it, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '5px' }}>
-                <span>{it.qty} {it.satuan} {it.nama}</span><span>{(it.harga * it.qty).toLocaleString()}</span>
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', fontSize: '14px', marginBottom: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{it.qty} {it.satuan} {it.nama}</span>
+                  <span>{(it.harga * it.qty).toLocaleString()}</span>
+                </div>
+                {/* --- KETERANGAN PROMO MUNCUL JIKA ADA DISKON --- */}
+                {it.hargaAsli && it.hargaAsli > it.harga && (
+                  <div style={{ fontSize: '11px', textAlign: 'left', color: '#555' }}>
+                    <span style={{textDecoration: 'line-through'}}>Rp {it.hargaAsli.toLocaleString()}</span> (Harga Promo)
+                  </div>
+                )}
               </div>
             ))}
             <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
@@ -1194,7 +1193,7 @@ function App() {
         </div>
       )}
 
-      {/* --- CETAK LABEL BARCODE --- */}
+      {/* --- REVISI CETAK LABEL BARCODE: UKURAN KECIL (MUAT 4-5 KOLOM DI KERTAS A4) --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
@@ -1202,21 +1201,21 @@ function App() {
             <button tabIndex="0" onClick={() => setPrintMode(null)} style={{ background: '#f8fafc', color: '#27274F', padding: '12px 24px', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }}>❌ Batal</button>
           </div>
           
-          <div id="print-area" style={{ background: '#fff', width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
+          <div id="print-area" style={{ background: '#fff', width: '100%', minHeight: '100vh', padding: '15px', display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
             {printData.map((p, i) => (
               <div key={i} style={{ 
                 border: '1px dashed #000', 
-                width: '280px', 
-                height: '130px', 
+                width: '185px', // Lebar ideal untuk 4-5 kolom per baris di A4
+                height: '95px', // Tinggi dipadatkan proporsional
                 display: 'flex', 
                 background: p.hargaPromo ? '#fef08a' : '#fff', 
-                margin: '5px',
+                margin: '3px',
                 boxSizing: 'border-box',
                 overflow: 'hidden'
               }}>
-                {/* --- REVISI: SISI KIRI NAMA TOKO (LEBIH AMAN DI HP LAIN, TIDAK MENGGUNAKAN ELLIPSIS PAKSA) --- */}
+                {/* SISI KIRI: NAMA TOKO (Miniaturized) */}
                 <div style={{ 
-                  width: '40px', 
+                  width: '24px', 
                   borderRight: '1px dashed #000', 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -1227,30 +1226,30 @@ function App() {
                   <div style={{ 
                     writingMode: 'vertical-rl', 
                     transform: 'rotate(180deg)', 
-                    fontSize: (namaToko || 'TOKO').length <= 15 ? '13px' : '10px', 
+                    fontSize: (namaToko || 'TOKO').length <= 15 ? '9px' : '7px', 
                     fontWeight: 'bold', 
                     textTransform: 'uppercase',
                     textAlign: 'center',
-                    maxHeight: '120px' // Agar kalau kepanjangan dia melipat
+                    maxHeight: '90px'
                   }}>
                     {namaToko || 'TOKO'}
                   </div>
                 </div>
                 
-                {/* SISI KANAN: INFO PRODUK (MEMAKAI SISTEM KAVLING TINGGI PASTI) */}
+                {/* SISI KANAN: INFO PRODUK (Kavling Tinggi Pasti Skala Kecil) */}
                 <div style={{ 
                   flex: 1, 
                   display: 'flex', 
                   flexDirection: 'column', 
-                  padding: '4px', 
+                  padding: '2px 4px', 
                   justifyContent: 'space-between', 
                   overflow: 'hidden'
                 }}>
                   
-                  {/* ATAS: NAMA BARANG (Kavling 32px) */}
+                  {/* ATAS: NAMA BARANG */}
                   <div style={{ 
-                    height: '32px',
-                    fontSize: p.nama.length <= 15 ? '14px' : '12px', 
+                    height: '24px',
+                    fontSize: p.nama.length <= 15 ? '11px' : '9px', 
                     fontWeight: 'bold', 
                     color: '#000', 
                     lineHeight: '1.1',
@@ -1258,49 +1257,53 @@ function App() {
                     display: '-webkit-box',
                     WebkitLineClamp: '2',
                     WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
                     {p.nama}
                   </div>
                   
-                  {/* TENGAH: BARCODE (Kavling 50px) */}
-                  <div style={{ height: '50px', textAlign: 'center' }}>
+                  {/* TENGAH: BARCODE */}
+                  <div style={{ height: '36px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <img 
-                      src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=2&height=10`} 
+                      src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=1&height=6`} 
                       alt={p.barcode} 
-                      style={{ width: '90%', height: '35px', margin: '0 auto', display: 'block' }} 
+                      style={{ width: '90%', height: '22px', margin: '0 auto', display: 'block' }} 
                     />
                     <div style={{ 
-                      fontSize: '12px', 
+                      fontSize: '9px', 
                       fontFamily: 'monospace', 
                       fontWeight: 'bold', 
-                      marginTop: '2px',
+                      marginTop: '1px',
                       color: '#000'
                     }}>
                       {p.barcode}
                     </div>
                   </div>
                   
-                  {/* BAWAH: HARGA + SATUAN (Kavling 35px) */}
+                  {/* BAWAH: HARGA + SATUAN */}
                   <div style={{ 
-                    height: '35px',
+                    height: '25px',
                     textAlign: 'right',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-end'
+                    justifyContent: 'flex-end',
+                    whiteSpace: 'nowrap'
                   }}>
                     {p.hargaPromo && (
-                      <span style={{ fontSize: '10px', textDecoration: 'line-through', color: '#525252', fontWeight: 'bold', lineHeight: '1' }}>
+                      <span style={{ fontSize: '8px', textDecoration: 'line-through', color: '#525252', fontWeight: 'bold', lineHeight: '1' }}>
                         Rp {p.harga.toLocaleString()}
                       </span>
                     )}
                     <div style={{ 
-                      fontSize: (p.hargaPromo || p.harga).toString().length > 6 ? '16px' : '20px', 
+                      fontSize: (p.hargaPromo || p.harga).toString().length > 6 ? '12px' : '15px', 
                       fontWeight: '900', 
                       color: '#000', 
                       lineHeight: '1'
                     }}>
-                      Rp {(p.hargaPromo || p.harga).toLocaleString()} / {p.satuan || 'Pcs'}
+                      Rp {(p.hargaPromo || p.harga).toLocaleString()} / <span style={{fontSize:'10px'}}>{p.satuan || 'Pcs'}</span>
                     </div>
                   </div>
                 </div>
@@ -1385,7 +1388,6 @@ function App() {
           /* MENCEGAH ELEMEN MEMBESAR DI KASIR */
           .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 6px; }
           
-          /* --- REVISI: TOMBOL PENCARIAN & KAMERA DI HP LAIN AMAN DARI PECAH --- */
           .kasir-tools input, .kasir-tools button { padding: 10px 8px !important; font-size: 12px !important; height: 40px !important; box-sizing: border-box !important; }
           
           .kasir-right-panel { height: auto !important; flex: none !important; box-shadow: none !important; }
@@ -1394,10 +1396,9 @@ function App() {
           .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; }
           .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; }
 
-          /* --- REVISI: KAMERA KOTAK PERSEGI PANJANG (TIDAK BOCOR DI HP APAPUN) --- */
+          /* KAMERA KOTAK PERSEGI PANJANG (TIDAK BOCOR DI HP APAPUN) */
           #camera-popup-container { padding: 10px !important; margin-bottom: 10px !important; }
           
-          /* MEMAKSA KAMERA JADI KOTAK MEMANJANG (LANDSCAPE) */
           #reader-kasir, #reader-toko { 
             width: 100% !important; 
             height: 200px !important; 
@@ -1407,7 +1408,6 @@ function App() {
             position: relative !important;
             background: black !important;
           }
-          /* MEMAKSA VIDEO MENGISI KOTAK TANPA MERUSAK RASIO KUALITAS */
           #reader-kasir video, #reader-toko video { 
             object-fit: cover !important; 
             width: 100% !important; 
