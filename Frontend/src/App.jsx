@@ -149,7 +149,7 @@ function App() {
     labaBersih: 0 
   });
 
-  // REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG (MENCEGAH WHITE SCREEN)
+  // REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG
   const produkRef = useRef(produk);
   useEffect(() => { 
     produkRef.current = produk; 
@@ -174,7 +174,25 @@ function App() {
     };
   }, []);
 
-  // NAVIGASI KEYBOARD
+  // === EFFECT: SENSOR KEYBOARD KHUSUS STRUK ===
+  useEffect(() => {
+    const handleStrukKeys = (e) => {
+      if (strukData) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setStrukData(null); // Tekan ESC untuk tutup struk
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          window.print(); // Tekan Enter untuk Print
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleStrukKeys);
+    return () => window.removeEventListener('keydown', handleStrukKeys);
+  }, [strukData]);
+
+  // NAVIGASI KEYBOARD KASIR
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
@@ -1708,14 +1726,14 @@ function App() {
                   onClick={() => window.print()} 
                   style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
-                  Print
+                  Print (Enter)
                 </button>
                 <button 
                   tabIndex="0" 
                   onClick={() => setStrukData(null)} 
                   style={{ flex: 1, background: '#e2e8f0', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#27274F' }}
                 >
-                  Tutup
+                  Tutup (Esc)
                 </button>
               </div>
             </div>
@@ -1808,7 +1826,7 @@ function App() {
         ))}
       </nav>
 
-      {/* CSS GLOBAL DAN MEDIA QUERIES */}
+      {/* CSS GLOBAL DAN MEDIA QUERIES (TETAP UTUH DAN ANTI HANCUR) */}
       <style>{`
         * { -webkit-tap-highlight-color: transparent; }
         
