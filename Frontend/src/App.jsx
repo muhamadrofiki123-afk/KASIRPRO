@@ -114,6 +114,7 @@ function App() {
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
   const [qrisImage, setQrisImage] = useState(''); 
+  const [pesanStruk, setPesanStruk] = useState('*** TERIMA KASIH ***'); // FITUR BARU: PESAN STRUK
 
   // === STATE UKURAN LABEL KUSTOM ===
   const [labelWidth, setLabelWidth] = useState(185);
@@ -160,7 +161,7 @@ function App() {
     produkRef.current = produk; 
   }, [produk]);
 
-  // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI (DIPERKUAT)
+  // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
     setIsOnline(navigator.onLine);
     setShowOfflineWarning(!navigator.onLine);
@@ -204,31 +205,72 @@ function App() {
     return () => window.removeEventListener('keydown', handleStrukKeys);
   }, [strukData]);
 
-  // NAVIGASI KEYBOARD KASIR UMUM
+  // === FITUR BARU: NAVIGASI KEYBOARD PINTAR (SPATIAL NAVIGATION) ===
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
-      const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT');
+      const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' || activeElement.tagName === 'TEXTAREA');
 
+      // Jika user sedang mengetik di dalam kolom pencarian/form, matikan panah Kiri Kanan
       if (isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return; 
 
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        // Cegah layar nge-scroll sendiri secara default saat pencet panah atas/bawah
         if(e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
 
         const focusableElements = Array.from(document.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'))
           .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0);
         
         const currentIndex = focusableElements.indexOf(activeElement);
-        let nextIndex = currentIndex;
-        
-        if (e.key === 'ArrowDown' || (!isInput && e.key === 'ArrowRight')) {
-          nextIndex = currentIndex + 1 < focusableElements.length ? currentIndex + 1 : 0;
-        } else if (e.key === 'ArrowUp' || (!isInput && e.key === 'ArrowLeft')) {
-          nextIndex = currentIndex - 1 >= 0 ? currentIndex - 1 : focusableElements.length - 1;
+        if (currentIndex === -1) return;
+
+        let nextElement = null;
+
+        // Logika Panah Kiri dan Kanan (Biasa)
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          let nextIndex = e.key === 'ArrowRight' ? currentIndex + 1 : currentIndex - 1;
+          if (nextIndex >= 0 && nextIndex < focusableElements.length) {
+            nextElement = focusableElements[nextIndex];
+          }
+        } 
+        // Logika Panah Atas dan Bawah (SPASIAL - BERDASARKAN VISUAL KOORDINAT)
+        else {
+          const activeRect = activeElement.getBoundingClientRect();
+          let bestDistance = Infinity;
+
+          focusableElements.forEach(el => {
+            if (el === activeElement) return;
+            const rect = el.getBoundingClientRect();
+
+            let isValidDirection = false;
+            // Jika Panah Bawah: Elemen target harus berada di BAWAH elemen saat ini
+            if (e.key === 'ArrowDown' && rect.top >= activeRect.bottom - 5) {
+              isValidDirection = true;
+            }
+            // Jika Panah Atas: Elemen target harus berada di ATAS elemen saat ini
+            if (e.key === 'ArrowUp' && rect.bottom <= activeRect.top + 5) {
+              isValidDirection = true;
+            }
+
+            if (isValidDirection) {
+              // Hitung jarak X (Horizontal) dan Y (Vertikal) antar elemen
+              const xDist = Math.abs((rect.left + rect.width / 2) - (activeRect.left + activeRect.width / 2));
+              const yDist = Math.abs((rect.top + rect.height / 2) - (activeRect.top + activeRect.height / 2));
+              
+              // Rumus prioritas: Utamakan elemen yang tepat berada di bawahnya secara sejajar horizontal (xDist dikali bobot besar)
+              const distance = (xDist * 10) + yDist; 
+
+              if (distance < bestDistance) {
+                bestDistance = distance;
+                nextElement = el;
+              }
+            }
+          });
         }
         
-        if (nextIndex !== currentIndex && focusableElements[nextIndex]) {
-          focusableElements[nextIndex].focus();
+        // Pindahkan fokus secara otomatis
+        if (nextElement) {
+          nextElement.focus();
         }
       }
     };
@@ -259,6 +301,7 @@ function App() {
         setAlamat(d.data().alamat || ''); 
         setNoTelp(d.data().noTelp || ''); 
         setQrisImage(d.data().qrisImage || '');
+        setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); // PULL DATA PESAN STRUK
         setLabelWidth(d.data().labelWidth || 185); 
         setLabelHeight(d.data().labelHeight || 95);
         setLabelScale(d.data().labelScale || 100); 
@@ -443,7 +486,6 @@ function App() {
   const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
     
-    // Logika harga promo di kasir
     const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
     
     setCart(prev => {
@@ -552,7 +594,7 @@ function App() {
       });
       setEditingProductId(null);
     } else {
-      // --- LOGIKA BARU: BARCODE KEMBAR 6 ANGKA (AABBCC) JIKA KOSONG ---
+      // --- LOGIKA: BARCODE KEMBAR 6 ANGKA (AABBCC) JIKA KOSONG ---
       let bcode = barcodeProd;
       
       if (!bcode) {
@@ -617,13 +659,14 @@ function App() {
       alamat, 
       noTelp, 
       qrisImage, 
+      pesanStruk: pesanStruk || '*** TERIMA KASIH ***', // PUSH DATA PESAN STRUK
       labelWidth: Number(labelWidth), 
       labelHeight: Number(labelHeight),
       labelScale: Number(labelScale), 
       labelGap: Number(labelGap), 
       labelCols: Number(labelCols)
     });
-    alert("Profil & Pengaturan Label Tersimpan!"); 
+    alert("Profil & Pengaturan Toko Tersimpan!"); 
     setShowProfileModal(false);
   };
 
@@ -746,7 +789,7 @@ function App() {
 
   const chartData = getChartData();
 
-  // === FITUR BARU: PENGURUTAN & PENCARIAN PRODUK ===
+  // === FITUR: PENGURUTAN & PENCARIAN PRODUK ===
   const filteredAndSortedProduk = [...produk].filter(p => {
     if (!searchProduk) return true;
     const k = searchProduk.toLowerCase();
@@ -763,7 +806,7 @@ function App() {
     setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  // === FITUR BARU: PENCARIAN PENGELUARAN ===
+  // === FITUR: PENCARIAN PENGELUARAN ===
   const filteredPengeluaran = pengeluaran.filter(p => {
     if (!searchPengeluaran) return true;
     return p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase());
@@ -885,7 +928,6 @@ function App() {
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
           <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box', width: '100%' }}>
-            {/* REVISI MAXWIDTH: DIHAPUS AGAR BISA MEMANJANG SESUAI LAYAR */}
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
               
               <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -1301,7 +1343,7 @@ function App() {
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
-              {/* --- FITUR BARU: HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
+              {/* --- HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
               <div className="tabel-header-container" style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
@@ -1889,6 +1931,17 @@ function App() {
               onChange={e => setNoTelp(e.target.value)} 
               style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box' }} 
             />
+
+            {/* FITUR BARU: PESAN STRUK KUSTOM */}
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
+              Pesan Penutup Struk
+            </label>
+            <input 
+              value={pesanStruk} 
+              onChange={e => setPesanStruk(e.target.value)} 
+              placeholder="Contoh: *** TERIMA KASIH ***"
+              style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box' }} 
+            />
             
             <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #fed7aa' }}>
               <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '8px', display: 'block' }}>
@@ -2211,7 +2264,8 @@ function App() {
               )}
               
               <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-              <p style={{ fontSize: '14px', fontWeight: 'bold' }}>*** TERIMA KASIH ***</p>
+              {/* FITUR BARU: PESAN STRUK CUSTOM */}
+              <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{pesanStruk}</p>
               
               <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
                 <button 
