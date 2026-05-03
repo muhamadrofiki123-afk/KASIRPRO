@@ -183,36 +183,75 @@ function App() {
     produkRef.current = produk; 
   }, [produk]);
 
-  // --- HELPER SUARA BEEP (AUDIO CONTEXT RINGAN) ---
+  // --- HELPER SUARA KERANJANG (Ckring/Blip-Ting Tempo Standar) ---
   const playBeep = () => {
     if (!soundBeep) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = 880; // Frekuensi Beep A5
-      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.1);
+      
+      // Nada Pertama (Blip)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1000, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc1.start(ctx.currentTime);
+      osc1.stop(ctx.currentTime + 0.1);
+
+      // Nada Kedua (Ting - lebih tinggi & renyah)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1500, ctx.currentTime + 0.15); // Jeda tempo pas
+      gain2.gain.setValueAtTime(0.1, ctx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc2.start(ctx.currentTime + 0.15);
+      osc2.stop(ctx.currentTime + 0.3);
     } catch(e) { 
       console.log("Audio Context Error:", e); 
     }
   };
 
-  // --- HELPER ROBOT SUARA TERIMA KASIH (SPEECH SYNTHESIS) ---
-  const playVoice = (text) => {
-    if (!soundVoice || !text) return;
+  // --- HELPER ROBOT SUARA TERIMA KASIH (DENGAN CALLBACK) ---
+  const playVoice = (text, onEndCallback) => {
+    if (!soundVoice || !text) {
+      if(onEndCallback) onEndCallback();
+      return;
+    }
     try {
+      // Batalkan suara sebelumnya jika ada yang tumpang tindih
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+
       const msg = new SpeechSynthesisUtterance(text);
       msg.lang = 'id-ID'; // Logat Indonesia
       msg.rate = 1.0;     // Kecepatan normal
+      
+      if (onEndCallback) {
+        let isFired = false;
+        // Sensor jika suara selesai
+        msg.onend = () => {
+          if (!isFired) { isFired = true; onEndCallback(); }
+        };
+        // Sensor jika error
+        msg.onerror = () => {
+          if (!isFired) { isFired = true; onEndCallback(); }
+        };
+        // Fallback pengaman maksimal 4 detik
+        setTimeout(() => {
+          if (!isFired) { isFired = true; onEndCallback(); }
+        }, 4000);
+      }
       window.speechSynthesis.speak(msg);
     } catch(e) { 
       console.log("Speech Synthesis Error:", e); 
+      if(onEndCallback) onEndCallback();
     }
   };
 
@@ -241,6 +280,25 @@ function App() {
       clearInterval(timer);
     };
   }, []);
+
+  // === SENSOR CERDAS CETAK STRUK (KHUSUS HP vs LAPTOP) ===
+  useEffect(() => {
+    if (strukData) {
+      // Cek apakah perangkat adalah Mobile/HP
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile && soundVoice) {
+        // KHUSUS HP: Layar Print MENUNGGU robot selesai ngomong
+        playVoice(pesanStruk || 'Terima kasih', () => {
+            window.print();
+        });
+      } else {
+        // KHUSUS LAPTOP: Ngomong dan Print muncul bersamaan
+        playVoice(pesanStruk || 'Terima kasih');
+        setTimeout(() => { window.print(); }, 800);
+      }
+    }
+  }, [strukData, soundVoice, pesanStruk]); // Diikat ke data ini agar update
 
   // === SENSOR KEYBOARD KHUSUS STRUK (ENTER / ESC) ===
   useEffect(() => {
@@ -481,12 +539,6 @@ function App() {
     };
   }, [isScanningKasir, isScanningToko]);
 
-  useEffect(() => { 
-    if (strukData) {
-      setTimeout(() => { window.print(); }, 800); 
-    }
-  }, [strukData]);
-
   // --- MENU UPLOAD GAMBAR BACKGROUND (Maks 1MB) ---
   const handleBgUpload = (e) => {
     const file = e.target.files[0];
@@ -628,10 +680,8 @@ function App() {
         updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
       
+      // Pemicu Struk (Effect akan membaca status perangkat lalu print/ngomong otomatis)
       setStrukData(dataTrans); 
-      
-      // Panggil Suara Robot setelah transaksi sukses
-      playVoice(pesanStruk || 'Terima kasih'); 
       
       setCart([]); 
       setPaymentAmount(''); 
