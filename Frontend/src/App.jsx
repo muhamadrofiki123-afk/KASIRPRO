@@ -62,6 +62,28 @@ function App() {
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
   const [showOfflineWarning, setShowOfflineWarning] = useState(!window.navigator.onLine);
 
+  // === STATE FITUR BARU (BACKGROUND & SUARA LOKAL) ===
+  const [bgLogin, setBgLogin] = useState(() => localStorage.getItem('pos_bgLogin') || '');
+  
+  const [soundBeep, setSoundBeep] = useState(() => {
+    const saved = localStorage.getItem('pos_soundBeep');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  
+  const [soundVoice, setSoundVoice] = useState(() => {
+    const saved = localStorage.getItem('pos_soundVoice');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  // Simpan setingan suara ke local storage tiap kali diubah
+  useEffect(() => { 
+    localStorage.setItem('pos_soundBeep', JSON.stringify(soundBeep)); 
+  }, [soundBeep]);
+  
+  useEffect(() => { 
+    localStorage.setItem('pos_soundVoice', JSON.stringify(soundVoice)); 
+  }, [soundVoice]);
+
   // === STATE DATABASE UTAMA ===
   const [produk, setProduk] = useState([]);
   const [transaksi, setTransaksi] = useState([]);
@@ -114,7 +136,7 @@ function App() {
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
   const [qrisImage, setQrisImage] = useState(''); 
-  const [pesanStruk, setPesanStruk] = useState('*** TERIMA KASIH ***'); // FITUR BARU: PESAN STRUK
+  const [pesanStruk, setPesanStruk] = useState('*** TERIMA KASIH ***'); 
 
   // === STATE UKURAN LABEL KUSTOM ===
   const [labelWidth, setLabelWidth] = useState(185);
@@ -161,6 +183,39 @@ function App() {
     produkRef.current = produk; 
   }, [produk]);
 
+  // --- HELPER SUARA BEEP (AUDIO CONTEXT RINGAN) ---
+  const playBeep = () => {
+    if (!soundBeep) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 880; // Frekuensi Beep A5
+      gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } catch(e) { 
+      console.log("Audio Context Error:", e); 
+    }
+  };
+
+  // --- HELPER ROBOT SUARA TERIMA KASIH (SPEECH SYNTHESIS) ---
+  const playVoice = (text) => {
+    if (!soundVoice || !text) return;
+    try {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'id-ID'; // Logat Indonesia
+      msg.rate = 1.0;     // Kecepatan normal
+      window.speechSynthesis.speak(msg);
+    } catch(e) { 
+      console.log("Speech Synthesis Error:", e); 
+    }
+  };
+
   // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -205,17 +260,15 @@ function App() {
     return () => window.removeEventListener('keydown', handleStrukKeys);
   }, [strukData]);
 
-  // === FITUR BARU: NAVIGASI KEYBOARD PINTAR (SPATIAL NAVIGATION) ===
+  // === NAVIGASI KEYBOARD PINTAR (SPATIAL NAVIGATION) ===
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
       const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' || activeElement.tagName === 'TEXTAREA');
 
-      // Jika user sedang mengetik di dalam kolom pencarian/form, matikan panah Kiri Kanan
       if (isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return; 
 
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        // Cegah layar nge-scroll sendiri secara default saat pencet panah atas/bawah
         if(e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
 
         const focusableElements = Array.from(document.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'))
@@ -226,14 +279,12 @@ function App() {
 
         let nextElement = null;
 
-        // Logika Panah Kiri dan Kanan (Biasa)
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           let nextIndex = e.key === 'ArrowRight' ? currentIndex + 1 : currentIndex - 1;
           if (nextIndex >= 0 && nextIndex < focusableElements.length) {
             nextElement = focusableElements[nextIndex];
           }
         } 
-        // Logika Panah Atas dan Bawah (SPASIAL - BERDASARKAN VISUAL KOORDINAT)
         else {
           const activeRect = activeElement.getBoundingClientRect();
           let bestDistance = Infinity;
@@ -243,21 +294,17 @@ function App() {
             const rect = el.getBoundingClientRect();
 
             let isValidDirection = false;
-            // Jika Panah Bawah: Elemen target harus berada di BAWAH elemen saat ini
             if (e.key === 'ArrowDown' && rect.top >= activeRect.bottom - 5) {
               isValidDirection = true;
             }
-            // Jika Panah Atas: Elemen target harus berada di ATAS elemen saat ini
             if (e.key === 'ArrowUp' && rect.bottom <= activeRect.top + 5) {
               isValidDirection = true;
             }
 
             if (isValidDirection) {
-              // Hitung jarak X (Horizontal) dan Y (Vertikal) antar elemen
               const xDist = Math.abs((rect.left + rect.width / 2) - (activeRect.left + activeRect.width / 2));
               const yDist = Math.abs((rect.top + rect.height / 2) - (activeRect.top + activeRect.height / 2));
               
-              // Rumus prioritas: Utamakan elemen yang tepat berada di bawahnya secara sejajar horizontal (xDist dikali bobot besar)
               const distance = (xDist * 10) + yDist; 
 
               if (distance < bestDistance) {
@@ -268,7 +315,6 @@ function App() {
           });
         }
         
-        // Pindahkan fokus secara otomatis
         if (nextElement) {
           nextElement.focus();
         }
@@ -301,7 +347,7 @@ function App() {
         setAlamat(d.data().alamat || ''); 
         setNoTelp(d.data().noTelp || ''); 
         setQrisImage(d.data().qrisImage || '');
-        setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); // PULL DATA PESAN STRUK
+        setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); 
         setLabelWidth(d.data().labelWidth || 185); 
         setLabelHeight(d.data().labelHeight || 95);
         setLabelScale(d.data().labelScale || 100); 
@@ -366,7 +412,6 @@ function App() {
       p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today
     );
     
-    // Omset Lunas/Tunai/QRIS/Transfer
     const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -384,7 +429,7 @@ function App() {
     addToCartRef.current = addToCart; 
   }, [cart]);
 
-  // --- FUNGSI KAMERA ANTI BLANK & HD ---
+  // --- FUNGSI KAMERA (MODE AMAN ANTI BLANK) ---
   useEffect(() => {
     let html5QrCode;
     let isComponentMounted = true; 
@@ -397,7 +442,7 @@ function App() {
       try {
         await html5QrCode.start(
           { facingMode: "environment" }, 
-          { fps: 15, qrbox: { width: 250, height: 250 } },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
             if (isScanningKasir) {
               const found = produkRef.current.find(p => p.barcode === decodedText);
@@ -442,6 +487,23 @@ function App() {
     }
   }, [strukData]);
 
+  // --- MENU UPLOAD GAMBAR BACKGROUND (Maks 1MB) ---
+  const handleBgUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 1000000) {
+        alert("❌ Upload Gagal! Ukuran gambar terlalu besar. Maksimal 1 MB.");
+        e.target.value = ''; 
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => { 
+        setBgLogin(reader.result); 
+        localStorage.setItem('pos_bgLogin', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // --- MENU UPLOAD GAMBAR QRIS ---
   const handleImageUpload = (e) => {
@@ -495,8 +557,10 @@ function App() {
           alert("Stok tidak mencukupi!"); 
           return prev; 
         }
+        playBeep(); // Panggil efek suara beep
         return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
       }
+      playBeep(); // Panggil efek suara beep
       return [...prev, { ...p, harga: hargaAktif, hargaAsli: p.harga, qty: 1 }];
     });
   };
@@ -565,6 +629,10 @@ function App() {
       }
       
       setStrukData(dataTrans); 
+      
+      // Panggil Suara Robot setelah transaksi sukses
+      playVoice(pesanStruk || 'Terima kasih'); 
+      
       setCart([]); 
       setPaymentAmount(''); 
       setMetodePembayaran('Tunai'); 
@@ -594,7 +662,6 @@ function App() {
       });
       setEditingProductId(null);
     } else {
-      // --- LOGIKA: BARCODE KEMBAR 6 ANGKA (AABBCC) JIKA KOSONG ---
       let bcode = barcodeProd;
       
       if (!bcode) {
@@ -605,7 +672,7 @@ function App() {
           let tempCode = '';
           for (let i = 0; i < 3; i++) {
             const num = Math.floor(Math.random() * 10).toString();
-            tempCode += num + num; // Membuat AABBCC
+            tempCode += num + num; 
           }
           
           const checkExists = produk.find(p => p.barcode === tempCode);
@@ -659,7 +726,7 @@ function App() {
       alamat, 
       noTelp, 
       qrisImage, 
-      pesanStruk: pesanStruk || '*** TERIMA KASIH ***', // PUSH DATA PESAN STRUK
+      pesanStruk: pesanStruk || '*** TERIMA KASIH ***', 
       labelWidth: Number(labelWidth), 
       labelHeight: Number(labelHeight),
       labelScale: Number(labelScale), 
@@ -670,7 +737,6 @@ function App() {
     setShowProfileModal(false);
   };
 
-  // === FUNGSI: HAPUS DATA TAHUNAN ===
   const handleResetTahunan = async () => {
     if (!window.confirm(`⚠️ PERINGATAN TERAKHIR: Apakah Anda yakin ingin menghapus SEMUA transaksi pada tahun ${selectedYearReset}? Tindakan ini permanen dan tidak bisa dibatalkan!`)) return;
     
@@ -706,7 +772,6 @@ function App() {
     }
   };
 
-  // === FUNGSI: FILTER & EXPORT LAPORAN ===
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
     
@@ -752,7 +817,6 @@ function App() {
     link.click();
   };
 
-  // === FUNGSI: CHART DATA DASHBOARD ===
   const getChartData = () => {
     let labels = []; 
     let values = []; 
@@ -789,7 +853,6 @@ function App() {
 
   const chartData = getChartData();
 
-  // === FITUR: PENGURUTAN & PENCARIAN PRODUK ===
   const filteredAndSortedProduk = [...produk].filter(p => {
     if (!searchProduk) return true;
     const k = searchProduk.toLowerCase();
@@ -806,13 +869,12 @@ function App() {
     setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  // === FITUR: PENCARIAN PENGELUARAN ===
   const filteredPengeluaran = pengeluaran.filter(p => {
     if (!searchPengeluaran) return true;
     return p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase());
   });
 
-  // === TAMPILAN: LOADING & LOGIN ===
+  // === TAMPILAN: LOADING & LOGIN (DENGAN BACKGROUND CUSTOM LOKAL) ===
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}>
@@ -823,8 +885,23 @@ function App() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', position: 'relative', background: '#FF7835', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: "'Inter', sans-serif" }}>
-        <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)', width: '100%', maxWidth: '420px', zIndex: 10 }}>
+      <div style={{ 
+        minHeight: '100vh', 
+        position: 'relative', 
+        backgroundColor: '#FF7835', // Warna cadangan
+        backgroundImage: bgLogin ? `url(${bgLogin})` : "url('https://images.unsplash.com/photo-1556740734-7f9a2b7a0f4d?auto=format&fit=crop&q=80&w=2070')", 
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: '20px', 
+        fontFamily: "'Inter', sans-serif" 
+      }}>
+        {/* Lapisan Hitam Transparan (Overlay) */}
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.4)', zIndex: 1 }}></div>
+
+        <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', width: '100%', maxWidth: '420px', zIndex: 10, position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <div style={{ fontSize: '13px', fontWeight: '800', color: '#FF7835', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>
               Selamat Datang di Aplikasi
@@ -872,7 +949,7 @@ function App() {
             {isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}
           </p>
         </div>
-        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase' }}>
+        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase', zIndex: 10 }}>
           created by : Muhamad Rofiki
         </div>
       </div>
@@ -1642,7 +1719,6 @@ function App() {
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
-              {/* --- FITUR BARU: PENCARIAN PENGELUARAN --- */}
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
                   💸 Riwayat Pengeluaran
@@ -1660,7 +1736,6 @@ function App() {
                 💡 Menampilkan 500 pengeluaran terbaru.
               </div>
               
-              {/* TABEL PENGELUARAN BISA SCROLL KANAN KIRI DI HP */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                   <thead>
@@ -1904,6 +1979,59 @@ function App() {
                 </button>
               </div>
             </div>
+
+            {/* FITUR BARU: PENGATURAN SUARA */}
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '12px', color: '#272734'}}>🔔 Pengaturan Suara (Auto Save)</p>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px' }}>
+                 <span style={{fontSize: '12px', fontWeight: 'bold', color: '#475569'}}>🔊 Efek Suara Scanner (Beep)</span>
+                 <input 
+                   type="checkbox" 
+                   checked={soundBeep} 
+                   onChange={(e) => setSoundBeep(e.target.checked)} 
+                   style={{transform: 'scale(1.5)', cursor: 'pointer'}} 
+                 />
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <span style={{fontSize: '12px', fontWeight: 'bold', color: '#475569'}}>🗣️ Suara Robot Kasir (Terima Kasih)</span>
+                 <input 
+                   type="checkbox" 
+                   checked={soundVoice} 
+                   onChange={(e) => setSoundVoice(e.target.checked)} 
+                   style={{transform: 'scale(1.5)', cursor: 'pointer'}} 
+                 />
+              </div>
+            </div>
+
+            {/* FITUR BARU: BACKGROUND LOGIN */}
+            <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #fed7aa' }}>
+              <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '4px', display: 'block' }}>
+                🖼️ Upload Background Login
+              </label>
+              <p style={{fontSize: '10px', color: '#ea580c', margin: '0 0 10px 0', fontWeight: 'bold'}}>*Maks 1 MB. Foto Lanskap/Memanjang.</p>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleBgUpload} 
+                style={{ fontSize: '12px', marginBottom: '12px', display: bgLogin ? 'none' : 'block' }} 
+              />
+              {bgLogin && (
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Background Tersimpan</p>
+                  <img src={bgLogin} alt="BG" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
+                  <div>
+                    <button 
+                      onClick={() => { setBgLogin(''); localStorage.removeItem('pos_bgLogin'); }} 
+                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+                    >
+                      🗑️ Hapus & Pakai Default
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             
             <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
               Nama Toko
@@ -1932,7 +2060,6 @@ function App() {
               style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box' }} 
             />
 
-            {/* FITUR BARU: PESAN STRUK KUSTOM */}
             <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
               Pesan Penutup Struk
             </label>
@@ -2205,7 +2332,7 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA DENGAN HARGA PROMO (SCROLLABLE JIKA PANJANG) --- */}
+      {/* --- STRUK AREA DENGAN PESAN KUSTOM --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
@@ -2264,7 +2391,6 @@ function App() {
               )}
               
               <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-              {/* FITUR BARU: PESAN STRUK CUSTOM */}
               <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{pesanStruk}</p>
               
               <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
@@ -2385,7 +2511,7 @@ function App() {
         ))}
       </nav>
 
-      {/* CSS GLOBAL DAN MEDIA QUERIES */}
+      {/* CSS GLOBAL DAN MEDIA QUERIES (HARAM DIHILANGKAN) */}
       <style>{`
         * { 
           -webkit-tap-highlight-color: transparent; 
