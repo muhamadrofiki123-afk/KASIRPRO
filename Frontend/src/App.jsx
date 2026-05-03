@@ -78,6 +78,7 @@ function App() {
   });
   
   const [search, setSearch] = useState('');
+  const [searchProduk, setSearchProduk] = useState(''); // FITUR BARU: Pencarian di Database Produk
   const [searchLaporan, setSearchLaporan] = useState(''); 
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -141,6 +142,7 @@ function App() {
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
   const [nominalPengeluaran, setNominalPengeluaran] = useState('');
 
+  // === STATE DASHBOARD & VARIABEL LABA BERSIH ===
   const [dashboardStats, setDashboardStats] = useState({ 
     todaySales: 0, 
     totalProducts: 0, 
@@ -148,6 +150,8 @@ function App() {
     totalPengeluaran: 0, 
     labaBersih: 0 
   });
+  
+  const isProfit = dashboardStats.labaBersih >= 0;
 
   // REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG
   const produkRef = useRef(produk);
@@ -180,10 +184,10 @@ function App() {
       if (strukData) {
         if (e.key === 'Escape') {
           e.preventDefault();
-          setStrukData(null); // Tekan ESC untuk tutup struk
+          setStrukData(null); 
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          window.print(); // Tekan Enter untuk Print
+          window.print(); 
         }
       }
     };
@@ -387,6 +391,7 @@ function App() {
     }
   }, [strukData]);
 
+
   // --- MENU UPLOAD GAMBAR QRIS ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -539,10 +544,33 @@ function App() {
       });
       setEditingProductId(null);
     } else {
-      const checkDuplicate = produk.find(p => p.barcode === barcodeProd && barcodeProd !== "");
-      if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
+      // --- LOGIKA BARU: BARCODE KEMBAR 6 ANGKA (AABBCC) JIKA KOSONG ---
+      let bcode = barcodeProd;
       
-      const bcode = barcodeProd || Math.floor(100000000000 + Math.random() * 900000000000).toString();
+      if (!bcode) {
+        let isUnique = false;
+        let attempt = 0;
+        
+        while (!isUnique && attempt < 100) {
+          let tempCode = '';
+          for (let i = 0; i < 3; i++) {
+            const num = Math.floor(Math.random() * 10).toString();
+            tempCode += num + num; // Membuat AABBCC
+          }
+          
+          const checkExists = produk.find(p => p.barcode === tempCode);
+          if (!checkExists) {
+            bcode = tempCode;
+            isUnique = true;
+          }
+          attempt++;
+        }
+        // Fallback darurat jika entah kenapa gagal
+        if (!bcode) bcode = Math.floor(100000000000 + Math.random() * 900000000000).toString(); 
+      } else {
+        const checkDuplicate = produk.find(p => p.barcode === bcode);
+        if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
+      }
       
       addDoc(collection(db, "produk"), { 
         nama: namaProd, 
@@ -555,6 +583,7 @@ function App() {
         createdAt: new Date() 
       });
     }
+    
     setNamaProd(''); 
     setHargaProd(''); 
     setHargaPromoProd(''); 
@@ -709,10 +738,13 @@ function App() {
   };
 
   const chartData = getChartData();
-  const isProfit = dashboardStats.labaBersih >= 0;
 
-  // === FUNGSI: PENGURUTAN PRODUK ===
-  const sortedProduk = [...produk].sort((a, b) => {
+  // === FITUR BARU: PENGURUTAN & PENCARIAN PRODUK ===
+  const filteredAndSortedProduk = [...produk].filter(p => {
+    if (!searchProduk) return true;
+    const k = searchProduk.toLowerCase();
+    return p.nama.toLowerCase().includes(k) || p.barcode.includes(k);
+  }).sort((a, b) => {
     if (sortOrder === 'terbaru') {
       return (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
     } else {
@@ -1255,12 +1287,23 @@ function App() {
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
+              {/* --- FITUR BARU: HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>
                   📦 Database Produk
                 </h3>
                 
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+                  
+                  {/* --- KOLOM PENCARIAN PRODUK --- */}
+                  <input 
+                    type="text" 
+                    placeholder="🔍 Cari nama / barcode..." 
+                    value={searchProduk} 
+                    onChange={(e) => setSearchProduk(e.target.value)} 
+                    style={{ flex: '1 1 150px', maxWidth: '250px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600' }} 
+                  />
+
                   <select 
                     tabIndex="0" 
                     value={sortOrder} 
@@ -1290,7 +1333,7 @@ function App() {
                       setPrintData(produk); 
                       setPrintMode('label'); 
                     }} 
-                    style={{ background: '#FF7835', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+                    style={{ background: '#FF7835', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
                   >
                     🖨️ Cetak Semua
                   </button>
@@ -1311,14 +1354,14 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedProduk.length === 0 ? (
+                    {filteredAndSortedProduk.length === 0 ? (
                       <tr>
                         <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>
-                          Belum ada produk.
+                          Tidak ada produk yang ditemukan.
                         </td>
                       </tr>
                     ) : (
-                      sortedProduk.map(p => (
+                      filteredAndSortedProduk.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <input 
@@ -1476,7 +1519,7 @@ function App() {
                   <input 
                     value={barcodeProd} 
                     onChange={e => setBarcodeProd(e.target.value)} 
-                    placeholder="Kosong = Otomatis" 
+                    placeholder="Kosong = Kembar Otomatis" 
                     style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} 
                   />
                   <button 
@@ -2010,7 +2053,69 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA DENGAN HARGA PROMO (REVISI SCROLLABLE) --- */}
+      {/* --- MODAL TAMPIL QRIS --- */}
+      {showQrisModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px' }}>Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalAmount.toLocaleString()}</strong></p>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <img src={qrisImage} alt="QRIS Toko" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button tabIndex="0" onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>TUTUP</button>
+              <button tabIndex="0" onClick={() => finalizePayment('QRIS')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH DIBAYAR</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL RESET DATA TAHUNAN --- */}
+      {showResetModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 10px 0', color: '#dc2626', fontSize: '22px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>⚠️ Hapus Data Tahunan</h2>
+            
+            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: '700', lineHeight: '1.5' }}>
+                PERINGATAN! Data yang dihapus tidak dapat dikembalikan. Pastikan Anda sudah men-download data (Excel) untuk tahun tersebut sebelum menghapus.
+              </p>
+            </div>
+
+            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>Pilih Tahun Transaksi yang Ingin Dihapus:</label>
+            <select tabIndex="0" value={selectedYearReset} onChange={e => setSelectedYearReset(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid #cbd5e1', marginBottom: '24px', fontSize: '15px', fontWeight: 'bold', color: '#272734', outline: 'none' }}>
+              {Array.from({ length: 26 }, (_, i) => 2025 + i).map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button tabIndex="0" onClick={() => setShowResetModal(false)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#f1f5f9', color: '#27274F', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
+              <button tabIndex="0" onClick={handleResetTahunan} style={{ flex: 2, padding: '14px', borderRadius: '12px', border: 'none', background: '#dc2626', color: 'white', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}>HAPUS PERMANEN</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
+      {showOfflineWarning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <div style={{ fontSize: '50px', marginBottom: '16px' }}>⚠️</div>
+            <h2 style={{ margin: '0 0 16px 0', color: '#dc2626', fontSize: '20px', fontWeight: '900', lineHeight: '1.4' }}>
+              MODE OFFLINE AKTIF<br />INTERNET TERPUTUS
+            </h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '700', lineHeight: '1.6', background: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #ffedd5' }}>
+              Jangan refresh halaman atau menutup browser agar data transaksi tidak hilang!
+            </p>
+            <button tabIndex="0" onClick={() => setShowOfflineWarning(false)} style={{ width: '100%', padding: '16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}>
+              Oke, Saya Mengerti
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- STRUK AREA DENGAN HARGA PROMO (SCROLLABLE JIKA PANJANG) --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
