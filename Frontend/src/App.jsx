@@ -79,7 +79,7 @@ function App() {
   
   const [search, setSearch] = useState('');
   const [searchProduk, setSearchProduk] = useState(''); 
-  const [searchPengeluaran, setSearchPengeluaran] = useState(''); // FITUR BARU PENCARIAN PENGELUARAN
+  const [searchPengeluaran, setSearchPengeluaran] = useState('');
   const [searchLaporan, setSearchLaporan] = useState(''); 
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -160,9 +160,16 @@ function App() {
     produkRef.current = produk; 
   }, [produk]);
 
-  // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
+  // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI (DIPERKUAT)
   useEffect(() => {
-    const goOnline = () => setIsOnline(true);
+    setIsOnline(navigator.onLine);
+    setShowOfflineWarning(!navigator.onLine);
+
+    const goOnline = () => {
+      setIsOnline(true);
+      setShowOfflineWarning(false);
+    };
+    
     const goOffline = () => {
       setIsOnline(false);
       setShowOfflineWarning(true); 
@@ -878,7 +885,8 @@ function App() {
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
           <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box', width: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: '1200px', margin: '0 auto' }}>
+            {/* REVISI MAXWIDTH: DIHAPUS AGAR BISA MEMANJANG SESUAI LAYAR */}
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
               
               <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
@@ -1293,7 +1301,7 @@ function App() {
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
-              {/* --- HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
+              {/* --- FITUR BARU: HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
               <div className="tabel-header-container" style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
@@ -1346,7 +1354,7 @@ function App() {
                 </div>
               </div>
               
-              {/* TABEL PRODUK */}
+              {/* TABEL PRODUK BISA SCROLL KANAN KIRI DI HP */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                   <thead>
@@ -1444,7 +1452,7 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'auto', height: 'auto' }}>
+            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'visible', height: 'auto' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>
                   {editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}
@@ -1610,7 +1618,7 @@ function App() {
                 💡 Menampilkan 500 pengeluaran terbaru.
               </div>
               
-              {/* TABEL PENGELUARAN BISA SCROLL */}
+              {/* TABEL PENGELUARAN BISA SCROLL KANAN KIRI DI HP */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                   <thead>
@@ -2128,7 +2136,7 @@ function App() {
 
       {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
       {showOfflineWarning && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             <div style={{ fontSize: '50px', marginBottom: '16px' }}>⚠️</div>
             <h2 style={{ margin: '0 0 16px 0', color: '#dc2626', fontSize: '20px', fontWeight: '900', lineHeight: '1.4' }}>
@@ -2392,7 +2400,7 @@ function App() {
             flex-direction: column !important; 
             overflow-y: auto !important; 
             padding-bottom: 80px !important; 
-            gap: 8px !important; /* MENGHILANGKAN GAP RAKSASA ANTAR KOTAK */
+            gap: 8px !important; 
           }
           .mobile-reverse { 
             flex-direction: column-reverse !important; 
@@ -2440,7 +2448,6 @@ function App() {
             margin-top: 0 !important;
           }
           
-          /* SOLUSI GAP RAKSASA DI HP (FORM MEMELUK KONTEN, BUKAN 100% LAYAR) */
           .form-section { 
             height: auto !important; 
             max-height: none !important; 
