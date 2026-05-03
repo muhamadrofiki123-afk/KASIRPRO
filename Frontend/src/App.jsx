@@ -114,7 +114,7 @@ function App() {
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
   const [qrisImage, setQrisImage] = useState(''); 
-  const [pesanStruk, setPesanStruk] = useState('*** TERIMA KASIH ***'); // FITUR BARU: PESAN STRUK
+  const [pesanStruk, setPesanStruk] = useState('*** TERIMA KASIH ***'); 
 
   // === STATE UKURAN LABEL KUSTOM ===
   const [labelWidth, setLabelWidth] = useState(185);
@@ -205,17 +205,15 @@ function App() {
     return () => window.removeEventListener('keydown', handleStrukKeys);
   }, [strukData]);
 
-  // === FITUR BARU: NAVIGASI KEYBOARD PINTAR (SPATIAL NAVIGATION) ===
+  // === NAVIGASI KEYBOARD PINTAR (SPATIAL NAVIGATION) ===
   useEffect(() => {
     const handleKeyDown = (e) => {
       const activeElement = document.activeElement;
       const isInput = activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' || activeElement.tagName === 'TEXTAREA');
 
-      // Jika user sedang mengetik di dalam kolom pencarian/form, matikan panah Kiri Kanan
       if (isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return; 
 
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-        // Cegah layar nge-scroll sendiri secara default saat pencet panah atas/bawah
         if(e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
 
         const focusableElements = Array.from(document.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'))
@@ -226,14 +224,12 @@ function App() {
 
         let nextElement = null;
 
-        // Logika Panah Kiri dan Kanan (Biasa)
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           let nextIndex = e.key === 'ArrowRight' ? currentIndex + 1 : currentIndex - 1;
           if (nextIndex >= 0 && nextIndex < focusableElements.length) {
             nextElement = focusableElements[nextIndex];
           }
         } 
-        // Logika Panah Atas dan Bawah (SPASIAL - BERDASARKAN VISUAL KOORDINAT)
         else {
           const activeRect = activeElement.getBoundingClientRect();
           let bestDistance = Infinity;
@@ -243,21 +239,17 @@ function App() {
             const rect = el.getBoundingClientRect();
 
             let isValidDirection = false;
-            // Jika Panah Bawah: Elemen target harus berada di BAWAH elemen saat ini
             if (e.key === 'ArrowDown' && rect.top >= activeRect.bottom - 5) {
               isValidDirection = true;
             }
-            // Jika Panah Atas: Elemen target harus berada di ATAS elemen saat ini
             if (e.key === 'ArrowUp' && rect.bottom <= activeRect.top + 5) {
               isValidDirection = true;
             }
 
             if (isValidDirection) {
-              // Hitung jarak X (Horizontal) dan Y (Vertikal) antar elemen
               const xDist = Math.abs((rect.left + rect.width / 2) - (activeRect.left + activeRect.width / 2));
               const yDist = Math.abs((rect.top + rect.height / 2) - (activeRect.top + activeRect.height / 2));
               
-              // Rumus prioritas: Utamakan elemen yang tepat berada di bawahnya secara sejajar horizontal (xDist dikali bobot besar)
               const distance = (xDist * 10) + yDist; 
 
               if (distance < bestDistance) {
@@ -268,7 +260,6 @@ function App() {
           });
         }
         
-        // Pindahkan fokus secara otomatis
         if (nextElement) {
           nextElement.focus();
         }
@@ -301,7 +292,7 @@ function App() {
         setAlamat(d.data().alamat || ''); 
         setNoTelp(d.data().noTelp || ''); 
         setQrisImage(d.data().qrisImage || '');
-        setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); // PULL DATA PESAN STRUK
+        setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); 
         setLabelWidth(d.data().labelWidth || 185); 
         setLabelHeight(d.data().labelHeight || 95);
         setLabelScale(d.data().labelScale || 100); 
@@ -366,7 +357,6 @@ function App() {
       p.waktu && p.waktu.toDate && p.waktu.toDate().toISOString().split('T')[0] === today
     );
     
-    // Omset Lunas/Tunai/QRIS/Transfer
     const omzetHariIni = todayTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     const pengeluaranHariIni = todayPeng.reduce((sum, p) => sum + p.nominal, 0);
 
@@ -384,7 +374,7 @@ function App() {
     addToCartRef.current = addToCart; 
   }, [cart]);
 
-  // --- FUNGSI KAMERA ANTI BLANK & HD ---
+  // --- FUNGSI KAMERA ANTI BLUR (CONTINUOUS FOCUS & HIGH FPS) ---
   useEffect(() => {
     let html5QrCode;
     let isComponentMounted = true; 
@@ -396,8 +386,14 @@ function App() {
       html5QrCode = new Html5Qrcode(scannerId);
       try {
         await html5QrCode.start(
-          { facingMode: "environment" }, 
-          { fps: 15, qrbox: { width: 250, height: 250 } },
+          { 
+            facingMode: "environment",
+            advanced: [{ focusMode: "continuous" }] // PAKSA LENSA HP FOKUS TERUS-MENERUS
+          }, 
+          { 
+            fps: 25, // NAIKKAN KECEPATAN TANGKAP AGAR KEDIPAN CEPAT TEREKAM
+            qrbox: { width: 250, height: 250 } 
+          },
           (decodedText) => {
             if (isScanningKasir) {
               const found = produkRef.current.find(p => p.barcode === decodedText);
@@ -594,7 +590,6 @@ function App() {
       });
       setEditingProductId(null);
     } else {
-      // --- LOGIKA: BARCODE KEMBAR 6 ANGKA (AABBCC) JIKA KOSONG ---
       let bcode = barcodeProd;
       
       if (!bcode) {
@@ -605,7 +600,7 @@ function App() {
           let tempCode = '';
           for (let i = 0; i < 3; i++) {
             const num = Math.floor(Math.random() * 10).toString();
-            tempCode += num + num; // Membuat AABBCC
+            tempCode += num + num; 
           }
           
           const checkExists = produk.find(p => p.barcode === tempCode);
@@ -659,7 +654,7 @@ function App() {
       alamat, 
       noTelp, 
       qrisImage, 
-      pesanStruk: pesanStruk || '*** TERIMA KASIH ***', // PUSH DATA PESAN STRUK
+      pesanStruk: pesanStruk || '*** TERIMA KASIH ***', 
       labelWidth: Number(labelWidth), 
       labelHeight: Number(labelHeight),
       labelScale: Number(labelScale), 
@@ -670,7 +665,6 @@ function App() {
     setShowProfileModal(false);
   };
 
-  // === FUNGSI: HAPUS DATA TAHUNAN ===
   const handleResetTahunan = async () => {
     if (!window.confirm(`⚠️ PERINGATAN TERAKHIR: Apakah Anda yakin ingin menghapus SEMUA transaksi pada tahun ${selectedYearReset}? Tindakan ini permanen dan tidak bisa dibatalkan!`)) return;
     
@@ -706,7 +700,6 @@ function App() {
     }
   };
 
-  // === FUNGSI: FILTER & EXPORT LAPORAN ===
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
     
@@ -752,7 +745,6 @@ function App() {
     link.click();
   };
 
-  // === FUNGSI: CHART DATA DASHBOARD ===
   const getChartData = () => {
     let labels = []; 
     let values = []; 
@@ -789,7 +781,6 @@ function App() {
 
   const chartData = getChartData();
 
-  // === FITUR: PENGURUTAN & PENCARIAN PRODUK ===
   const filteredAndSortedProduk = [...produk].filter(p => {
     if (!searchProduk) return true;
     const k = searchProduk.toLowerCase();
@@ -806,7 +797,6 @@ function App() {
     setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  // === FITUR: PENCARIAN PENGELUARAN ===
   const filteredPengeluaran = pengeluaran.filter(p => {
     if (!searchPengeluaran) return true;
     return p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase());
@@ -2205,7 +2195,7 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA DENGAN HARGA PROMO (SCROLLABLE JIKA PANJANG) --- */}
+      {/* --- STRUK AREA DENGAN PESAN KUSTOM --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
@@ -2264,7 +2254,8 @@ function App() {
               )}
               
               <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-              {/* FITUR BARU: PESAN STRUK CUSTOM */}
+              
+              {/* --- FITUR BARU: PESAN STRUK KUSTOM --- */}
               <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{pesanStruk}</p>
               
               <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
