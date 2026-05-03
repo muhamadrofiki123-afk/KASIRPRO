@@ -49,6 +49,9 @@ const db = initializeFirestore(app, {
 
 const auth = getAuth(app);
 
+// === MESIN SUARA GLOBAL (SINGLETON) AGAR TIDAK DIBLOKIR BROWSER SAAT KLIK CEPAT ===
+let globalAudioCtx = null;
+
 function App() {
   // === STATE AUTENTIKASI ===
   const [user, setUser] = useState(null);
@@ -183,75 +186,44 @@ function App() {
     produkRef.current = produk; 
   }, [produk]);
 
-  // --- HELPER SUARA KERANJANG (Ckring/Blip-Ting Tempo Standar) ---
+  // --- HELPER SUARA KERANJANG (Ckring/Blip-Ting Tempo Standar) MENGGUNAKAN SINGLETON ---
   const playBeep = () => {
     if (!soundBeep) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!globalAudioCtx) {
+        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (globalAudioCtx.state === 'suspended') {
+        globalAudioCtx.resume();
+      }
       
+      const currentTime = globalAudioCtx.currentTime;
+
       // Nada Pertama (Blip)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
+      const osc1 = globalAudioCtx.createOscillator();
+      const gain1 = globalAudioCtx.createGain();
       osc1.connect(gain1);
-      gain1.connect(ctx.destination);
+      gain1.connect(globalAudioCtx.destination);
       osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1000, ctx.currentTime);
-      gain1.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-      osc1.start(ctx.currentTime);
-      osc1.stop(ctx.currentTime + 0.1);
+      osc1.frequency.setValueAtTime(1000, currentTime);
+      gain1.gain.setValueAtTime(0.1, currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.1);
+      osc1.start(currentTime);
+      osc1.stop(currentTime + 0.1);
 
       // Nada Kedua (Ting - lebih tinggi & renyah)
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
+      const osc2 = globalAudioCtx.createOscillator();
+      const gain2 = globalAudioCtx.createGain();
       osc2.connect(gain2);
-      gain2.connect(ctx.destination);
+      gain2.connect(globalAudioCtx.destination);
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1500, ctx.currentTime + 0.15); // Jeda tempo pas
-      gain2.gain.setValueAtTime(0.1, ctx.currentTime + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc2.start(ctx.currentTime + 0.15);
-      osc2.stop(ctx.currentTime + 0.3);
+      osc2.frequency.setValueAtTime(1500, currentTime + 0.15); // Jeda tempo pas
+      gain2.gain.setValueAtTime(0.1, currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.3);
+      osc2.start(currentTime + 0.15);
+      osc2.stop(currentTime + 0.3);
     } catch(e) { 
       console.log("Audio Context Error:", e); 
-    }
-  };
-
-  // --- HELPER ROBOT SUARA TERIMA KASIH (DENGAN CALLBACK) ---
-  const playVoice = (text, onEndCallback) => {
-    if (!soundVoice || !text) {
-      if(onEndCallback) onEndCallback();
-      return;
-    }
-    try {
-      // Batalkan suara sebelumnya jika ada yang tumpang tindih
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-      }
-
-      const msg = new SpeechSynthesisUtterance(text);
-      msg.lang = 'id-ID'; // Logat Indonesia
-      msg.rate = 1.0;     // Kecepatan normal
-      
-      if (onEndCallback) {
-        let isFired = false;
-        // Sensor jika suara selesai
-        msg.onend = () => {
-          if (!isFired) { isFired = true; onEndCallback(); }
-        };
-        // Sensor jika error
-        msg.onerror = () => {
-          if (!isFired) { isFired = true; onEndCallback(); }
-        };
-        // Fallback pengaman maksimal 4 detik
-        setTimeout(() => {
-          if (!isFired) { isFired = true; onEndCallback(); }
-        }, 4000);
-      }
-      window.speechSynthesis.speak(msg);
-    } catch(e) { 
-      console.log("Speech Synthesis Error:", e); 
-      if(onEndCallback) onEndCallback();
     }
   };
 
@@ -281,24 +253,40 @@ function App() {
     };
   }, []);
 
-  // === SENSOR CERDAS CETAK STRUK (KHUSUS HP vs LAPTOP) ===
+  // === SENSOR CERDAS CETAK STRUK & ROBOT SUARA (KHUSUS HP vs LAPTOP) ===
   useEffect(() => {
     if (strukData) {
-      // Cek apakah perangkat adalah Mobile/HP
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
+      const textToSpeak = pesanStruk || 'Terima kasih';
+
+      // 1. Eksekusi Suara (Jika tombol nyala)
+      if (soundVoice) {
+        try {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+          }
+          const msg = new SpeechSynthesisUtterance(textToSpeak);
+          msg.lang = 'id-ID'; 
+          msg.rate = 1.0;     
+          window.speechSynthesis.speak(msg);
+        } catch(e) { 
+          console.log("Speech Synthesis Error:", e); 
+        }
+      }
+
+      // 2. Trik Jitu Layar Print (Dinamis untuk HP vs Statis untuk Laptop/Tanpa Suara)
       if (isMobile && soundVoice) {
-        // KHUSUS HP: Layar Print MENUNGGU robot selesai ngomong
-        playVoice(pesanStruk || 'Terima kasih', () => {
-            window.print();
-        });
+        // HP + Suara Nyala: Hitung delay berdasarkan jumlah huruf (Minimal 1,5 detik)
+        // Kecepatan ngomong rata-rata robot id-ID = ~100 milidetik per huruf
+        const dynamicDelay = Math.max(textToSpeak.length * 100, 1500); 
+        setTimeout(() => { window.print(); }, dynamicDelay);
       } else {
-        // KHUSUS LAPTOP: Ngomong dan Print muncul bersamaan
-        playVoice(pesanStruk || 'Terima kasih');
+        // Laptop ATAU (HP tapi Suara Dimatikan): Tampil cepat (0,8 detik)
         setTimeout(() => { window.print(); }, 800);
       }
     }
-  }, [strukData, soundVoice, pesanStruk]); // Diikat ke data ini agar update
+  }, [strukData]); 
+  // Perhatian: Dependensi [strukData] saja sudah cukup agar tidak terpanggil 2 kali.
 
   // === SENSOR KEYBOARD KHUSUS STRUK (ENTER / ESC) ===
   useEffect(() => {
@@ -680,7 +668,7 @@ function App() {
         updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
       
-      // Pemicu Struk (Effect akan membaca status perangkat lalu print/ngomong otomatis)
+      // Memicu layar struk (dan suara di dalam useEffect)
       setStrukData(dataTrans); 
       
       setCart([]); 
