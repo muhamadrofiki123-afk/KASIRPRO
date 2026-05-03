@@ -78,7 +78,7 @@ function App() {
   });
   
   const [search, setSearch] = useState('');
-  const [searchProduk, setSearchProduk] = useState(''); // FITUR BARU: Pencarian di Database Produk
+  const [searchProduk, setSearchProduk] = useState(''); 
   const [searchLaporan, setSearchLaporan] = useState(''); 
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -565,7 +565,6 @@ function App() {
           }
           attempt++;
         }
-        // Fallback darurat jika entah kenapa gagal
         if (!bcode) bcode = Math.floor(100000000000 + Math.random() * 900000000000).toString(); 
       } else {
         const checkDuplicate = produk.find(p => p.barcode === bcode);
@@ -1288,27 +1287,29 @@ function App() {
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
               {/* --- FITUR BARU: HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
-              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-                <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>
-                  📦 Database Produk
-                </h3>
+              <div className="tabel-header-container" style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-                  
-                  {/* --- KOLOM PENCARIAN PRODUK --- */}
+                {/* Baris 1: Judul Kiri, Pencarian Kanan */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                  <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                    📦 Database Produk
+                  </h3>
                   <input 
                     type="text" 
                     placeholder="🔍 Cari nama / barcode..." 
                     value={searchProduk} 
                     onChange={(e) => setSearchProduk(e.target.value)} 
-                    style={{ flex: '1 1 150px', maxWidth: '250px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600' }} 
+                    style={{ flex: 1, maxWidth: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} 
                   />
+                </div>
 
+                {/* Baris 2: Filter dan Tombol Cetak Sejajar */}
+                <div className="action-buttons-mobile" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
                   <select 
                     tabIndex="0" 
                     value={sortOrder} 
                     onChange={e => setSortOrder(e.target.value)} 
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', fontSize: '12px', color: '#27274F', background: '#f8fafc' }}
+                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', fontSize: '12px', color: '#27274F', background: '#f8fafc', margin: 0, width: 'auto' }}
                   >
                     <option value="terbaru">Terbaru</option>
                     <option value="az">A - Z</option>
@@ -1321,9 +1322,9 @@ function App() {
                         setPrintData(produk.filter(p => selectedProducts.includes(p.id))); 
                         setPrintMode('label'); 
                       }} 
-                      style={{ background: '#0ea5e9', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+                      style={{ background: '#0ea5e9', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
                     >
-                      🖨️ Cetak Pilihan ({selectedProducts.length})
+                      🖨️ Cetak ({selectedProducts.length})
                     </button>
                   )}
                   
@@ -1438,28 +1439,30 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section sticky-box" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
+            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>
+                <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>
                   {editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}
                 </h3>
                 
-                <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                   Nama Produk
                 </label>
                 <input 
+                  className="form-input"
                   value={namaProd} 
                   onChange={e => setNamaProd(e.target.value)} 
                   required 
                   style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} 
                 />
                 
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                       Harga Normal (Rp)
                     </label>
                     <input 
+                      className="form-input"
                       value={hargaProd} 
                       onChange={e => setHargaProd(e.target.value)} 
                       required 
@@ -1468,10 +1471,11 @@ function App() {
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                       Harga Promo (Rp)
                     </label>
                     <input 
+                      className="form-input"
                       value={hargaPromoProd} 
                       onChange={e => setHargaPromoProd(e.target.value)} 
                       placeholder="Opsional" 
@@ -1481,13 +1485,14 @@ function App() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                    <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                       Stok Awal
                     </label>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <input 
+                        className="form-input"
                         value={stokProd} 
                         onChange={e => setStokProd(e.target.value)} 
                         required 
@@ -1495,6 +1500,7 @@ function App() {
                         style={{ width: '55%', padding: '12px 6px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} 
                       />
                       <select 
+                        className="form-input"
                         tabIndex="0" 
                         value={satuanProd} 
                         onChange={e => setSatuanProd(e.target.value)} 
@@ -1512,21 +1518,23 @@ function App() {
                   </div>
                 </div>
                 
-                <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                   Barcode Produk
                 </label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
+                <div className="form-row barcode-row" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
                   <input 
+                    className="form-input"
                     value={barcodeProd} 
                     onChange={e => setBarcodeProd(e.target.value)} 
-                    placeholder="Kosong = Kembar Otomatis" 
-                    style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} 
+                    placeholder="Kosong = Kembar 6 Angka" 
+                    style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '12px', outline: 'none' }} 
                   />
                   <button 
+                    className="form-input"
                     tabIndex="0" 
                     type="button" 
                     onClick={() => setIsScanningToko(!isScanningToko)} 
-                    style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}
+                    style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
                   >
                     {isScanningToko ? '❌ Tutup' : '📸 Scan'}
                   </button>
@@ -1541,6 +1549,7 @@ function App() {
                 
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button 
+                    className="form-btn-submit"
                     tabIndex="0" 
                     type="submit" 
                     style={{ flex: 1, padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}
@@ -1549,6 +1558,7 @@ function App() {
                   </button>
                   {editingProductId && (
                     <button 
+                      className="form-btn-submit"
                       tabIndex="0" 
                       type="button" 
                       onClick={() => { 
@@ -1631,24 +1641,26 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section sticky-box" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
+            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
               <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#e11d48', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
+                <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#e11d48', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                 
-                <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                   Keterangan (Contoh: Bayar Listrik, Kulakan)
                 </label>
                 <input 
+                  className="form-input"
                   value={namaPengeluaran} 
                   onChange={e => setNamaPengeluaran(e.target.value)} 
                   required 
                   style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} 
                 />
                 
-                <label style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
+                <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>
                   Nominal Pengeluaran (Rp)
                 </label>
                 <input 
+                  className="form-input"
                   value={nominalPengeluaran} 
                   onChange={e => setNominalPengeluaran(e.target.value)} 
                   required 
@@ -1657,6 +1669,7 @@ function App() {
                 />
                 
                 <button 
+                  className="form-btn-submit"
                   tabIndex="0" 
                   type="submit" 
                   style={{ width: '100%', padding: '14px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}
@@ -2053,7 +2066,7 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL TAMPIL QRIS --- */}
+      {/* --- MODAL TAMPIL QRIS (YANG KEMARIN HILANG) --- */}
       {showQrisModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -2070,7 +2083,7 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL RESET DATA TAHUNAN --- */}
+      {/* --- MODAL RESET DATA TAHUNAN (YANG KEMARIN HILANG) --- */}
       {showResetModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -2097,7 +2110,7 @@ function App() {
         </div>
       )}
 
-      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
+      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE (YANG KEMARIN HILANG) --- */}
       {showOfflineWarning && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -2115,7 +2128,7 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA DENGAN HARGA PROMO (SCROLLABLE JIKA PANJANG) --- */}
+      {/* --- STRUK AREA DENGAN HARGA PROMO --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
@@ -2414,6 +2427,35 @@ function App() {
             flex: none !important; 
           }
           
+          /* DIET FORM (Hanya di HP) */
+          .diet-form .form-title {
+            font-size: 16px !important;
+            margin-bottom: 12px !important;
+          }
+          .diet-form .form-label {
+            font-size: 11px !important;
+            margin-bottom: 4px !important;
+          }
+          .diet-form .form-input {
+            padding: 8px 10px !important;
+            font-size: 12px !important;
+            margin-bottom: 10px !important;
+            height: 38px !important;
+          }
+          .diet-form .form-row {
+            margin-bottom: 10px !important;
+            gap: 8px !important;
+          }
+          .diet-form .barcode-row {
+            margin-bottom: 16px !important;
+          }
+          .diet-form .form-btn-submit {
+            padding: 10px !important;
+            font-size: 12px !important;
+            height: 40px !important;
+          }
+          
+          /* ATURAN KAMERA (Tetap Memanjang/Persegi Panjang, Tidak Kotak) */
           #reader-kasir, #reader-toko { 
             width: 100% !important; 
             height: 200px !important; 
