@@ -79,6 +79,7 @@ function App() {
   
   const [search, setSearch] = useState('');
   const [searchProduk, setSearchProduk] = useState(''); 
+  const [searchPengeluaran, setSearchPengeluaran] = useState(''); // FITUR BARU PENCARIAN PENGELUARAN
   const [searchLaporan, setSearchLaporan] = useState(''); 
   const [activeTab, setActiveTab] = useState('dashboard');
   
@@ -755,6 +756,12 @@ function App() {
     setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
+  // === FITUR BARU: PENCARIAN PENGELUARAN ===
+  const filteredPengeluaran = pengeluaran.filter(p => {
+    if (!searchPengeluaran) return true;
+    return p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase());
+  });
+
   // === TAMPILAN: LOADING & LOGIN ===
   if (loading) {
     return (
@@ -1286,10 +1293,9 @@ function App() {
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               
-              {/* --- FITUR BARU: HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
+              {/* --- HEADER DATABASE PRODUK + PENCARIAN KIRI FILTER --- */}
               <div className="tabel-header-container" style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 
-                {/* Baris 1: Judul Kiri, Pencarian Kanan */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                   <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
                     📦 Database Produk
@@ -1303,7 +1309,6 @@ function App() {
                   />
                 </div>
 
-                {/* Baris 2: Filter dan Tombol Cetak Sejajar */}
                 <div className="action-buttons-mobile" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
                   <select 
                     tabIndex="0" 
@@ -1341,7 +1346,7 @@ function App() {
                 </div>
               </div>
               
-              {/* TABEL PRODUK BISA SCROLL KANAN KIRI DI HP */}
+              {/* TABEL PRODUK */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                   <thead>
@@ -1439,7 +1444,7 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
+            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'auto', height: 'auto' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>
                   {editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}
@@ -1586,15 +1591,26 @@ function App() {
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              <h3 style={{ flex: 'none', margin: '0 0 10px 0', color: '#272734', fontSize: '18px', fontWeight: '800' }}>
-                💸 Riwayat Pengeluaran Toko
-              </h3>
+              
+              {/* --- FITUR BARU: PENCARIAN PENGELUARAN --- */}
+              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                  💸 Riwayat Pengeluaran
+                </h3>
+                <input 
+                  type="text" 
+                  placeholder="🔍 Cari keterangan..." 
+                  value={searchPengeluaran} 
+                  onChange={(e) => setSearchPengeluaran(e.target.value)} 
+                  style={{ flex: 1, maxWidth: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} 
+                />
+              </div>
               
               <div style={{ padding: '8px 12px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', fontSize: '11px', fontWeight: '600', marginBottom: '16px', border: '1px solid #ffedd5' }}>
                 💡 Menampilkan 500 pengeluaran terbaru.
               </div>
               
-              {/* TABEL PENGELUARAN BISA SCROLL KANAN KIRI DI HP */}
+              {/* TABEL PENGELUARAN BISA SCROLL */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                   <thead>
@@ -1606,8 +1622,8 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada pengeluaran.</td></tr> : 
-                      pengeluaran.map(p => (
+                    {filteredPengeluaran.length === 0 ? <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada pengeluaran.</td></tr> : 
+                      filteredPengeluaran.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' }}>
                           {p.waktu ? (p.waktu.toDate ? p.waktu.toDate().toLocaleString('id-ID') : new Date(p.waktu).toLocaleString('id-ID')) : 'Baru saja'}
@@ -1641,7 +1657,7 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'auto', height: '100%' }}>
+            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'visible', height: 'auto' }}>
               <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#e11d48', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
                 
@@ -2066,7 +2082,7 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL TAMPIL QRIS (YANG KEMARIN HILANG) --- */}
+      {/* --- MODAL TAMPIL QRIS --- */}
       {showQrisModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -2083,7 +2099,7 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL RESET DATA TAHUNAN (YANG KEMARIN HILANG) --- */}
+      {/* --- MODAL RESET DATA TAHUNAN --- */}
       {showResetModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -2110,7 +2126,7 @@ function App() {
         </div>
       )}
 
-      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE (YANG KEMARIN HILANG) --- */}
+      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
       {showOfflineWarning && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
           <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -2128,7 +2144,7 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA DENGAN HARGA PROMO --- */}
+      {/* --- STRUK AREA DENGAN HARGA PROMO (SCROLLABLE JIKA PANJANG) --- */}
       {strukData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
@@ -2376,10 +2392,11 @@ function App() {
             flex-direction: column !important; 
             overflow-y: auto !important; 
             padding-bottom: 80px !important; 
+            gap: 8px !important; /* MENGHILANGKAN GAP RAKSASA ANTAR KOTAK */
           }
           .mobile-reverse { 
             flex-direction: column-reverse !important; 
-            justify-content: flex-end !important; 
+            justify-content: flex-start !important; 
           }
           
           .kasir-left-panel { 
@@ -2420,11 +2437,16 @@ function App() {
           .table-section { 
             min-height: 40vh !important; 
             flex: 1 !important; 
+            margin-top: 0 !important;
           }
+          
+          /* SOLUSI GAP RAKSASA DI HP (FORM MEMELUK KONTEN, BUKAN 100% LAYAR) */
           .form-section { 
-            max-height: 42vh !important; 
-            overflow-y: auto !important; 
+            height: auto !important; 
+            max-height: none !important; 
+            overflow-y: visible !important; 
             flex: none !important; 
+            margin-bottom: 0 !important;
           }
           
           /* DIET FORM (Hanya di HP) */
