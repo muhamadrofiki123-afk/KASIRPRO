@@ -91,7 +91,7 @@ function App() {
   const [produk, setProduk] = useState([]);
   const [transaksi, setTransaksi] = useState([]);
   const [pengeluaran, setPengeluaran] = useState([]); 
-  const [pelanggan, setPelanggan] = useState([]); // FITUR BARU: DATABASE PELANGGAN
+  const [pelanggan, setPelanggan] = useState([]); 
   
   // === STATE KERANJANG KASIR ===
   const [cart, setCart] = useState(() => {
@@ -134,7 +134,7 @@ function App() {
   const [strukData, setStrukData] = useState(null);
   const [printMode, setPrintMode] = useState(null);
   const [printData, setPrintData] = useState(null);
-  const [strukPengeluaran, setStrukPengeluaran] = useState(null); // FITUR BARU: PRINT PENGELUARAN
+  const [strukPengeluaran, setStrukPengeluaran] = useState(null); 
 
   // === STATE PROFIL TOKO ===
   const [namaToko, setNamaToko] = useState('');
@@ -154,7 +154,7 @@ function App() {
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
   const [hargaPromoProd, setHargaPromoProd] = useState('');
-  const [hargaModalProd, setHargaModalProd] = useState(''); // FITUR BARU: HARGA MODAL
+  const [hargaModalProd, setHargaModalProd] = useState(''); 
   const [stokProd, setStokProd] = useState('');
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
@@ -168,7 +168,11 @@ function App() {
   const [chartVisualType, setChartVisualType] = useState('bar');
   const [chartFilter, setChartFilter] = useState('hari'); 
   const [reportFilter, setReportFilter] = useState('hari');
-  const [dashboardTimeFilter, setDashboardTimeFilter] = useState('hari_ini'); // FITUR BARU: FILTER DASHBOARD
+  const [dashboardTimeFilter, setDashboardTimeFilter] = useState('hari_ini'); 
+
+  // === STATE FILTER KHUSUS PENGELUARAN (TANGGAL KUSTOM) ===
+  const [pengeluaranStart, setPengeluaranStart] = useState('');
+  const [pengeluaranEnd, setPengeluaranEnd] = useState('');
 
   const [namaPengeluaran, setNamaPengeluaran] = useState('');
   const [nominalPengeluaran, setNominalPengeluaran] = useState('');
@@ -201,7 +205,7 @@ function App() {
         globalAudioCtx.resume();
       }
       
-      const currentTime = globalAudioCtx.currentTime;
+      const currentTimeAt = globalAudioCtx.currentTime;
 
       // Nada Pertama (Blip)
       const osc1 = globalAudioCtx.createOscillator();
@@ -209,11 +213,11 @@ function App() {
       osc1.connect(gain1);
       gain1.connect(globalAudioCtx.destination);
       osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1000, currentTime);
-      gain1.gain.setValueAtTime(0.1, currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.1);
-      osc1.start(currentTime);
-      osc1.stop(currentTime + 0.1);
+      osc1.frequency.setValueAtTime(1000, currentTimeAt);
+      gain1.gain.setValueAtTime(0.1, currentTimeAt);
+      gain1.gain.exponentialRampToValueAtTime(0.001, currentTimeAt + 0.1);
+      osc1.start(currentTimeAt);
+      osc1.stop(currentTimeAt + 0.1);
 
       // Nada Kedua (Ting - lebih tinggi & renyah)
       const osc2 = globalAudioCtx.createOscillator();
@@ -221,11 +225,11 @@ function App() {
       osc2.connect(gain2);
       gain2.connect(globalAudioCtx.destination);
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1500, currentTime + 0.15); // Jeda tempo pas
-      gain2.gain.setValueAtTime(0.1, currentTime + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.3);
-      osc2.start(currentTime + 0.15);
-      osc2.stop(currentTime + 0.3);
+      osc2.frequency.setValueAtTime(1500, currentTimeAt + 0.15); 
+      gain2.gain.setValueAtTime(0.1, currentTimeAt + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, currentTimeAt + 0.3);
+      osc2.start(currentTimeAt + 0.15);
+      osc2.stop(currentTimeAt + 0.3);
     } catch(e) { 
       console.log("Audio Context Error:", e); 
     }
@@ -251,28 +255,28 @@ function App() {
         let isFired = false;
         
         // Sensor jika suara selesai
-        msg.onend = () => {
+        msg.onend = () => { 
           if (!isFired) { 
             isFired = true; 
             onEndCallback(); 
-          }
+          } 
         };
         
         // Sensor jika suara error
-        msg.onerror = () => {
+        msg.onerror = () => { 
           if (!isFired) { 
             isFired = true; 
             onEndCallback(); 
-          }
+          } 
         };
         
         // Fallback pengaman dinamis maksimal sesuai panjang teks (Anti Macet HP)
         const dynamicSafetyDelay = Math.max(text.length * 100, 1500) + 1000;
-        setTimeout(() => {
+        setTimeout(() => { 
           if (!isFired) { 
             isFired = true; 
             onEndCallback(); 
-          }
+          } 
         }, dynamicSafetyDelay); 
       }
       
@@ -283,18 +287,44 @@ function App() {
     }
   };
 
+  // === SENSOR CERDAS CETAK STRUK & ROBOT SUARA (KHUSUS HP vs LAPTOP) ===
+  useEffect(() => {
+    if (strukData || strukPengeluaran) {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Jika yang diprint adalah nota pengeluaran, langsung print tanpa robot suara
+      if (strukPengeluaran) {
+         setTimeout(() => { window.print(); }, 800);
+         return;
+      }
+
+      const textToSpeak = pesanStruk || 'Terima kasih';
+
+      if (isMobileDevice && soundVoice) {
+        // KHUSUS HP + SUARA NYALA: Layar Print MENUNGGU robot selesai ngomong
+        playVoice(textToSpeak, () => { 
+          window.print(); 
+        });
+      } else {
+        // KHUSUS LAPTOP ATAU (HP + SUARA MATI): Ngomong dan Print muncul paralel
+        playVoice(textToSpeak);
+        setTimeout(() => { window.print(); }, 800);
+      }
+    }
+  }, [strukData, strukPengeluaran]); 
+
   // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
     setIsOnline(navigator.onLine);
     setShowOfflineWarning(!navigator.onLine);
 
-    const goOnline = () => {
-      setIsOnline(true);
-      setShowOfflineWarning(false);
+    const goOnline = () => { 
+      setIsOnline(true); 
+      setShowOfflineWarning(false); 
     };
     
-    const goOffline = () => {
-      setIsOnline(false);
+    const goOffline = () => { 
+      setIsOnline(false); 
       setShowOfflineWarning(true); 
     };
     
@@ -309,44 +339,16 @@ function App() {
     };
   }, []);
 
-  // === SENSOR CERDAS CETAK STRUK & ROBOT SUARA (KHUSUS HP vs LAPTOP) ===
-  useEffect(() => {
-    if (strukData || strukPengeluaran) {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      // Jika yang diprint adalah nota pengeluaran, langsung print tanpa robot suara
-      if (strukPengeluaran) {
-         setTimeout(() => { window.print(); }, 800);
-         return;
-      }
-
-      const textToSpeak = pesanStruk || 'Terima kasih';
-
-      if (isMobile && soundVoice) {
-        // KHUSUS HP + SUARA NYALA: Layar Print MENUNGGU robot selesai ngomong
-        playVoice(textToSpeak, () => {
-          window.print();
-        });
-      } else {
-        // KHUSUS LAPTOP ATAU (HP + SUARA MATI): Ngomong dan Print muncul paralel
-        playVoice(textToSpeak);
-        setTimeout(() => { 
-          window.print(); 
-        }, 800);
-      }
-    }
-  }, [strukData, strukPengeluaran]); 
-
   // === SENSOR KEYBOARD KHUSUS STRUK (ENTER / ESC) ===
   useEffect(() => {
     const handleStrukKeys = (e) => {
       if (strukData || strukPengeluaran) {
         if (e.key === 'Escape') {
-          e.preventDefault();
+          e.preventDefault(); 
           setStrukData(null); 
           setStrukPengeluaran(null);
         } else if (e.key === 'Enter') {
-          e.preventDefault();
+          e.preventDefault(); 
           window.print(); 
         }
       }
@@ -403,9 +405,9 @@ function App() {
               
               const distance = (xDist * 10) + yDist; 
 
-              if (distance < bestDistance) {
-                bestDistance = distance;
-                nextElement = el;
+              if (distance < bestDistance) { 
+                bestDistance = distance; 
+                nextElement = el; 
               }
             }
           });
@@ -416,6 +418,7 @@ function App() {
         }
       }
     };
+    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
@@ -442,12 +445,12 @@ function App() {
         setNamaToko(d.data().nama || ''); 
         setAlamat(d.data().alamat || ''); 
         setNoTelp(d.data().noTelp || ''); 
-        setQrisImage(d.data().qrisImage || '');
+        setQrisImage(d.data().qrisImage || ''); 
         setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); 
         setLabelWidth(d.data().labelWidth || 185); 
         setLabelHeight(d.data().labelHeight || 95);
         setLabelScale(d.data().labelScale || 100); 
-        setLabelGap(d.data().labelGap || 5);
+        setLabelGap(d.data().labelGap || 5); 
         setLabelColumns(d.data().labelCols || 4);
       }
     });
@@ -457,36 +460,26 @@ function App() {
     });
 
     const qTrans = query(collection(db, "transaksi"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500));
-    const unsubTrans = onSnapshot(qTrans, 
-      (snap) => {
+    const unsubTrans = onSnapshot(qTrans, (snap) => {
         let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         data.sort((a, b) => {
-          const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
-          const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
-          return timeB - timeA;
+          const tA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+          const tB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+          return tB - tA;
         });
         setTransaksi(data);
-      },
-      (error) => {
-        console.error("ERROR INDEX TRANSAKSI: ", error.message);
-      }
-    );
+    });
 
     const qPeng = query(collection(db, "pengeluaran"), where("userId", "==", user.uid), orderBy("waktu", "desc"), limit(500));
-    const unsubPengeluaran = onSnapshot(qPeng, 
-      (snap) => {
+    const unsubPengeluaran = onSnapshot(qPeng, (snap) => {
         let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         data.sort((a, b) => {
-          const timeA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
-          const timeB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
-          return timeB - timeA;
+          const tA = a.waktu?.toMillis ? a.waktu.toMillis() : Date.now();
+          const tB = b.waktu?.toMillis ? b.waktu.toMillis() : Date.now();
+          return tB - tA;
         });
         setPengeluaran(data);
-      },
-      (error) => {
-        console.error("ERROR INDEX PENGELUARAN: ", error.message);
-      }
-    );
+    });
 
     const unsubPelanggan = onSnapshot(query(collection(db, "pelanggan"), where("userId", "==", user.uid)), (snap) => {
       setPelanggan(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -496,7 +489,7 @@ function App() {
       unsubProduk(); 
       unsubTrans(); 
       unsubPengeluaran(); 
-      unsubPelanggan();
+      unsubPelanggan(); 
     };
   }, [user]);
 
@@ -505,68 +498,63 @@ function App() {
     if (!user) return;
     
     const now = new Date();
-    
-    // Menghitung batas waktu berdasarkan filter yang dipilih
-    let startDate = new Date();
+    let startDate = new Date(); 
     let endDate = new Date();
     
     if (dashboardTimeFilter === 'hari_ini') {
-      startDate.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0); 
       endDate.setHours(23, 59, 59, 999);
     } else if (dashboardTimeFilter === 'kemarin') {
-      startDate.setDate(startDate.getDate() - 1);
+      startDate.setDate(startDate.getDate() - 1); 
       startDate.setHours(0, 0, 0, 0);
-      endDate.setDate(endDate.getDate() - 1);
+      endDate.setDate(endDate.getDate() - 1); 
       endDate.setHours(23, 59, 59, 999);
     } else if (dashboardTimeFilter === 'minggu_ini') {
-      const day = startDate.getDay();
+      const day = startDate.getDay(); 
       const diff = startDate.getDate() - day + (day === 0 ? -6 : 1); // Geser ke Senin
-      startDate.setDate(diff);
-      startDate.setHours(0, 0, 0, 0);
+      startDate.setDate(diff); 
+      startDate.setHours(0, 0, 0, 0); 
       endDate.setHours(23, 59, 59, 999);
     } else if (dashboardTimeFilter === 'bulan_ini') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1); 
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     } else if (dashboardTimeFilter === 'tahun_ini') {
-      startDate = new Date(now.getFullYear(), 0, 1);
+      startDate = new Date(now.getFullYear(), 0, 1); 
       endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
     }
 
     // Filter Transaksi
-    const filteredTrans = transaksi.filter(t => {
+    const fTrans = transaksi.filter(t => {
       if(!t.waktu || !t.waktu.toDate) return false;
-      const tDate = t.waktu.toDate();
+      const tDate = t.waktu.toDate(); 
       return tDate >= startDate && tDate <= endDate;
     });
     
     // Filter Pengeluaran
-    const filteredPeng = pengeluaran.filter(p => {
+    const fPeng = pengeluaran.filter(p => {
       if(!p.waktu || !p.waktu.toDate) return false;
-      const pDate = p.waktu.toDate();
+      const pDate = p.waktu.toDate(); 
       return pDate >= startDate && pDate <= endDate;
     });
     
     // Hitung Omzet (Hanya yang lunas / bukan bon gantung)
-    const omzet = filteredTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
+    const omzet = fTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sum, t) => sum + t.total, 0);
     
     // Hitung Harga Modal dari barang yang terjual (Untuk Laba Bersih Akurat)
-    const totalModalTerjual = filteredTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sumModal, t) => {
-       const modalTrans = t.items.reduce((sumItem, item) => sumItem + (Number(item.hargaModal || 0) * item.qty), 0);
-       return sumModal + modalTrans;
+    const totModal = fTrans.filter(t => t.metode !== 'Bon' || t.statusBon === 'Lunas').reduce((sM, t) => {
+       const mTr = t.items.reduce((sI, i) => sI + (Number(i.hargaModal || 0) * i.qty), 0); 
+       return sM + mTr;
     }, 0);
 
-    // Hitung Pengeluaran Operasional (Listrik, Gaji, dll)
-    const totalPengeluaranOp = filteredPeng.reduce((sum, p) => sum + p.nominal, 0);
-
-    // Rumus Laba Bersih = Omzet - Modal Barang Terjual - Pengeluaran Operasional
-    const labaAkurat = omzet - totalModalTerjual - totalPengeluaranOp;
+    // Hitung Pengeluaran Operasional
+    const totPengOp = fPeng.reduce((sum, p) => sum + p.nominal, 0);
 
     setDashboardStats({
-      totalProducts: produk.length,
+      totalProducts: produk.length, 
       lowStock: produk.filter(p => p.stok < 50).length,
-      todaySales: omzet,
-      totalPengeluaran: totalPengeluaranOp,
-      labaBersih: labaAkurat
+      todaySales: omzet, 
+      totalPengeluaran: totPengOp, 
+      labaBersih: omzet - totModal - totPengOp
     });
   }, [produk, transaksi, pengeluaran, user, dashboardTimeFilter]);
 
@@ -604,7 +592,7 @@ function App() {
               setIsScanningToko(false); 
             }
           }, 
-          undefined // Ignore warnings
+          undefined
         );
       } catch (err) {
         if (isComponentMounted) {
@@ -697,11 +685,10 @@ function App() {
           alert("Stok tidak mencukupi!"); 
           return prev; 
         }
-        playBeep(); // Panggil efek suara beep
+        playBeep(); 
         return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
       }
-      playBeep(); // Panggil efek suara beep
-      
+      playBeep(); 
       // Menyertakan Harga Modal ke dalam keranjang
       return [...prev, { ...p, harga: hargaAktif, hargaAsli: p.harga, hargaModal: p.hargaModal || 0, qty: 1 }];
     });
@@ -724,12 +711,12 @@ function App() {
     }));
   };
 
-  const totalAmount = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
-  const kembalian = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalAmount : 0;
+  const totalAmountVal = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
+  const kembalianVal = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalAmountVal : 0;
 
   const processPayment = () => {
     if (cart.length === 0) return alert('Keranjang kosong!');
-    if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmount) return alert('Uang bayar kurang!');
+    if (metodePembayaran === 'Tunai' && Number(paymentAmount) < totalAmountVal) return alert('Uang bayar kurang!');
     
     if (metodePembayaran === 'Bon') {
       setShowBonModal(true); 
@@ -739,24 +726,24 @@ function App() {
   };
 
   const finalizePayment = async (metode) => {
-    const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmount;
+    const finalUangBayar = metode === 'Tunai' ? Number(paymentAmount) : totalAmountVal;
     
     const dataTrans = {
       userId: user.uid, 
+      waktu: new Date(),
+      total: totalAmountVal, 
+      uangBayar: finalUangBayar, 
+      kembalian: kembalianVal, 
+      metode: metode, 
       items: cart.map(i => ({
-        idProduk: i.id, // Untuk tracking best seller
+        idProduk: i.id,
         nama: i.nama, 
         harga: i.harga, 
         hargaAsli: i.hargaAsli, 
-        hargaModal: i.hargaModal || 0, // Disimpan untuk laporan laba
+        hargaModal: i.hargaModal || 0, 
         qty: i.qty, 
         satuan: i.satuan || 'Pcs'
-      })),
-      total: totalAmount, 
-      uangBayar: finalUangBayar, 
-      kembalian: kembalian, 
-      metode: metode, 
-      waktu: new Date() 
+      }))
     };
 
     if (metode === 'Bon') {
@@ -769,7 +756,10 @@ function App() {
       const cekPelanggan = pelanggan.find(p => p.nama.toUpperCase() === namaUpper);
       if(!cekPelanggan) {
         try {
-          await addDoc(collection(db, "pelanggan"), { nama: namaPelangganBon.trim(), userId: user.uid });
+          await addDoc(collection(db, "pelanggan"), { 
+            nama: namaPelangganBon.trim(), 
+            userId: user.uid 
+          });
         } catch(e) { 
           console.log("Gagal simpan pelanggan", e); 
         }
@@ -783,9 +773,7 @@ function App() {
         updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
       
-      // Memicu layar struk (dan suara di dalam useEffect)
       setStrukData(dataTrans); 
-      
       setCart([]); 
       setPaymentAmount(''); 
       setMetodePembayaran('Tunai'); 
@@ -810,7 +798,7 @@ function App() {
         nama: namaProd, 
         harga: Number(hargaProd), 
         hargaPromo: promoVal, 
-        hargaModal: modalVal, // Simpan harga modal
+        hargaModal: modalVal, 
         stok: Number(stokProd), 
         barcode: barcodeProd, 
         satuan: satuanProd 
@@ -847,7 +835,7 @@ function App() {
         nama: namaProd, 
         harga: Number(hargaProd), 
         hargaPromo: promoVal, 
-        hargaModal: modalVal, // Simpan harga modal
+        hargaModal: modalVal, 
         stok: Number(stokProd), 
         barcode: bcode, 
         satuan: satuanProd, 
@@ -930,6 +918,22 @@ function App() {
     }
   };
 
+  // --- FILTER PENGELUARAN DINAMIS ---
+  const pengeluaranTersaring = pengeluaran.filter(p => {
+    if (!p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase())) return false;
+    if (!pengeluaranStart || !pengeluaranEnd) return true;
+    
+    const pDate = p.waktu?.toDate ? p.waktu.toDate() : new Date(p.waktu);
+    const sDate = new Date(pengeluaranStart); 
+    sDate.setHours(0,0,0,0);
+    const eDate = new Date(pengeluaranEnd); 
+    eDate.setHours(23,59,59,999);
+    
+    return pDate >= sDate && pDate <= eDate;
+  });
+  
+  const totalPengeluaranTersaring = pengeluaranTersaring.reduce((sum, p) => sum + p.nominal, 0);
+
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
     
@@ -959,24 +963,82 @@ function App() {
     ? filteredTransaksi.filter(t => t.metode === 'Bon' && t.statusBon !== 'Lunas') 
     : filteredTransaksi;
 
-  const exportExcel = () => {
+  // --- EXPORT EXCEL TRANSAKSI (FIX PEMISAH KOLOM TITIK KOMA) ---
+  const exportExcelTrans = () => {
     const headers = [
-      "Tanggal,Jam,Metode Pembayaran,Nama Pelanggan (Bon),Status Bon,Item,Total,Tunai,Kembali,Laba Kotor"
+      "Tanggal", 
+      "Jam", 
+      "Metode Pembayaran", 
+      "Nama Pelanggan", 
+      "Status", 
+      "Items", 
+      "Total", 
+      "Bayar", 
+      "Kembali", 
+      "Laba Kotor"
     ];
+    
     const rows = displayedLaporan.map(t => {
       const d = t.waktu?.toDate ? t.waktu.toDate() : new Date();
       const items = t.items.map(i => `${i.qty} ${i.satuan || 'Pcs'} ${i.nama}`).join(' + ');
       
-      // Hitung Laba per transaksi untuk di export
       const labaKotor = t.items.reduce((sum, item) => sum + ((item.harga - (item.hargaModal || 0)) * item.qty), 0);
       
-      return `${d.toLocaleDateString('id-ID')},${d.toLocaleTimeString('id-ID')},${t.metode || 'Tunai'},"${t.namaPelanggan || '-'}","${t.statusBon || '-'}","${items}",${t.total},${t.uangBayar},${t.kembalian},${labaKotor}`;
+      return [
+        d.toLocaleDateString('id-ID'), 
+        d.toLocaleTimeString('id-ID'), 
+        t.metode || 'Tunai', 
+        `"${t.namaPelanggan || '-'}"`, 
+        `"${t.statusBon || '-'}"`, 
+        `"${items}"`, 
+        t.total, 
+        t.uangBayar, 
+        t.kembalian, 
+        labaKotor
+      ].join(';');
     });
     
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + headers.concat(rows).join("\n")));
-    link.setAttribute("download", `Laporan_${laporanTab === 'bon' ? 'Bon' : 'Transaksi'}_Kasir.csv`);
+    const csvStr = "\uFEFF" + headers.join(';') + "\n" + rows.join("\n");
+    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a"); 
+    link.href = URL.createObjectURL(blob);
+    link.download = `Laporan_${laporanTab === 'bon' ? 'Bon' : 'Transaksi'}_Kasir.csv`;
     document.body.appendChild(link); 
+    link.click();
+  };
+
+  // --- EXPORT EXCEL PENGELUARAN (FIX TITIK KOMA + TOTAL) ---
+  const exportExcelPengeluaran = () => {
+    const headers = [
+      "Tanggal", 
+      "Waktu", 
+      "Keterangan", 
+      "Nominal"
+    ];
+    
+    const rows = pengeluaranTersaring.map(p => {
+      const d = p.waktu?.toDate ? p.waktu.toDate() : new Date();
+      return [
+        d.toLocaleDateString('id-ID'), 
+        d.toLocaleTimeString('id-ID'), 
+        `"${p.nama}"`, 
+        p.nominal
+      ].join(';');
+    });
+    
+    // Baris Total di Excel
+    const totalRow = [
+      "", 
+      "", 
+      "TOTAL KESELURUHAN", 
+      totalPengeluaranTersaring
+    ].join(';');
+    
+    const csvStr = "\uFEFF" + headers.join(';') + "\n" + rows.join("\n") + "\n" + totalRow;
+    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a"); 
+    link.href = URL.createObjectURL(blob);
+    link.download = `Laporan_Pengeluaran.csv`; 
     link.click();
   };
 
@@ -1035,10 +1097,10 @@ function App() {
     return { data: labels.map((l, i) => ({ label: l, total: values[i] })), max };
   };
 
-  const chartData = getChartData();
+  const chartDataFinal = getChartData();
 
   // --- MENGHITUNG BEST SELLER (TOP PRODUK) ---
-  const getTopProducts = () => {
+  const getTopProductsVal = () => {
      const productSales = {};
      transaksi.forEach(t => {
          // Abaikan bon yang belum lunas
@@ -1049,7 +1111,11 @@ function App() {
              const labaPerItem = (item.harga - (item.hargaModal || 0)) * item.qty;
              
              if(!productSales[key]) {
-                 productSales[key] = { nama: item.nama, qty: item.qty, laba: labaPerItem };
+                 productSales[key] = { 
+                   nama: item.nama, 
+                   qty: item.qty, 
+                   laba: labaPerItem 
+                 };
              } else {
                  productSales[key].qty += item.qty;
                  productSales[key].laba += labaPerItem;
@@ -1061,7 +1127,7 @@ function App() {
      return Object.values(productSales).sort((a, b) => b.qty - a.qty).slice(0, 10);
   };
   
-  const topProducts = getTopProducts();
+  const topProductsFinal = getTopProductsVal();
 
   const filteredAndSortedProduk = [...produk].filter(p => {
     if (!searchProduk) return true;
@@ -1078,11 +1144,6 @@ function App() {
   const toggleSelectProduct = (id) => {
     setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
-
-  const filteredPengeluaran = pengeluaran.filter(p => {
-    if (!searchPengeluaran) return true;
-    return p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase());
-  });
 
   // === TAMPILAN: LOADING & LOGIN (DENGAN BACKGROUND CUSTOM LOKAL) ===
   if (loading) {
@@ -1120,7 +1181,7 @@ function App() {
               POS MODERN PRO
             </h1>
             <p style={{ color: '#27274F', fontSize: '14px', margin: '8px 0 0 0', fontWeight: '600' }}>
-              Sistem Kasir Bisnis Terpadu
+              UMKM Digital Solution
             </p>
           </div>
           <form onSubmit={handleLogin}>
@@ -1280,11 +1341,11 @@ function App() {
                 </div>
               </div>
 
-              {/* GRID UNTUK GRAFIK DAN BEST SELLER */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
+              {/* GRID UNTUK GRAFIK DAN BEST SELLER (TIDAK ADA MAX HEIGHT, FLEX: 1) */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px', flex: 1 }}>
                   
                   {/* GRAFIK PENDAPATAN */}
-                  <div style={{ flex: 1, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', minHeight: '350px' }}>
                     <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                       <h3 style={{ margin: 0, color: '#272734', fontSize: '16px', fontWeight: '800' }}>
                         📈 Grafik Pendapatan
@@ -1317,11 +1378,11 @@ function App() {
                       </div>
                     </div>
     
-                    <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: '150px' }}>
+                    <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px' }}>
                       {chartVisualType === 'line' && (
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
                           <polyline 
-                            points={chartData.data.map((d, i) => `${(i / (chartData.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartData.max || 1)) * 100)}`).join(' ')} 
+                            points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} 
                             fill="none" 
                             stroke="#3b82f6" 
                             strokeWidth="3" 
@@ -1331,7 +1392,7 @@ function App() {
                           />
                         </svg>
                       )}
-                      {chartData.data.map((d, i) => (
+                      {chartDataFinal.data.map((d, i) => (
                         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
                           {d.total > 0 && (
                             <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
@@ -1339,9 +1400,9 @@ function App() {
                             </div>
                           )}
                           {chartVisualType === 'bar' ? (
-                            <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartData.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div>
+                            <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div>
                           ) : (
-                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartData.max || 1)) * 100}%`, minHeight: '8px' }}>
+                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}>
                                <div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div>
                             </div>
                           )}
@@ -1353,37 +1414,45 @@ function App() {
                     </div>
                   </div>
 
-                  {/* FITUR BARU: BEST SELLER & LABA PER ITEM */}
-                  <div style={{ flex: 1, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', maxHeight: '300px', overflowY: 'auto' }}>
-                    <h3 style={{ margin: '0 0 16px 0', color: '#272734', fontSize: '16px', fontWeight: '800', display: 'flex', justifyContent: 'space-between' }}>
+                  {/* FITUR BARU: BEST SELLER & LABA PER ITEM (FLEX ELASTIS) */}
+                  <div style={{ background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', minHeight: '350px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', color: '#272734', fontSize: '16px', fontWeight: '800', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>🏆 Top Produk (Terlaris)</span>
                       <span style={{fontSize: '11px', color: '#10b981', background: '#dcfce7', padding: '4px 8px', borderRadius: '8px'}}>All Time</span>
                     </h3>
                     
-                    {topProducts.length === 0 ? (
-                        <div style={{textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '20px'}}>
-                          Belum ada data penjualan...
-                        </div>
-                    ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                              <th style={{ padding: '8px 0' }}>Nama Item</th>
-                              <th style={{ padding: '8px 0', textAlign: 'center' }}>Terjual</th>
-                              <th style={{ padding: '8px 0', textAlign: 'right' }}>Laba Kotor</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {topProducts.map((p, i) => (
-                              <tr key={i} style={{ borderBottom: '1px dashed #f1f5f9' }}>
-                                <td style={{ padding: '12px 0', fontWeight: '700', color: '#272734' }}>{i+1}. {p.nama}</td>
-                                <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: '800', color: '#FF7835' }}>{p.qty}x</td>
-                                <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>Rp {p.laba.toLocaleString()}</td>
+                    <div style={{ flex: 1, overflowY: 'auto' }}>
+                      {topProductsFinal.length === 0 ? (
+                          <div style={{textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '50px'}}>
+                            Belum ada data penjualan...
+                          </div>
+                      ) : (
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
+                                <th style={{ padding: '8px 0' }}>Nama Item</th>
+                                <th style={{ padding: '8px 0', textAlign: 'center' }}>Terjual</th>
+                                <th style={{ padding: '8px 0', textAlign: 'right' }}>Laba Kotor</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                    )}
+                            </thead>
+                            <tbody>
+                              {topProductsFinal.map((p, i) => (
+                                <tr key={i} style={{ borderBottom: '1px dashed #f1f5f9' }}>
+                                  <td style={{ padding: '12px 0', fontWeight: '700', color: '#272734' }}>
+                                    {i+1}. {p.nama}
+                                  </td>
+                                  <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: '800', color: '#FF7835' }}>
+                                    {p.qty}x
+                                  </td>
+                                  <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>
+                                    Rp {p.laba.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                      )}
+                    </div>
                   </div>
 
               </div>
@@ -1563,7 +1632,7 @@ function App() {
                     Total Pembelian:
                   </span>
                   <span style={{ fontSize: '20px', fontWeight: '900', color: '#272734' }}>
-                    Rp {totalAmount.toLocaleString()}
+                    Rp {totalAmountVal.toLocaleString()}
                   </span>
                 </div>
                 
@@ -1580,7 +1649,7 @@ function App() {
                         }
                         setMetodePembayaran(metode);
                         if(metode !== 'Tunai' && metode !== 'Bon') {
-                          setPaymentAmount(totalAmount);
+                          setPaymentAmount(totalAmountVal);
                         } else {
                           setPaymentAmount('');
                         }
@@ -1613,7 +1682,7 @@ function App() {
                       placeholder="Ketik Nominal Uang (Rp)" 
                       value={paymentAmount} 
                       onChange={(e) => setPaymentAmount(e.target.value)} 
-                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalAmount ? '2px solid #ef4444' : '2px solid #cbd5e1', fontSize: '16px', fontWeight: '800', outline: 'none', background: 'white', color: '#272734', boxSizing: 'border-box' }} 
+                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalAmountVal ? '2px solid #ef4444' : '2px solid #cbd5e1', fontSize: '16px', fontWeight: '800', outline: 'none', background: 'white', color: '#272734', boxSizing: 'border-box' }} 
                     />
                   ) : metodePembayaran === 'QRIS' ? (
                     <button 
@@ -1636,12 +1705,12 @@ function App() {
                 </div>
 
                 {metodePembayaran === 'Tunai' && paymentAmount !== '' && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', padding: '10px', background: Number(paymentAmount) >= totalAmount ? '#dcfce7' : '#fee2e2', borderRadius: '8px', border: `1px solid ${Number(paymentAmount) >= totalAmount ? '#bbf7d0' : '#fecaca'}` }}>
-                    <span style={{ fontWeight: '800', fontSize: '12px', color: Number(paymentAmount) >= totalAmount ? '#16a34a' : '#dc2626' }}>
-                      {Number(paymentAmount) >= totalAmount ? 'Kembalian:' : '⚠️ Uang Kurang:'}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', padding: '10px', background: Number(paymentAmount) >= totalAmountVal ? '#dcfce7' : '#fee2e2', borderRadius: '8px', border: `1px solid ${Number(paymentAmount) >= totalAmountVal ? '#bbf7d0' : '#fecaca'}` }}>
+                    <span style={{ fontWeight: '800', fontSize: '12px', color: Number(paymentAmount) >= totalAmountVal ? '#16a34a' : '#dc2626' }}>
+                      {Number(paymentAmount) >= totalAmountVal ? 'Kembalian:' : '⚠️ Uang Kurang:'}
                     </span>
-                    <span style={{ fontWeight: '900', fontSize: '16px', color: Number(paymentAmount) >= totalAmount ? '#16a34a' : '#dc2626' }}>
-                      Rp {Math.abs(kembalian).toLocaleString()}
+                    <span style={{ fontWeight: '900', fontSize: '16px', color: Number(paymentAmount) >= totalAmountVal ? '#16a34a' : '#dc2626' }}>
+                      Rp {Math.abs(kembalianVal).toLocaleString()}
                     </span>
                   </div>
                 )}
@@ -1649,8 +1718,8 @@ function App() {
                 <button 
                   tabIndex="0" 
                   onClick={processPayment} 
-                  disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))} 
-                  style={{ width: '100%', padding: '14px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#e2e8f0' : '#FF7835', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmount))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}
+                  disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmountVal))} 
+                  style={{ width: '100%', padding: '14px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmountVal))) ? '#e2e8f0' : '#FF7835', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmountVal))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalAmountVal))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}
                 >
                   BAYAR & CETAK
                 </button>
@@ -1715,18 +1784,31 @@ function App() {
                 </div>
               </div>
               
-              {/* TABEL PRODUK BISA SCROLL KANAN KIRI DI HP */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                   <thead>
                     <tr style={{ background: '#fff7ed', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5, width: '30px', textAlign: 'center' }}>☑️</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Nama Produk</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Harga Jual</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Modal</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Stok</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Barcode</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>Aksi</th>
+                      <th style={{ padding: '12px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5, width: '30px', textAlign: 'center' }}>
+                        ☑️
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>
+                        Nama Produk
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>
+                        Harga Jual
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>
+                        Modal
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>
+                        Stok
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>
+                        Barcode
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #fed7aa', position: 'sticky', top: 0, background: '#fff7ed', zIndex: 5 }}>
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1812,8 +1894,9 @@ function App() {
               </div>
             </div>
 
-            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'visible', height: 'auto' }}>
-              <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+            {/* FORM TAMBAH PRODUK DENGAN FITUR STICKY DAN SCROLL TERPISAH */}
+            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column' }}>
+              <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', flex: 1, overflowY: 'auto' }}>
                 <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>
                   {editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}
                 </h3>
@@ -1860,7 +1943,7 @@ function App() {
 
                 <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
-                    {/* FITUR BARU: HARGA MODAL */}
+                    {/* FITUR BARU: HARGA MODAL (TIDAK REQUIRED) */}
                     <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#10b981', display: 'block', marginBottom: '6px' }}>
                       Harga Modal / Beli
                     </label>
@@ -1868,8 +1951,7 @@ function App() {
                       className="form-input" 
                       value={hargaModalProd} 
                       onChange={e => setHargaModalProd(e.target.value)} 
-                      placeholder="Wajib isi agar laba akurat" 
-                      required 
+                      placeholder="Opsional" 
                       type="number" 
                       style={{ width: '100%', padding: '12px', border: '1px solid #a7f3d0', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none', background: '#ecfdf5' }} 
                     />
@@ -1917,7 +1999,7 @@ function App() {
                     className="form-input" 
                     value={barcodeProd} 
                     onChange={e => setBarcodeProd(e.target.value)} 
-                    placeholder="Kosong = Kembar 6 Angka" 
+                    placeholder="Kosong = Auto" 
                     style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '12px', outline: 'none' }} 
                   />
                   <button 
@@ -1978,41 +2060,94 @@ function App() {
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
             
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+              
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
                   💸 Riwayat Pengeluaran
                 </h3>
-                <input 
-                  type="text" 
-                  placeholder="🔍 Cari keterangan..." 
-                  value={searchPengeluaran} 
-                  onChange={(e) => setSearchPengeluaran(e.target.value)} 
-                  style={{ flex: 1, maxWidth: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} 
-                />
+                
+                <div style={{ display: 'flex', gap: '8px', flex: 1, maxWidth: '600px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    placeholder="🔍 Cari keterangan..." 
+                    value={searchPengeluaran} 
+                    onChange={(e) => setSearchPengeluaran(e.target.value)} 
+                    style={{ flex: 1, minWidth: '150px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} 
+                  />
+                  
+                  {/* FITUR BARU: FILTER KALENDER KUSTOM */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <span style={{fontSize:'10px', fontWeight:'700', color:'#64748b'}}>Dari:</span>
+                    <input 
+                      type="date" 
+                      value={pengeluaranStart} 
+                      onChange={e => setPengeluaranStart(e.target.value)} 
+                      style={{ border:'none', background:'transparent', fontSize:'11px', outline:'none', color:'#272734', fontWeight:'bold' }} 
+                    />
+                    <span style={{fontSize:'10px', fontWeight:'700', color:'#64748b'}}>Sampai:</span>
+                    <input 
+                      type="date" 
+                      value={pengeluaranEnd} 
+                      onChange={e => setPengeluaranEnd(e.target.value)} 
+                      style={{ border:'none', background:'transparent', fontSize:'11px', outline:'none', color:'#272734', fontWeight:'bold' }} 
+                    />
+                  </div>
+
+                  <button 
+                    onClick={exportExcelPengeluaran} 
+                    style={{ background: '#10b981', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    📥 Excel
+                  </button>
+                </div>
               </div>
-              <div style={{ padding: '8px 12px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', fontSize: '11px', fontWeight: '600', marginBottom: '16px', border: '1px solid #ffedd5' }}>
-                💡 Menampilkan 500 pengeluaran terbaru.
+              
+              <div style={{ padding: '12px 16px', background: '#fff7ed', borderRadius: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <span style={{fontSize:'12px', color:'#ea580c', fontWeight:'700'}}>
+                    Total Rekap Sesuai Filter:
+                  </span>
+                  <div style={{fontSize:'20px', fontWeight:'900', color:'#272734'}}>
+                    Rp {totalPengeluaranTersaring.toLocaleString()}
+                  </div>
+                </div>
+                {(pengeluaranStart || pengeluaranEnd) && (
+                  <button 
+                    onClick={() => { setPengeluaranStart(''); setPengeluaranEnd(''); }} 
+                    style={{ background:'white', border:'1px solid #ea580c', color:'#ea580c', padding:'6px 12px', borderRadius:'8px', fontSize:'11px', fontWeight:'800', cursor:'pointer' }}
+                  >
+                    Reset Filter Tanggal
+                  </button>
+                )}
               </div>
               
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', color: '#27274F', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Tanggal & Waktu</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Keterangan</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Nominal</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>Aksi</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>
+                        Tanggal & Waktu
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>
+                        Keterangan
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>
+                        Nominal
+                      </th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, background: '#f8fafc', zIndex: 5 }}>
+                        Aksi
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredPengeluaran.length === 0 ? (
+                    {pengeluaranTersaring.length === 0 ? (
                       <tr>
                         <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>
-                          Belum ada pengeluaran.
+                          Belum ada data pengeluaran.
                         </td>
                       </tr>
                     ) : (
-                      filteredPengeluaran.map(p => (
+                      pengeluaranTersaring.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' }}>
                           {p.waktu ? (p.waktu.toDate ? p.waktu.toDate().toLocaleString('id-ID') : new Date(p.waktu).toLocaleString('id-ID')) : 'Baru saja'}
@@ -2030,7 +2165,7 @@ function App() {
                             onClick={() => setStrukPengeluaran(p)} 
                             style={{ background: '#272734', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}
                           >
-                            🖨️ Cetak
+                            🖨️ Cetak Bukti
                           </button>
                           <button 
                             tabIndex="0" 
@@ -2118,7 +2253,7 @@ function App() {
                 </button>
                 <button 
                   tabIndex="0" 
-                  onClick={exportExcel} 
+                  onClick={exportExcelTrans} 
                   style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
                 >
                   📥 Download Excel
@@ -2165,7 +2300,7 @@ function App() {
                 </div>
               ) : (
                 displayedLaporan.map(t => (
-                <div key={t.id} style={{ padding: '8px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={t.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontWeight: '800', color: '#272734', fontSize: '12px', marginBottom: '4px' }}>
                       {t.waktu ? (t.waktu.toDate ? t.waktu.toDate().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' }) : new Date(t.waktu).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })) : 'Baru saja'} - {t.waktu ? (t.waktu.toDate ? t.waktu.toDate().toLocaleTimeString('id-ID') : new Date(t.waktu).toLocaleTimeString('id-ID')) : ''}
@@ -2208,7 +2343,7 @@ function App() {
                               updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: new Date() }); 
                             }
                           }} 
-                          style={{ background: '#10b981', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}
+                          style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}
                         >
                           ✓ LUNAS
                         </button>
@@ -2216,7 +2351,7 @@ function App() {
                       <button 
                         tabIndex="0" 
                         onClick={() => setStrukData(t)} 
-                        style={{ background: '#272734', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}
+                        style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}
                       >
                         🖨️ Cetak
                       </button>
@@ -2235,7 +2370,7 @@ function App() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.8)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '95vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0 }}>⚙️ Profil & Label</h3>
+              <h3 style={{ margin: 0 }}>⚙️ Pengaturan Toko</h3>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button 
                   onClick={() => setShowHelpModal(true)} 
@@ -2254,7 +2389,9 @@ function App() {
 
             {/* PENGATURAN SUARA */}
             <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '12px', color: '#272734'}}>🔔 Pengaturan Suara (Auto Save)</p>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '12px', color: '#272734'}}>
+                🔔 Pengaturan Suara (Auto Save)
+              </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px' }}>
                  <span style={{fontSize: '12px', fontWeight: 'bold', color: '#475569'}}>🔊 Efek Suara Scanner (Beep)</span>
                  <input 
@@ -2280,7 +2417,9 @@ function App() {
               <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '4px', display: 'block' }}>
                 🖼️ Upload Background Login
               </label>
-              <p style={{fontSize: '10px', color: '#ea580c', margin: '0 0 10px 0', fontWeight: 'bold'}}>*Maks 1 MB. Foto Lanskap/Memanjang.</p>
+              <p style={{fontSize: '10px', color: '#ea580c', margin: '0 0 10px 0', fontWeight: 'bold'}}>
+                *Maks 1 MB. Foto Lanskap/Memanjang.
+              </p>
               <input 
                 type="file" 
                 accept="image/*" 
@@ -2289,7 +2428,9 @@ function App() {
               />
               {bgLogin && (
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Background Tersimpan</p>
+                  <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+                    ✓ Background Tersimpan
+                  </p>
                   <img src={bgLogin} alt="BG" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
                   <div>
                     <button 
@@ -2303,28 +2444,36 @@ function App() {
               )}
             </div>
             
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Nama Toko</label>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
+              Nama Toko
+            </label>
             <input 
               value={namaToko} 
               onChange={e => setNamaToko(e.target.value)} 
               style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box' }} 
             />
             
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Alamat</label>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
+              Alamat
+            </label>
             <input 
               value={alamat} 
               onChange={e => setAlamat(e.target.value)} 
               style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box' }} 
             />
             
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>WhatsApp</label>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
+              WhatsApp
+            </label>
             <input 
               value={noTelp} 
               onChange={e => setNoTelp(e.target.value)} 
               style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box' }} 
             />
 
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>Pesan Penutup Struk</label>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block' }}>
+              Pesan Penutup Struk
+            </label>
             <input 
               value={pesanStruk} 
               onChange={e => setPesanStruk(e.target.value)} 
@@ -2345,7 +2494,9 @@ function App() {
               />
               {qrisImage && (
                 <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Gambar QRIS Tersimpan</p>
+                  <p style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', margin: '0 0 8px 0' }}>
+                    ✓ Gambar QRIS Tersimpan
+                  </p>
                   <img src={qrisImage} alt="QRIS" style={{ maxWidth: '150px', maxHeight: '150px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
                   <div>
                     <button 
@@ -2360,28 +2511,65 @@ function App() {
             </div>
 
             <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#272734'}}>📏 Pengaturan Kertas Label (px)</p>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#272734'}}>
+                📏 Pengaturan Kertas Label (px)
+              </p>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
                 <div>
-                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Lebar</label>
-                  <input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>
+                    Lebar
+                  </label>
+                  <input 
+                    type="number" 
+                    value={labelWidth} 
+                    onChange={e => setLabelWidth(e.target.value)} 
+                    style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} 
+                  />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Tinggi</label>
-                  <input type="number" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>
+                    Tinggi
+                  </label>
+                  <input 
+                    type="number" 
+                    value={labelHeight} 
+                    onChange={e => setLabelHeight(e.target.value)} 
+                    style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} 
+                  />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Sekat/Gap</label>
-                  <input type="number" value={labelGap} onChange={e => setLabelGap(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>
+                    Sekat/Gap
+                  </label>
+                  <input 
+                    type="number" 
+                    value={labelGap} 
+                    onChange={e => setLabelGap(e.target.value)} 
+                    style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} 
+                  />
                 </div>
                 <div>
-                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Jml Kolom</label>
-                  <input type="number" value={labelCols} onChange={e => setLabelColumns(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
+                  <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>
+                    Jml Kolom
+                  </label>
+                  <input 
+                    type="number" 
+                    value={labelCols} 
+                    onChange={e => setLabelColumns(e.target.value)} 
+                    style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} 
+                  />
                 </div>
               </div>
               <div style={{marginTop:'15px'}}>
-                <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>Skala Isi Label (%)</label>
-                <input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} />
+                <label style={{fontSize: '11px', fontWeight: 'bold', color: '#475569', marginBottom: '4px', display: 'block'}}>
+                  Skala Isi Label (%)
+                </label>
+                <input 
+                  type="number" 
+                  value={labelScale} 
+                  onChange={e => setLabelScale(e.target.value)} 
+                  style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: 0, boxSizing: 'border-box' }} 
+                />
               </div>
             </div>
 
@@ -2395,12 +2583,12 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL PUSAT BANTUAN (FAQ ACCORDION) --- */}
+      {/* --- MODAL PUSAT BANTUAN --- */}
       {showHelpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, color: '#2563eb' }}>📖 Pusat Bantuan</h3>
+              <h3 style={{ color: '#2563eb', margin: 0 }}>📖 Pusat Bantuan</h3>
               <button 
                 onClick={() => setShowHelpModal(false)} 
                 style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}
@@ -2410,26 +2598,30 @@ function App() {
             </div>
             
             <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>1. Cara Transaksi & Kasir</summary>
-              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Gunakan tombol kamera atau scan manual barcode. Ubah jumlah barang di keranjang. Klik "Bayar" lalu pilih metode bayar. Untuk struk otomatis, pastikan printer thermal sudah tersambung dengan PC/HP Anda.</p>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>
+                1. Fitur Enterprise (Laba & Harga Modal)
+              </summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>
+                Sekarang Anda bisa mengisi Harga Modal pada saat menambah produk. Sistem akan otomatis menghitung Laba Bersih yang akurat (Total Omset dikurangi Total Harga Modal Barang yang terjual dan Biaya Operasional).
+              </p>
             </details>
+            
             <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>2. Cara Tambah Produk, Promo & Laba</summary>
-              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Isi nama, harga jual, harga modal, dan stok. Harga promo bersifat opsional. Pastikan Harga Modal diisi dengan benar agar sistem dapat menghitung Laba Bersih di dashboard secara otomatis.</p>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>
+                2. Rekap Excel & Pemisah Titik Koma
+              </summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>
+                Fungsi Export Excel sekarang menggunakan format UTF-8 dengan pemisah titik koma (;). Hal ini untuk memastikan tabel di Excel Windows versi Indonesia tidak menumpuk di satu kolom.
+              </p>
             </details>
+            
             <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>3. Panduan Cetak & Unduh Label (PENTING)</summary>
-              <div style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>
-                <ul style={{ paddingLeft: '15px', margin: 0 }}>
-                  <li><b>Unduh Label (PDF):</b> Klik "🖨️ PRINT / SIMPAN PDF". Ubah Printer menjadi "Save as PDF".</li>
-                  <li><b>Kertas A4 Biasa:</b> Biarkan Lebar 185, Tinggi 95, Kolom 4, Sekat 5.</li>
-                  <li><b>Stiker Thermal Roll:</b> Masukkan ukuran stiker asli. Jika meluber, turunkan "Skala Isi Label" (misal 70%).</li>
-                </ul>
-              </div>
-            </details>
-            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>4. Laporan & Buku Bon</summary>
-              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Semua transaksi tersimpan di menu Laporan. Khusus pembayaran "Bon", akan masuk ke halaman Buku Bon. Klik tombol "Lunas" jika pelanggan sudah melunasi tagihannya.</p>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>
+                3. Filter Kustom Pengeluaran
+              </summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>
+                Gunakan input "Dari Tanggal" dan "Sampai Tanggal" pada tab Arus Kas untuk menarik laporan pengeluaran spesifik. Total nominal akan dihitung otomatis sesuai rentang waktu yang Anda pilih dan akan masuk ke dalam format Excel saat diunduh.
+              </p>
             </details>
 
             <button 
@@ -2442,44 +2634,46 @@ function App() {
         </div>
       )}
 
-      {/* --- POP-UP MODAL BON (PIUTANG) DENGAN DATABASE PELANGGAN --- */}
+      {/* --- POP-UP MODAL BON DENGAN DATABASE PELANGGAN --- */}
       {showBonModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'left', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '22px', fontWeight: '900' }}>📝 Catat Bon Pelanggan</h2>
-            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '600' }}>
-              Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '20px' }}>Rp {totalAmount.toLocaleString()}</strong>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'left', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: '900', color: '#272734' }}>
+              📝 Catat Bon Pelanggan
+            </h2>
+            <p style={{ margin: '0 0 24px 0', fontWeight: '600', color: '#27274F' }}>
+              Tagihan: <strong style={{ color: '#FF7835', fontSize: '20px' }}>Rp {totalAmountVal.toLocaleString()}</strong>
             </p>
             
-            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', marginBottom: '8px', display: 'block' }}>
-              Nama Pelanggan / Nomor WA <span style={{color: '#ef4444'}}>*</span>
+            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>
+              Nama Pelanggan <span style={{color: '#ef4444'}}>*</span>
             </label>
             
-            {/* FITUR BARU: DATALIST PELANGGAN AUTO-SAVE */}
             <input 
               autoFocus 
-              list="dataPelanggan"
+              list="dataPelanggan" 
               value={namaPelangganBon} 
               onChange={e => setNamaPelangganBon(e.target.value)} 
               placeholder="Contoh: Pak Budi" 
-              style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', boxSizing: 'border-box', fontSize: '15px', fontWeight: '700', outline: 'none' }} 
+              style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', fontSize: '15px', fontWeight: '700', outline: 'none' }} 
             />
+            
             <datalist id="dataPelanggan">
-              {pelanggan.map(p => <option key={p.id} value={p.nama} />)}
+              {pelanggan.map(p => (
+                <option key={p.id} value={p.nama} />
+              ))}
             </datalist>
             
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
-                tabIndex="0" 
                 onClick={() => { setShowBonModal(false); setMetodePembayaran('Tunai'); }} 
-                style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}
+                style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor:'pointer' }}
               >
                 BATAL
               </button>
               <button 
-                tabIndex="0" 
                 onClick={() => finalizePayment('Bon')} 
-                style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}
+                style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor:'pointer', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}
               >
                 SIMPAN BON
               </button>
@@ -2490,119 +2684,52 @@ function App() {
 
       {/* --- MODAL TAMPIL QRIS --- */}
       {showQrisModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
-          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>
+              Silakan Scan QRIS
+            </h2>
             <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px' }}>
-              Total Tagihan: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalAmount.toLocaleString()}</strong>
+              Total: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalAmountVal.toLocaleString()}</strong>
             </p>
-            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-              <img src={qrisImage} alt="QRIS Toko" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
+            
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <img src={qrisImage} alt="QRIS" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
             </div>
+            
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
-                tabIndex="0" 
                 onClick={() => setShowQrisModal(false)} 
-                style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}
+                style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor:'pointer', fontSize: '14px' }}
               >
                 TUTUP
               </button>
               <button 
-                tabIndex="0" 
                 onClick={() => finalizePayment('QRIS')} 
-                style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}
+                style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor:'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}
               >
-                SUDAH DIBAYAR
+                SUDAH BAYAR
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- MODAL RESET DATA TAHUNAN --- */}
-      {showResetModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
-          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <h2 style={{ margin: '0 0 10px 0', color: '#dc2626', fontSize: '22px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ⚠️ Hapus Data Tahunan
-            </h2>
-            
-            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: '700', lineHeight: '1.5' }}>
-                PERINGATAN! Data yang dihapus tidak dapat dikembalikan. Pastikan Anda sudah men-download data (Excel) untuk tahun tersebut sebelum menghapus.
-              </p>
-            </div>
-
-            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>
-              Pilih Tahun Transaksi yang Ingin Dihapus:
-            </label>
-            <select 
-              tabIndex="0" 
-              value={selectedYearReset} 
-              onChange={e => setSelectedYearReset(e.target.value)} 
-              style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid #cbd5e1', marginBottom: '24px', fontSize: '15px', fontWeight: 'bold', color: '#272734', outline: 'none' }}
-            >
-              {Array.from({ length: 26 }, (_, i) => 2025 + i).map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                tabIndex="0" 
-                onClick={() => setShowResetModal(false)} 
-                style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#f1f5f9', color: '#27274F', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}
-              >
-                BATAL
-              </button>
-              <button 
-                tabIndex="0" 
-                onClick={handleResetTahunan} 
-                style={{ flex: 2, padding: '14px', borderRadius: '12px', border: 'none', background: '#dc2626', color: 'white', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}
-              >
-                HAPUS PERMANEN
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
-      {showOfflineWarning && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
-          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-            <div style={{ fontSize: '50px', marginBottom: '16px' }}>⚠️</div>
-            <h2 style={{ margin: '0 0 16px 0', color: '#dc2626', fontSize: '20px', fontWeight: '900', lineHeight: '1.4' }}>
-              MODE OFFLINE AKTIF<br />INTERNET TERPUTUS
-            </h2>
-            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '700', lineHeight: '1.6', background: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #ffedd5' }}>
-              Jangan refresh halaman atau menutup browser agar data transaksi tidak hilang!
-            </p>
-            <button 
-              tabIndex="0" 
-              onClick={() => setShowOfflineWarning(false)} 
-              style={{ width: '100%', padding: '16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}
-            >
-              Oke, Saya Mengerti
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- FITUR BARU: STRUK BUKTI PENGELUARAN KAS --- */}
+      {/* --- STRUK PENGELUARAN (BUKTI KAS KELUAR) --- */}
       {strukPengeluaran && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
             <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', margin: 'auto' }}>
               <h2 style={{ margin: '0' }}>{namaToko || 'TOKO SAYA'}</h2>
-              <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
+              <p style={{ fontSize: '12px', margin: '5px 0' }}>
+                {alamat}<br/>Telp/WA: {noTelp}
+              </p>
               
               <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
               <h3 style={{ margin: '5px 0', textDecoration: 'underline' }}>BUKTI KAS KELUAR</h3>
               <p style={{ fontSize: '12px', textAlign: 'left', margin: '8px 0 2px 0' }}>
-                Tgl: {strukPengeluaran.waktu ? (strukPengeluaran.waktu.toDate ? strukPengeluaran.waktu.toDate().toLocaleString('id-ID') : new Date(strukPengeluaran.waktu).toLocaleString('id-ID')) : new Date().toLocaleString('id-ID')}
+                Tgl: {strukPengeluaran.waktu?.toDate ? strukPengeluaran.waktu.toDate().toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}
               </p>
-              
               <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
               
               <div style={{ fontSize: '14px', textAlign: 'left', marginBottom: '10px' }}>
@@ -2628,16 +2755,14 @@ function App() {
               
               <div className="no-print" style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
                 <button 
-                  tabIndex="0" 
                   onClick={() => window.print()} 
                   style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
                   Print (Enter)
                 </button>
                 <button 
-                  tabIndex="0" 
                   onClick={() => setStrukPengeluaran(null)} 
-                  style={{ flex: 1, background: '#e2e8f0', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#27274F' }}
+                  style={{ flex: 1, background: '#e2e8f0', color: '#27274F', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
                   Tutup (Esc)
                 </button>
@@ -2647,20 +2772,20 @@ function App() {
         </div>
       )}
 
-      {/* --- STRUK AREA DENGAN PESAN KUSTOM --- */}
+      {/* --- STRUK TRANSAKSI KASIR --- */}
       {strukData && !strukPengeluaran && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
           <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
             <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', margin: 'auto' }}>
               <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
-              <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
+              <p style={{ fontSize: '12px', margin: '5px 0' }}>
+                {alamat}<br/>Telp/WA: {noTelp}
+              </p>
               
               <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
               <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>
-                Tgl: {strukData.waktu ? (strukData.waktu instanceof Date ? strukData.waktu.toLocaleString('id-ID') : new Date(strukData.waktu).toLocaleString('id-ID')) : new Date().toLocaleString('id-ID')}
-              </p>
-              <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>
-                Metode: {strukData.metode}
+                Tgl: {strukData.waktu?.toDate ? strukData.waktu.toDate().toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}
+                <br/>Metode: {strukData.metode}
               </p>
               
               {strukData.metode === 'Bon' && (
@@ -2677,9 +2802,9 @@ function App() {
                     <span>{it.qty} {it.satuan} {it.nama}</span>
                     <span>{(it.harga * it.qty).toLocaleString()}</span>
                   </div>
-                  {it.hargaAsli && it.hargaAsli > it.harga && (
+                  {it.hargaAsli > it.harga && (
                     <div style={{ fontSize: '11px', textAlign: 'left', color: '#555' }}>
-                      <span style={{textDecoration: 'line-through'}}>Rp {it.hargaAsli.toLocaleString()}</span> (Harga Promo)
+                      <span style={{textDecoration: 'line-through'}}>Rp {it.hargaAsli.toLocaleString()}</span> (Promo)
                     </div>
                   )}
                 </div>
@@ -2694,7 +2819,7 @@ function App() {
               {strukData.metode === 'Tunai' && (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px' }}>
-                    <span>TUNAI</span>
+                    <span>BAYAR</span>
                     <span>Rp {strukData.uangBayar?.toLocaleString()}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px' }}>
@@ -2709,16 +2834,14 @@ function App() {
               
               <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
                 <button 
-                  tabIndex="0" 
                   onClick={() => window.print()} 
                   style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
                   Print (Enter)
                 </button>
                 <button 
-                  tabIndex="0" 
                   onClick={() => setStrukData(null)} 
-                  style={{ flex: 1, background: '#e2e8f0', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#27274F' }}
+                  style={{ flex: 1, background: '#e2e8f0', color: '#27274F', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
                   Tutup (Esc)
                 </button>
@@ -2728,19 +2851,19 @@ function App() {
         </div>
       )}
 
-      {/* --- CETAK LABEL: LAYOUT GRID DENGAN SEKAT & SKALA KUSTOM --- */}
+      {/* --- CETAK LABEL PRODUK --- */}
       {printMode === 'label' && printData && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', zIndex: 9999, overflowY: 'auto' }}>
           <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, zIndex: 10 }}>
             <button 
               onClick={() => window.print()} 
-              style={{ background: '#FF7835', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+              style={{ background: '#FF7835', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor:'pointer' }}
             >
-              🖨️ PRINT / SIMPAN PDF
+              🖨️ PRINT SIMPAN PDF
             </button>
             <button 
               onClick={() => setPrintMode(null)} 
-              style={{ background: 'white', padding: '12px 24px', border: 'none', borderRadius: '10px', marginLeft: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ background: 'white', color: '#272734', padding: '12px 24px', border: 'none', borderRadius: '10px', marginLeft: '10px', cursor:'pointer', fontWeight: 'bold' }}
             >
               TUTUP
             </button>
@@ -2748,30 +2871,39 @@ function App() {
           
           <div id="print-area" style={{ background: '#fff', padding: '10px', display: 'grid', gridTemplateColumns: `repeat(${labelCols}, auto)`, gap: `${labelGap}px`, justifyContent: 'center' }}>
             {printData.map((p, i) => (
-              <div key={i} style={{ border: '1px dashed #000', width: `${labelWidth}px`, height: `${labelHeight}px`, display: 'flex', background: p.hargaPromo ? '#fef08a' : '#fff', boxSizing: 'border-box', overflow: 'hidden', position: 'relative', printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
+              <div key={i} style={{ border: '1px dashed #000', width: `${labelWidth}px`, height: `${labelHeight}px`, display: 'flex', background: p.hargaPromo ? '#fef08a' : '#fff', boxSizing: 'border-box', overflow: 'hidden', position: 'relative' }}>
                 <div style={{ display: 'flex', width: '100%', height: '100%', transform: `scale(${labelScale / 100})`, transformOrigin: 'top left', width: `${(100 / (labelScale / 100))}%`, height: `${(100 / (labelScale / 100))}%` }}>
+                  
                   <div style={{ width: '25px', borderRight: '1px dashed #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '8px', fontWeight: 'bold', textTransform: 'uppercase', textAlign:'center', maxHeight:'100%' }}>
+                    <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '8px', fontWeight: 'bold' }}>
                       {namaToko || 'TOKO'}
                     </div>
                   </div>
+                  
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3px', justifyContent: 'space-between' }}>
                     <div style={{ height: '30px', fontSize: '10px', fontWeight: 'bold', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                       {p.nama}
                     </div>
-                    <div style={{ flex: 1, textAlign: 'center', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-                      <img src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=1&height=6`} style={{ width: '90%', height: '25px', margin:'0 auto' }} alt="barcode" />
+                    
+                    <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <img src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=1&height=6`} style={{ width: '90%', height: '25px', margin: '0 auto' }} alt="bc" />
                       <div style={{ fontSize: '8px', fontFamily: 'monospace', marginTop: '2px' }}>
                         {p.barcode}
                       </div>
                     </div>
+                    
                     <div style={{ height: '28px', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                      {p.hargaPromo && <span style={{ fontSize: '8px', textDecoration: 'line-through' }}>Rp{p.harga.toLocaleString()}</span>}
+                      {p.hargaPromo && (
+                        <span style={{ fontSize: '8px', textDecoration: 'line-through' }}>
+                          Rp{p.harga.toLocaleString()}
+                        </span>
+                      )}
                       <div style={{ fontSize: '15px', fontWeight: '900' }}>
                         Rp{(p.hargaPromo || p.harga).toLocaleString()}/<span style={{fontSize:'9px'}}>{p.satuan}</span>
                       </div>
                     </div>
                   </div>
+
                 </div>
               </div>
             ))}
@@ -2781,11 +2913,28 @@ function App() {
 
       {/* NAVIGASI BAWAH */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', zIndex: 10 }}>
-        {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir', icon: '💰' }, { id: 'toko', label: 'Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, { id: 'laporan', label: 'Laporan', icon: '📉' } ].map(tab => (
+        {[ 
+          { id: 'dashboard', label: 'Home', icon: '📊' }, 
+          { id: 'kasir', label: 'Kasir', icon: '💰' }, 
+          { id: 'toko', label: 'Produk', icon: '📦' }, 
+          { id: 'pengeluaran', label: 'Biaya', icon: '💸' }, 
+          { id: 'laporan', label: 'Laporan', icon: '📉' } 
+        ].map(tab => (
           <button 
             key={tab.id} 
             onClick={() => setActiveTab(tab.id)} 
-            style={{ flex: 1, border: 'none', background: 'transparent', color: activeTab === tab.id ? '#FF7835' : '#9ca3af', fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+            style={{ 
+              flex: 1, 
+              border: 'none', 
+              background: 'transparent', 
+              color: activeTab === tab.id ? '#FF7835' : '#9ca3af', 
+              fontSize: '12px', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}
           >
             <span style={{fontSize: '20px', transform: activeTab === tab.id ? 'translateY(-2px)' : 'none', transition: '0.2s'}}>
               {tab.icon}
@@ -2799,50 +2948,190 @@ function App() {
 
       {/* CSS GLOBAL DAN MEDIA QUERIES (HARAM DIHILANGKAN) */}
       <style>{`
-        * { -webkit-tap-highlight-color: transparent; }
-        @media print { 
-          .no-print { display: none !important; } 
-          body * { visibility: hidden; } 
-          #strukArea, #strukArea * { visibility: visible; } 
-          #strukArea { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 100%; margin: 0 !important; box-shadow: none !important; } 
-          #print-area, #print-area * { visibility: visible; } 
-          #print-area { position: absolute; left: 0; top: 0; width: 100%; display: grid !important; } 
+        * { 
+          -webkit-tap-highlight-color: transparent; 
         }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
-        .nav-btn:active { transform: scale(0.95); opacity: 0.7; }
+        
+        @media print { 
+          .no-print { 
+            display: none !important; 
+          } 
+          body * { 
+            visibility: hidden; 
+          } 
+          #strukArea, #strukArea * { 
+            visibility: visible; 
+          } 
+          #strukArea { 
+            position: absolute; 
+            left: 50%; 
+            top: 0; 
+            transform: translateX(-50%); 
+            width: 100%; 
+            margin: 0 !important; 
+            box-shadow: none !important; 
+          } 
+          #print-area, #print-area * { 
+            visibility: visible; 
+          } 
+          #print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            display: grid !important; 
+          } 
+        }
+        
+        ::-webkit-scrollbar { 
+          width: 6px; 
+          height: 6px; 
+        }
+        
+        ::-webkit-scrollbar-track { 
+          background: transparent; 
+        }
+        
+        ::-webkit-scrollbar-thumb { 
+          background: #fed7aa; 
+          border-radius: 10px; 
+        }
+        
+        ::-webkit-scrollbar-thumb:hover { 
+          background: #FF7835; 
+        }
+        
+        .nav-btn:active { 
+          transform: scale(0.95); 
+          opacity: 0.7; 
+        }
         
         @media (max-width: 768px) {
-          .header-title { font-size: 16px !important; }
-          .live-clock { display: none !important; }
-          .desktop-row-mobile-col { flex-direction: column !important; overflow-y: auto !important; padding-bottom: 80px !important; gap: 8px !important; }
-          .mobile-reverse { flex-direction: column-reverse !important; justify-content: flex-start !important; }
-          .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; }
-          .kasir-right-panel { height: auto !important; flex: none !important; }
-          .kasir-tools input, .kasir-tools button { padding: 10px 8px !important; font-size: 12px !important; height: 40px !important; box-sizing: border-box !important; }
+          .header-title { 
+            font-size: 16px !important; 
+          } 
+          
+          .live-clock { 
+            display: none !important; 
+          }
+          
+          .desktop-row-mobile-col { 
+            flex-direction: column !important; 
+            overflow-y: auto !important; 
+            padding-bottom: 80px !important; 
+            gap: 8px !important; 
+          }
+          
+          .mobile-reverse { 
+            flex-direction: column-reverse !important; 
+            justify-content: flex-start !important; 
+          }
+          
+          .kasir-left-panel { 
+            height: 35vh !important; 
+            flex: none !important; 
+            border-bottom: 2px solid #e2e8f0; 
+          } 
+          
+          .kasir-right-panel { 
+            height: auto !important; 
+            flex: none !important; 
+          }
+          
+          .kasir-tools input, .kasir-tools button { 
+            padding: 10px 8px !important; 
+            font-size: 12px !important; 
+            height: 40px !important; 
+            box-sizing: border-box !important; 
+          }
           
           /* PENYESUAIAN GRID & KOTAK PRODUK DI HP */
-          .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; gap: 8px !important; }
-          .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; height: 110px !important; }
-          .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; height: 28px !important; }
-          .kasir-left-panel .grid-container > div .harga-text { font-size: 14px !important; }
+          .kasir-left-panel .grid-container { 
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; 
+            gap: 8px !important; 
+          }
           
-          .table-section { min-height: 40vh !important; flex: 1 !important; margin-top: 0 !important; }
-          .form-section { height: auto !important; max-height: none !important; overflow-y: visible !important; flex: none !important; margin-bottom: 0 !important; }
+          .kasir-left-panel .grid-container > div { 
+            padding: 10px !important; 
+            border-radius: 8px !important; 
+            height: 110px !important; 
+          }
+          
+          .kasir-left-panel .grid-container > div h3 { 
+            font-size: 12px !important; 
+            height: 28px !important; 
+          }
+          
+          .kasir-left-panel .grid-container > div .harga-text { 
+            font-size: 14px !important; 
+          }
+          
+          .table-section { 
+            min-height: 40vh !important; 
+            flex: 1 !important; 
+            margin-top: 0 !important; 
+          }
+          
+          .form-section { 
+            height: auto !important; 
+            max-height: none !important; 
+            overflow-y: visible !important; 
+            flex: none !important; 
+            margin-bottom: 0 !important; 
+          }
           
           /* DIET FORM (Hanya di HP) */
-          .diet-form .form-title { font-size: 16px !important; margin-bottom: 12px !important; }
-          .diet-form .form-label { font-size: 11px !important; margin-bottom: 4px !important; }
-          .diet-form .form-input { padding: 8px 10px !important; font-size: 12px !important; margin-bottom: 10px !important; height: 38px !important; }
-          .diet-form .form-row { margin-bottom: 10px !important; gap: 8px !important; }
-          .diet-form .barcode-row { margin-bottom: 16px !important; }
-          .diet-form .form-btn-submit { padding: 10px !important; font-size: 12px !important; height: 40px !important; }
+          .diet-form .form-title { 
+            font-size: 16px !important; 
+            margin-bottom: 12px !important; 
+          }
+          
+          .diet-form .form-label { 
+            font-size: 11px !important; 
+            margin-bottom: 4px !important; 
+          }
+          
+          .diet-form .form-input { 
+            padding: 8px 10px !important; 
+            font-size: 12px !important; 
+            margin-bottom: 10px !important; 
+            height: 38px !important; 
+          }
+          
+          .diet-form .form-row { 
+            margin-bottom: 10px !important; 
+            gap: 8px !important; 
+          }
+          
+          .diet-form .barcode-row { 
+            margin-bottom: 16px !important; 
+          }
+          
+          .diet-form .form-btn-submit { 
+            padding: 10px !important; 
+            font-size: 12px !important; 
+            height: 40px !important; 
+          }
           
           /* ATURAN KAMERA (Tetap Memanjang/Persegi Panjang, Tidak Kotak) */
-          #reader-kasir, #reader-toko { width: 100% !important; height: 200px !important; border-radius: 8px !important; overflow: hidden !important; border: 2px solid #FF7835 !important; position: relative !important; background: black !important; }
-          #reader-kasir video, #reader-toko video { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
+          #reader-kasir, #reader-toko { 
+            width: 100% !important; 
+            height: 200px !important; 
+            border-radius: 8px !important; 
+            overflow: hidden !important; 
+            border: 2px solid #FF7835 !important; 
+            position: relative !important; 
+            background: black !important; 
+          }
+          
+          #reader-kasir video, #reader-toko video { 
+            object-fit: cover !important; 
+            width: 100% !important; 
+            height: 100% !important; 
+            position: absolute !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+          }
         }
       `}</style>
     </div>
