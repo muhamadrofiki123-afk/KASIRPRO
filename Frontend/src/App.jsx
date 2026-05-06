@@ -225,7 +225,7 @@ function App() {
       osc2.connect(gain2);
       gain2.connect(globalAudioCtx.destination);
       osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1500, currentTimeAt + 0.15); 
+      osc2.frequency.setValueAtTime(1500, currentTimeAt + 0.15); // Jeda tempo pas
       gain2.gain.setValueAtTime(0.1, currentTimeAt + 0.15);
       gain2.gain.exponentialRampToValueAtTime(0.001, currentTimeAt + 0.3);
       osc2.start(currentTimeAt + 0.15);
@@ -1281,183 +1281,179 @@ function App() {
           
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
-          <div style={{ height: '100%', overflowY: 'auto', padding: '24px', boxSizing: 'border-box', width: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+          <div className="dashboard-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', boxSizing: 'border-box', width: '100%', overflow: 'hidden' }}>
+            
+            <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+               <h2 style={{margin: 0, color: '#272734', fontWeight: '900'}}>
+                 🎯 Ringkasan Bisnis
+               </h2>
+               <select 
+                  value={dashboardTimeFilter} 
+                  onChange={(e) => setDashboardTimeFilter(e.target.value)} 
+                  style={{ padding: '8px 16px', borderRadius: '10px', border: '2px solid #FF7835', background: '#fffaf5', color: '#ea580c', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
+               >
+                  <option value="hari_ini">📅 Hari Ini</option>
+                  <option value="kemarin">🔙 Kemarin</option>
+                  <option value="minggu_ini">📈 Minggu Ini</option>
+                  <option value="bulan_ini">📉 Bulan Ini</option>
+                  <option value="tahun_ini">🏆 Tahun Ini</option>
+               </select>
+            </div>
+
+            <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
+                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
+                  Rp {dashboardStats.todaySales.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Omset ({dashboardTimeFilter.replace('_', ' ')})
+                </div>
+              </div>
               
-              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                 <h2 style={{margin: 0, color: '#272734', fontWeight: '900'}}>
-                   🎯 Ringkasan Bisnis
-                 </h2>
-                 {/* FITUR BARU: FILTER WAKTU DASHBOARD */}
-                 <select 
-                    value={dashboardTimeFilter} 
-                    onChange={(e) => setDashboardTimeFilter(e.target.value)} 
-                    style={{ padding: '8px 16px', borderRadius: '10px', border: '2px solid #FF7835', background: '#fffaf5', color: '#ea580c', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
-                 >
-                    <option value="hari_ini">📅 Hari Ini</option>
-                    <option value="kemarin">🔙 Kemarin</option>
-                    <option value="minggu_ini">📈 Minggu Ini</option>
-                    <option value="bulan_ini">📉 Bulan Ini</option>
-                    <option value="tahun_ini">🏆 Tahun Ini</option>
-                 </select>
+              <div style={{ background: 'linear-gradient(135deg, #0D9488, #14B8A6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(20, 184, 166, 0.3)' }}>
+                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
+                  Rp {dashboardStats.totalPengeluaran.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Pengeluaran ({dashboardTimeFilter.replace('_', ' ')})
+                </div>
               </div>
-
-              <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <div style={{ background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
-                  <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
-                    Rp {dashboardStats.todaySales.toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Omset ({dashboardTimeFilter.replace('_', ' ')})
-                  </div>
+              
+              <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: isProfit ? '#10b981' : '#ef4444' }}>
+                  {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
                 </div>
-                
-                <div style={{ background: 'linear-gradient(135deg, #0D9488, #14B8A6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(20, 184, 166, 0.3)' }}>
-                  <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
-                    Rp {dashboardStats.totalPengeluaran.toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Pengeluaran ({dashboardTimeFilter.replace('_', ' ')})
-                  </div>
-                </div>
-                
-                {/* LABA BERSIH (Sudah dikurangi modal dan pengeluaran operasional) */}
-                <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: isProfit ? '#10b981' : '#ef4444' }}>
-                    {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b' }}>
-                    Laba Bersih ({dashboardTimeFilter.replace('_', ' ')})
-                  </div>
-                </div>
-
-                <div style={{ background: 'linear-gradient(135deg, #EA580C, #F59E0B)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.3)' }}>
-                  <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
-                    {dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span>
-                  </div>
-                  <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Produk & Stok Tipis
-                  </div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b' }}>
+                  Laba Bersih ({dashboardTimeFilter.replace('_', ' ')})
                 </div>
               </div>
 
-              {/* GRID UNTUK GRAFIK DAN BEST SELLER (TIDAK ADA MAX HEIGHT, FLEX: 1) */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px', flex: 1 }}>
-                  
-                  {/* GRAFIK PENDAPATAN */}
-                  <div style={{ background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', minHeight: '350px' }}>
-                    <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                      <h3 style={{ margin: 0, color: '#272734', fontSize: '16px', fontWeight: '800' }}>
-                        📈 Grafik Pendapatan
-                      </h3>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <div style={{ background: '#f1f5f9', borderRadius: '8px', padding: '4px', display: 'flex', gap: '4px' }}>
-                           <button 
-                             onClick={() => setChartVisualType('bar')} 
-                             style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'bar' ? 'white' : 'transparent', color: chartVisualType === 'bar' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'bar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}
-                           >
-                             📊 Bar
-                           </button>
-                           <button 
-                             onClick={() => setChartVisualType('line')} 
-                             style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'line' ? 'white' : 'transparent', color: chartVisualType === 'line' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'line' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}
-                           >
-                             📈 Line
-                           </button>
-                        </div>
-                        <select 
-                          value={chartFilter} 
-                          onChange={(e) => setChartFilter(e.target.value)} 
-                          style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', color: '#27274F', background: '#fff', fontSize: '11px' }}
-                        >
-                          <option value="jam">Hari Ini (Per Jam)</option>
-                          <option value="hari">7 Hari Terakhir</option>
-                          <option value="bulan">6 Bulan Terakhir</option>
-                          <option value="tahun">5 Tahun Terakhir</option>
-                        </select>
-                      </div>
-                    </div>
-    
-                    <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px' }}>
-                      {chartVisualType === 'line' && (
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
-                          <polyline 
-                            points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} 
-                            fill="none" 
-                            stroke="#3b82f6" 
-                            strokeWidth="3" 
-                            vectorEffect="non-scaling-stroke" 
-                            strokeLinecap="round" 
-                            strokeLinejoin="round" 
-                          />
-                        </svg>
-                      )}
-                      {chartDataFinal.data.map((d, i) => (
-                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
-                          {d.total > 0 && (
-                            <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
-                              {d.total.toLocaleString()}
-                            </div>
-                          )}
-                          {chartVisualType === 'bar' ? (
-                            <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div>
-                          ) : (
-                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}>
-                               <div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div>
-                            </div>
-                          )}
-                          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>
-                            {d.label}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              <div style={{ background: 'linear-gradient(135deg, #EA580C, #F59E0B)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.3)' }}>
+                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
+                  {dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span>
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Produk & Stok Tipis
+                </div>
+              </div>
+            </div>
 
-                  {/* FITUR BARU: BEST SELLER & LABA PER ITEM (FLEX ELASTIS) */}
-                  <div style={{ background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', minHeight: '350px' }}>
-                    <h3 style={{ margin: '0 0 16px 0', color: '#272734', fontSize: '16px', fontWeight: '800', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>🏆 Top Produk (Terlaris)</span>
-                      <span style={{fontSize: '11px', color: '#10b981', background: '#dcfce7', padding: '4px 8px', borderRadius: '8px'}}>All Time</span>
+            {/* GRID UNTUK GRAFIK DAN BEST SELLER (TIDAK ADA MAX HEIGHT, FLEX: 1) */}
+            <div className="dashboard-bottom-panel" style={{ display: 'flex', flexDirection: 'row', gap: '20px', flex: 1, minHeight: 0 }}>
+                
+                {/* GRAFIK PENDAPATAN */}
+                <div style={{ flex: 2, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                    <h3 style={{ margin: 0, color: '#272734', fontSize: '16px', fontWeight: '800' }}>
+                      📈 Grafik Pendapatan
                     </h3>
-                    
-                    <div style={{ flex: 1, overflowY: 'auto' }}>
-                      {topProductsFinal.length === 0 ? (
-                          <div style={{textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '50px'}}>
-                            Belum ada data penjualan...
-                          </div>
-                      ) : (
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                            <thead>
-                              <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                                <th style={{ padding: '8px 0' }}>Nama Item</th>
-                                <th style={{ padding: '8px 0', textAlign: 'center' }}>Terjual</th>
-                                <th style={{ padding: '8px 0', textAlign: 'right' }}>Laba Kotor</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {topProductsFinal.map((p, i) => (
-                                <tr key={i} style={{ borderBottom: '1px dashed #f1f5f9' }}>
-                                  <td style={{ padding: '12px 0', fontWeight: '700', color: '#272734' }}>
-                                    {i+1}. {p.nama}
-                                  </td>
-                                  <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: '800', color: '#FF7835' }}>
-                                    {p.qty}x
-                                  </td>
-                                  <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>
-                                    Rp {p.laba.toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                      )}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ background: '#f1f5f9', borderRadius: '8px', padding: '4px', display: 'flex', gap: '4px' }}>
+                         <button 
+                           onClick={() => setChartVisualType('bar')} 
+                           style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'bar' ? 'white' : 'transparent', color: chartVisualType === 'bar' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'bar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}
+                         >
+                           📊 Bar
+                         </button>
+                         <button 
+                           onClick={() => setChartVisualType('line')} 
+                           style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'line' ? 'white' : 'transparent', color: chartVisualType === 'line' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'line' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}
+                         >
+                           📈 Line
+                         </button>
+                      </div>
+                      <select 
+                        value={chartFilter} 
+                        onChange={(e) => setChartFilter(e.target.value)} 
+                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', color: '#27274F', background: '#fff', fontSize: '11px' }}
+                      >
+                        <option value="jam">Hari Ini (Per Jam)</option>
+                        <option value="hari">7 Hari Terakhir</option>
+                        <option value="bulan">6 Bulan Terakhir</option>
+                        <option value="tahun">5 Tahun Terakhir</option>
+                      </select>
                     </div>
                   </div>
+  
+                  <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: 0 }}>
+                    {chartVisualType === 'line' && (
+                      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
+                        <polyline 
+                          points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} 
+                          fill="none" 
+                          stroke="#3b82f6" 
+                          strokeWidth="3" 
+                          vectorEffect="non-scaling-stroke" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                        />
+                      </svg>
+                    )}
+                    {chartDataFinal.data.map((d, i) => (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
+                        {d.total > 0 && (
+                          <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
+                            {d.total.toLocaleString()}
+                          </div>
+                        )}
+                        {chartVisualType === 'bar' ? (
+                          <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div>
+                        ) : (
+                          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}>
+                             <div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div>
+                          </div>
+                        )}
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>
+                          {d.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-              </div>
+                {/* FITUR BARU: BEST SELLER & LABA PER ITEM (FLEX ELASTIS) */}
+                <div style={{ flex: 1, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <h3 style={{ margin: '0 0 16px 0', color: '#272734', fontSize: '16px', fontWeight: '800', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>🏆 Top Produk (Terlaris)</span>
+                    <span style={{fontSize: '11px', color: '#10b981', background: '#dcfce7', padding: '4px 8px', borderRadius: '8px'}}>All Time</span>
+                  </h3>
+                  
+                  <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                    {topProductsFinal.length === 0 ? (
+                        <div style={{textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '50px'}}>
+                          Belum ada data penjualan...
+                        </div>
+                    ) : (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', position: 'sticky', top: 0, background: 'white' }}>
+                              <th style={{ padding: '8px 0' }}>Nama Item</th>
+                              <th style={{ padding: '8px 0', textAlign: 'center' }}>Terjual</th>
+                              <th style={{ padding: '8px 0', textAlign: 'right' }}>Laba Kotor</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {topProductsFinal.map((p, i) => (
+                              <tr key={i} style={{ borderBottom: '1px dashed #f1f5f9' }}>
+                                <td style={{ padding: '12px 0', fontWeight: '700', color: '#272734' }}>
+                                  {i+1}. {p.nama}
+                                </td>
+                                <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: '800', color: '#FF7835' }}>
+                                  {p.qty}x
+                                </td>
+                                <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>
+                                  Rp {p.laba.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                    )}
+                  </div>
+                </div>
 
             </div>
+
           </div>
         )}
 
@@ -1943,7 +1939,6 @@ function App() {
 
                 <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
-                    {/* FITUR BARU: HARGA MODAL (TIDAK REQUIRED) */}
                     <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#10b981', display: 'block', marginBottom: '6px' }}>
                       Harga Modal / Beli
                     </label>
@@ -2159,7 +2154,6 @@ function App() {
                           - Rp {p.nominal.toLocaleString()}
                         </td>
                         <td style={{ padding: '12px 16px', whiteSpace: 'nowrap', display: 'flex', gap: '6px' }}>
-                          {/* FITUR BARU: TOMBOL CETAK PENGELUARAN */}
                           <button 
                             tabIndex="0" 
                             onClick={() => setStrukPengeluaran(p)} 
@@ -3020,6 +3014,20 @@ function App() {
             overflow-y: auto !important; 
             padding-bottom: 80px !important; 
             gap: 8px !important; 
+          }
+          
+          /* KUNCI DASHBOARD AGAR BISA SCROLL DI HP TAPI TIDAK DI LAPTOP */
+          .dashboard-container {
+            overflow-y: auto !important;
+            display: block !important;
+          }
+          .dashboard-bottom-panel {
+            flex-direction: column !important;
+          }
+          .dashboard-bottom-panel > div {
+            min-height: 300px !important;
+            flex: none !important;
+            margin-bottom: 16px;
           }
           
           .mobile-reverse { 
