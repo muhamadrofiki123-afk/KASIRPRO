@@ -2869,7 +2869,7 @@ function App() {
                 <div style={{ display: 'flex', width: '100%', height: '100%', transform: `scale(${labelScale / 100})`, transformOrigin: 'top left', width: `${(100 / (labelScale / 100))}%`, height: `${(100 / (labelScale / 100))}%` }}>
                   
                   <div style={{ width: '25px', borderRight: '1px dashed #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '8px', fontWeight: 'bold' }}>
+                    <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '8px', fontWeight: 'bold', textAlign: `center`, height: `100%`, displey: `flex`, justifyContent: `center`, alignltems: `center` }}>
                       {namaToko || 'TOKO'}
                     </div>
                   </div>
@@ -2908,10 +2908,10 @@ function App() {
       {/* NAVIGASI BAWAH */}
       <nav className="no-print" style={{ flex: 'none', height: '65px', background: '#fff3e0', borderTop: '2px solid #ffd54f', display: 'flex', padding: '0', zIndex: 10 }}>
         {[ 
-          { id: 'dashboard', label: 'Home', icon: '📊' }, 
+          { id: 'dashboard', label: 'Dashboard', icon: '📊' }, 
           { id: 'kasir', label: 'Kasir', icon: '💰' }, 
           { id: 'toko', label: 'Produk', icon: '📦' }, 
-          { id: 'pengeluaran', label: 'Biaya', icon: '💸' }, 
+          { id: 'pengeluaran', label: 'Arus Kas', icon: '💸' }, 
           { id: 'laporan', label: 'Laporan', icon: '📉' } 
         ].map(tab => (
           <button 
