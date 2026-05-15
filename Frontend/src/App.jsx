@@ -683,6 +683,12 @@ function App() {
     }
 
     try {
+      // 1. PINDAHKAN SUARA KE SINI (PALING ATAS SEBELUM LOADING DATABASE)
+      if (typeof playSuccessVoice === 'function') {
+        playSuccessVoice(`Terima kasih, transaksi berhasil. Total harga ${totalSetelahDiskon.toLocaleString()} rupiah.`);
+      }
+
+      // 2. PROSES DATABASE DI BELAKANG LAYAR (SIMPAN TRANSAKSI & KURANGI STOK)
       await addDoc(collection(db, "transaksi"), dataTrans);
       
       for (const item of cart) { 
@@ -698,12 +704,10 @@ function App() {
         }
       }
       
-      if (typeof playSuccessVoice === 'function') {
-        playSuccessVoice(`Terima kasih, transaksi berhasil. Total harga ${totalSetelahDiskon.toLocaleString()} rupiah.`);
-      }
-
+      // 3. TAMPILKAN POP-UP STRUK (TIDAK OTOMATIS NGE-PRINT)
       setStrukData(dataTrans); 
       setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon(''); setMemberTerpilih(null); setGunakanPoin(false);
+      
     } catch (err) { 
       alert("Gagal memproses transaksi: " + err.message); 
     }
