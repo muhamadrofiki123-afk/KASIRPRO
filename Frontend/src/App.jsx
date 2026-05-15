@@ -619,21 +619,19 @@ const addToCartRef = useRef();
   // Logika Diskon Poin Member
   let totalSetelahDiskon = totalAmountVal;
   let diskonPoin = 0;
-  } else if (memberTerpilih && !gunakanPoin) {
-    // Sekarang membagi berdasarkan angka dari pengaturan (minBelanjaPoin)
-    poinDidapat = Math.floor(totalAmountVal / (minBelanjaPoin || 20000));
-  }
+  let poinDipakai = 0;
+  let poinDidapat = 0;
 
   if (memberTerpilih && gunakanPoin) {
     diskonPoin = (memberTerpilih.poin || 0) * 100; // 1 Poin = Rp 100
     if (diskonPoin > totalAmountVal) {
-      diskonPoin = totalAmountVal; // Diskon maksimal sebesar total belanja
+      diskonPoin = totalAmountVal; // Diskon maksimal
     }
     poinDipakai = Math.ceil(diskonPoin / 100);
     totalSetelahDiskon = totalAmountVal - diskonPoin;
   } else if (memberTerpilih && !gunakanPoin) {
-    // Dapat poin: Tiap kelipatan Rp 10.000 = 1 Poin
-    poinDidapat = Math.floor(totalAmountVal / 10000);
+    // Membagi poin dinamis sesuai pengaturan Profil
+    poinDidapat = Math.floor(totalAmountVal / (minBelanjaPoin || 20000));
   }
 
   const kembalianVal = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalSetelahDiskon : 0;
