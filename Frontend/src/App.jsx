@@ -935,12 +935,23 @@ function App() {
   // === TAMPILAN: LOADING & LOGIN ===
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}>
-        <strong>Selamat Datang...</strong>
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexDirection: 'column', textAlign: 'center' }}>
+        {/* Spinner Animasi */}
+        <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #FF7835', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        
+        {/* Teks Selamat Datang */}
+        <h2 style={{ marginTop: '20px', color: '#272734', fontWeight: '900', letterSpacing: '1px' }}>
+          SELAMAT DATANG
+        </h2>
+        <p style={{ color: '#64748b', fontSize: '14px' }}>Sedang menyiapkan dashboard Anda...</p>
+        
+        <style>{`
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
-
+  
   if (!user) {
     return (
       <div style={{ 
