@@ -936,7 +936,7 @@ function App() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}>
-        <strong>Memuat Sistem...</strong>
+        <strong>Selamat Datang...</strong>
       </div>
     );
   }
@@ -1672,23 +1672,87 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL PUSAT BANTUAN --- */}
+      {/* --- MODAL PUSAT BANTUAN LENGKAP (Q&A) --- */}
       {showHelpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ color: '#2563eb', margin: 0 }}>📖 Pusat Bantuan</h3>
-              <button onClick={() => setShowHelpModal(false)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
+               <h2 style={{ color: '#FF7835', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px', fontWeight: '900' }}>📖 Panduan & Tanya Jawab POS</h2>
+               <button onClick={() => setShowHelpModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
             </div>
-            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>1. Sistem Member & Poin</summary>
-              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Pelanggan akan mendapat Poin untuk setiap kelipatan belanja sesuai pengaturan. Poin tersebut dapat ditukar menjadi diskon pada transaksi berikutnya (1 Poin = Diskon Rp 100).</p>
-            </details>
-            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>2. Fitur Enterprise (Laba & Harga Modal)</summary>
-              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Sekarang Anda bisa mengisi Harga Modal pada saat menambah produk. Sistem akan otomatis menghitung Laba Bersih yang akurat.</p>
-            </details>
-            <button onClick={() => setShowHelpModal(false)} style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer' }}>SAYA MENGERTI</button>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              
+              {/* Q&A 1 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Bagaimana cara kerja sistem Poin Pelanggan?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Setiap belanja kelipatan nominal tertentu (misal Rp 20.000) otomatis jadi 1 Poin. Poin bisa ditukar menjadi diskon saat transaksi berikutnya dengan mencentang "Gunakan Poin" (1 Poin = Rp 100).</p>
+              </div>
+
+              {/* Q&A 2 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Bagaimana cara mencatat pelanggan yang ngutang (Kasbon)?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Pilih metode pembayaran <b>"📝 Bon"</b> di kasir. Tagihan akan otomatis tersimpan di menu Laporan Buku Bon (Piutang) dan bisa ditagih kapan saja.</p>
+              </div>
+
+              {/* Q&A 3 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Darimana sistem menghitung Laba Bersih di Dashboard?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Laba Bersih = (Total Omzet) - (Total Harga Modal Barang Terjual) - (Total Pengeluaran Toko). Pastikan Harga Modal diisi saat input produk.</p>
+              </div>
+
+              {/* Q&A 4 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Bagaimana cara mencetak label Barcode?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Di menu Database Produk, centang barang yang diinginkan lalu klik tombol biru <b>"🖨️ Cetak"</b>. Atur ukuran label di menu Profil agar pas dengan kertas thermal Anda.</p>
+              </div>
+
+              {/* Q&A 5 */}
+              <div style={{ padding: '15px', background: '#fff7ed', borderRadius: '15px', border: '1px solid #ffedd5' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#c2410c', fontSize: '15px' }}>⚠️ Apakah bisa dipakai saat internet mati?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#9a3412', lineHeight: '1.6' }}>Bisa (Offline Mode). Data akan tersimpan sementara di browser dan akan otomatis sinkron saat internet menyala kembali. Jangan tutup browser saat sedang offline.</p>
+              </div>
+
+              {/* Q&A 6 */}
+              <div style={{ padding: '15px', background: '#f0fdf4', borderRadius: '15px', border: '1px solid #dcfce7' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#15803d', fontSize: '15px' }}>❓ Cara memindahkan laporan ke Excel?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#166534', lineHeight: '1.6' }}>Klik tombol hijau bertuliskan <b>"📥 Excel"</b> di setiap tab laporan. Data akan langsung terunduh dalam format file Excel/CSV.</p>
+              </div>
+
+              {/* Q&A 7 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Cara mencatat biaya listrik, galon, atau gaji?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Masuk ke tab <b>Arus Kas</b>, masukkan keterangan pengeluaran dan nominal uang, lalu simpan. Ini akan memotong laba bersih di dashboard secara otomatis.</p>
+              </div>
+
+              {/* Q&A 8 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Suara robot kasirnya berisik, apakah bisa dimatikan?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Masuk ke menu Profil (👤), di pojok kanan bawah hilangkan centang pada opsi <b>"Suara Robot"</b> untuk mematikannya.</p>
+              </div>
+
+              {/* Q&A 9 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Cara memunculkan gambar QRIS saat bayar?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Upload foto QRIS toko Anda di menu Pengaturan Toko. QRIS akan muncul otomatis saat Anda memilih metode pembayaran <b>"📱 QRIS"</b> di kasir.</p>
+              </div>
+
+              {/* Q&A 10 */}
+              <div style={{ padding: '15px', background: '#fef2f2', borderRadius: '15px', border: '1px solid #fee2e2' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#b91c1c', fontSize: '15px' }}>🗑️ Cara menghapus data transaksi tahun lalu?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#991b1b', lineHeight: '1.6' }}>Gunakan tombol <b>"Hapus Data Lama"</b> di tab Laporan. Pastikan sudah download backup ke Excel terlebih dahulu karena data yang dihapus tidak bisa dikembalikan.</p>
+              </div>
+
+              {/* Q&A 11 */}
+              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '15px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#272734', fontSize: '15px' }}>❓ Cara ubah harga atau stok barang yang salah input?</strong>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.6' }}>Cari barang di <b>Database Produk</b>, klik tombol hitam "Edit", ubah harganya di form kanan, lalu klik <b>"UPDATE"</b>.</p>
+              </div>
+
+            </div>
+
+            <button onClick={() => setShowHelpModal(false)} style={{ width: '100%', padding: '15px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '12px', marginTop: '25px', fontWeight: '900', cursor: 'pointer' }}>SAYA MENGERTI</button>
           </div>
         </div>
       )}
