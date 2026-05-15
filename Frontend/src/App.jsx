@@ -1561,117 +1561,119 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL PROFIL LANDSCAPE DESKTOP --- */}
+      {/* --- MODAL PENGATURAN TOKO (YANG SEMPAT HILANG) --- */}
       {showProfileModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
-          <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '1000px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '20px', width: '400px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '20px', fontWeight: '900' }}>⚙️ Pengaturan Toko</h2>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
-              <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '900', color: '#272734' }}>⚙️ Pengaturan & Profil Toko</h2>
-              <button onClick={() => setShowProfileModal(false)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Nama Toko</label>
+            <input value={namaToko} onChange={e => setNamaToko(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Alamat Toko</label>
+            <input value={alamat} onChange={e => setAlamat(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>No Telp / WA</label>
+            <input value={noTelp} onChange={e => setNoTelp(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Pesan di Bawah Struk</label>
+            <input value={pesanStruk} onChange={e => setPesanStruk(e.target.value)} placeholder="Contoh: Terima Kasih" style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#0369a1'}}>🎁 Pengaturan Loyalitas Poin</p>
+              <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
+              <input type="number" value={minBelanjaPoin} onChange={e => setMinBelanjaPoin(e.target.value)} placeholder="Contoh: 20000" style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontWeight: 'bold' }} />
             </div>
 
-            {/* Container Grid: Landscape di Desktop, Vertikal di HP */}
-            <div className="desktop-row-mobile-col" style={{ display: 'flex', gap: '30px' }}>
-              
-              {/* Kolom Kiri: Identitas Toko */}
-              <div style={{ flex: 1 }}>
-                <h4 style={{ color: '#FF7835', marginBottom: '15px', borderLeft: '4px solid #FF7835', paddingLeft: '10px' }}>🏠 Identitas Toko</h4>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Nama Toko</label>
-                <input value={namaToko} onChange={e => setNamaToko(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box' }} />
-                
-                <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Alamat Lengkap</label>
-                <input value={alamat} onChange={e => setAlamat(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box' }} />
-                
-                <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Nomor HP / WA</label>
-                <input value={noTelp} onChange={e => setNoTelp(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box' }} />
-                
-                <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Pesan Footer Struk</label>
-                <textarea value={pesanStruk} onChange={e => setPesanStruk(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '10px', boxSizing: 'border-box', height: '80px', resize: 'none' }} />
-              </div>
-
-              {/* Kolom Tengah: Poin & Cetak */}
-              <div style={{ flex: 1 }}>
-                <h4 style={{ color: '#3b82f6', marginBottom: '15px', borderLeft: '4px solid #3b82f6', paddingLeft: '10px' }}>🎁 Loyalitas & Label</h4>
-                <div style={{ background: '#eff6ff', padding: '15px', borderRadius: '15px', marginBottom: '20px' }}>
-                   <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
-                   <input type="number" value={minBelanjaPoin} onChange={e => setMinBelanjaPoin(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #bfdbfe', borderRadius: '8px', fontWeight: 'bold' }} />
-                </div>
-
-                <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px' }}>
-                  <p style={{ fontWeight: 'bold', fontSize: '13px', margin: '0 0 10px 0' }}>🏷️ Ukuran Label Thermal (px)</p>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <input type="number" placeholder="Lebar" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '50%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
-                    <input type="number" placeholder="Tinggi" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{ width: '50%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Kolom Kanan: QRIS & Suara */}
-              <div style={{ flex: 1 }}>
-                <h4 style={{ color: '#10b981', marginBottom: '15px', borderLeft: '4px solid #10b981', paddingLeft: '10px' }}>📱 Media & Suara</h4>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Upload QRIS</label>
-                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '11px', marginBottom: '10px' }} />
-                
-                <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '15px', marginBottom: '20px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
-                    <input type="checkbox" checked={soundBeep} onChange={e => setSoundBeep(e.target.checked)} /> Bunyi Beep
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
-                    <input type="checkbox" checked={soundVoice} onChange={e => setSoundVoice(e.target.checked)} /> Suara Robot
-                  </label>
-                </div>
-
-                <button onClick={simpanProfil} style={{ width: '100%', padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 6px rgba(16,185,129,0.2)' }}>SIMPAN PERUBAHAN</button>
-                <button onClick={() => signOut(auth)} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#ef4444', border: '2px solid #ef4444', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px' }}>LOGOUT / KELUAR</button>
-              </div>
-
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>🖼️ Background Login (Maks 1MB)</p>
+              <input type="file" accept="image/*" onChange={handleBgUpload} style={{ fontSize: '12px', width: '100%' }} />
+              {bgLogin && <button onClick={() => { setBgLogin(''); localStorage.removeItem('pos_bgLogin'); }} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer' }}>Hapus Background</button>}
             </div>
+
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>📱 Gambar QRIS</p>
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '12px', width: '100%', marginBottom: qrisImage ? '10px' : '0' }} />
+              {qrisImage && (
+                <div style={{ textAlign: 'center' }}>
+                  <img src={qrisImage} alt="QRIS" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }} />
+                  <br/>
+                  <button onClick={() => setQrisImage(null)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🗑️ Hapus QRIS</button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>🏷️ Kertas Label (px)</p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Lebar</label>
+                  <input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Tinggi</label>
+                  <input type="number" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Sekat/Gap</label>
+                  <input type="number" value={labelGap} onChange={e => setLabelGap(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Kolom</label>
+                  <input type="number" value={labelCols} onChange={e => setLabelColumns(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Skala Isi Label (%)</label>
+                <input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#b91c1c'}}>🔊 Pengaturan Suara</p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                <input type="checkbox" checked={soundBeep} onChange={e => setSoundBeep(e.target.checked)} />
+                Bunyi "Beep" saat klik produk
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                <input type="checkbox" checked={soundVoice} onChange={e => setSoundVoice(e.target.checked)} />
+                Suara Robot saat transaksi berhasil
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '12px', background: '#e2e8f0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Batal</button>
+              <button onClick={simpanProfil} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Simpan Perubahan</button>
+            </div>
+            
+            <button onClick={() => signOut(auth)} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px' }}>LOGOUT / KELUAR</button>
           </div>
         </div>
       )}
 
-       {/* --- MODAL PUSAT BANTUAN LENGKAP --- */}
+      {/* --- MODAL PUSAT BANTUAN --- */}
       {showHelpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto' }}>
-            <h2 style={{ color: '#FF7835', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>📖 Panduan POS Pintar</h2>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
-                <strong style={{ display: 'block', marginBottom: '5px', color: '#272734' }}>1. Sistem Member & Poin</strong>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
-                  Belanja kelipatan (misal Rp 20.000) otomatis jadi 1 Poin. Saat pembayaran, centang "Gunakan Poin" untuk mengubah saldo poin pelanggan menjadi potongan harga (1 Poin = Rp 100).
-                </p>
-              </div>
-
-              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
-                <strong style={{ display: 'block', marginBottom: '5px', color: '#272734' }}>2. Fitur Export Excel</strong>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
-                  Masuk ke tab <b>CRM & Pelanggan</b> atau <b>Laporan</b>, klik tombol hijau bertuliskan "Excel" untuk mengunduh seluruh data dalam format CSV yang bisa dibuka di Excel.
-                </p>
-              </div>
-
-              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
-                <strong style={{ display: 'block', marginBottom: '5px', color: '#272734' }}>3. Cetak Label Barcode</strong>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
-                  Di tab <b>Database Produk</b>, pilih barang yang mau dicetak, lalu klik "Cetak". Atur ukuran kertas label di menu Profil agar pas dengan printer thermal Anda.
-                </p>
-              </div>
-
-              <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '12px' }}>
-                <strong style={{ display: 'block', marginBottom: '5px', color: '#272734' }}>4. Manajemen Arus Kas</strong>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
-                  Gunakan tab <b>Arus Kas</b> untuk mencatat pengeluaran harian (listrik, gaji, belanja stok). Sistem akan otomatis menghitung laba bersih Anda di Dashboard.
-                </p>
-              </div>
+          <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ color: '#2563eb', margin: 0 }}>📖 Pusat Bantuan</h3>
+              <button onClick={() => setShowHelpModal(false)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
             </div>
-
-            <button onClick={() => setShowHelpModal(false)} style={{ width: '100%', padding: '15px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '12px', marginTop: '25px', fontWeight: '900', cursor: 'pointer' }}>SAYA MENGERTI</button>
+            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>1. Sistem Member & Poin</summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Pelanggan akan mendapat Poin untuk setiap kelipatan belanja sesuai pengaturan. Poin tersebut dapat ditukar menjadi diskon pada transaksi berikutnya (1 Poin = Diskon Rp 100).</p>
+            </details>
+            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>2. Fitur Enterprise (Laba & Harga Modal)</summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Sekarang Anda bisa mengisi Harga Modal pada saat menambah produk. Sistem akan otomatis menghitung Laba Bersih yang akurat.</p>
+            </details>
+            <button onClick={() => setShowHelpModal(false)} style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer' }}>SAYA MENGERTI</button>
           </div>
         </div>
       )}
-      
+
       {/* --- POP-UP MODAL BON --- */}
       {showBonModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
