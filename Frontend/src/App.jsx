@@ -232,7 +232,7 @@ function App() {
   // === SATPAM NAVIGASI (TAHAP 3) ===
   const handleNavClick = (tabName) => {
     // Jika gembok aktif dan yang diklik adalah menu rahasia
-    if (isReportLocked && (tabName === 'laporan' || tabName === 'pengeluaran' || tabName === 'dashboard')) {
+    if (isReportLocked && (tabName === 'laporan' || tabName === 'pengeluaran')) {
       setTempTargetTab(tabName);
       setPinAction('verify_tab');
       setShowPinModal(true);
@@ -1121,8 +1121,7 @@ function App() {
       {/* Ini akan memunculkan teks nama menunya (misal: Laporan Penjualan) */}
       {tab.label} 
       
-      {/* Ini yang akan memunculkan GEMBOK otomatis jika menu tersebut adalah Dashboard, Laporan, atau Pengeluaran */}
-      {isReportLocked && (tab.id === 'dashboard' || tab.id === 'laporan' || tab.id === 'pengeluaran') && (
+      {isReportLocked && (tab.id === 'laporan' || tab.id === 'pengeluaran') && (
         <span style={{ marginLeft: 'auto', fontSize: '14px' }}>🔒</span>
       )}
     </button>
