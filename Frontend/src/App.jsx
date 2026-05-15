@@ -1898,6 +1898,77 @@ const addToCart = (p) => {
             </div>
           </div>
         )}
+        {/* ========================================================= */}
+        {/* --- TAB CRM & PELANGGAN --- */}
+        {/* ========================================================= */}
+        {activeTab === 'pelanggan' && (
+          <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
+            
+            <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>👥 Database Pelanggan</h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="🔍 Cari nama / WA..."
+                    value={searchPelanggan}
+                    onChange={(e) => setSearchPelanggan(e.target.value)}
+                    style={{ padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none' }}
+                  />
+                  <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
+                    📥 Excel
+                  </button>
+                </div>
+              </div>
+              
+              <div className="table-container" style={{ flex: 1, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '12px' }}>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Nama</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>WhatsApp</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Poin</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Alamat</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pelangganTersaring.map(p => {
+                      const cleanWa = p.wa ? p.wa.replace(/\D/g, '').replace(/^0/, '62') : '';
+                      return (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: '800' }}>{p.nama}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                             <a href={`https://wa.me/${cleanWa}`} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px' }}>💬 WA</a>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: '900', color: '#FF7835' }}>{p.poin || 0} Pts</td>
+                          <td style={{ padding: '12px 16px', fontSize: '11px', color: '#64748b' }}>{p.alamat || '-'}</td>
+                          <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
+                            <button onClick={() => { setFormPelangganNama(p.nama); setFormPelangganWa(p.wa || ''); setFormPelangganEmail(p.email || ''); setFormPelangganAlamat(p.alamat || ''); setEditingPelangganId(p.id); }} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Edit</button>
+                            <button onClick={() => deleteDoc(doc(db, "pelanggan", p.id))} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Hapus</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Form Input Pelanggan */}
+            <div style={{ flex: '0 0 320px' }}>
+              <form onSubmit={simpanPelanggan} style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#3b82f6', fontSize: '16px', fontWeight: '800' }}>➕ Member Baru</h3>
+                <label style={{ fontSize: '11px', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Nama Lengkap *</label>
+                <input required value={formPelangganNama} onChange={e => setFormPelangganNama(e.target.value)} style={{ width: '100%', padding: '10px', marginBottom: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '11px', fontWeight: '700', display: 'block', marginBottom: '4px' }}>WhatsApp *</label>
+                <input required value={formPelangganWa} onChange={e => setFormPelangganWa(e.target.value)} placeholder="08..." style={{ width: '100%', padding: '10px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                <button type="submit" style={{ width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>SIMPAN</button>
+              </form>
+            </div>
+          </div>
+        )}
+        
 {/* --- TAB LAPORAN (TRANSAKSI & BON) --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
@@ -2458,218 +2529,6 @@ const addToCart = (p) => {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-      {/* ========================================================= */}
-        {/* --- TAB CRM & PELANGGAN (KODE YANG HILANG) --- */}
-        {/* ========================================================= */}
-        {activeTab === 'pelanggan' && (
-          <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
-            
-            {/* Tabel Data Pelanggan */}
-            <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
-                  👥 Database Pelanggan
-                </h3>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-                  <input
-                    type="text"
-                    placeholder="🔍 Cari nama / WA..."
-                    value={searchPelanggan}
-                    onChange={(e) => setSearchPelanggan(e.target.value)}
-                    style={{ flex: 1, maxWidth: '250px', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', minWidth: '150px' }}
-                  />
-                     <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                    📥 Excel
-                  </button>
-                </div>
-                </div>
-                
-                  {/* INI TOMBOL YANG HILANG TADI: */}
-              <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Nama</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Kontak WA</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Poin</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', minWidth: '180px' }}>Alamat/Email</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pelangganTersaring.length === 0 ? (
-                      <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada data member.</td></tr>
-                    ) : (
-                      pelangganTersaring.map(p => {
-                        // RUMUS PEMBERSIH WA: Buang semua huruf/spasi, ubah 0 depan jadi 62
-                        const cleanWa = p.wa ? p.wa.replace(/\D/g, '').replace(/^0/, '62') : '';
-                        
-                        return (
-                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: '800', color: '#272734', whiteSpace: 'nowrap' }}>{p.nama}</td>
-                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                             {cleanWa ? (
-                               <a href={`https://wa.me/${cleanWa}`} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px', display: 'inline-block' }}>
-                                 💬 {p.wa}
-                               </a>
-                             ) : (
-                               <span style={{ color: '#94a3b8' }}>-</span>
-                             )}
-                          </td>
-                          <td style={{ padding: '12px 16px', fontWeight: '900', color: '#FF7835', fontSize: '15px', whiteSpace: 'nowrap' }}>{p.poin || 0} Pts</td>
-                          <td style={{ padding: '12px 16px', fontSize: '11px', color: '#64748b' }}>
-                            <div style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
-                              🏠 {p.alamat || '-'}
-                            </div>
-                            <div>📧 {p.email || '-'}</div>
-                          </td>
-                          <td style={{ padding: '12px 16px', display: 'flex', gap: '6px', whiteSpace: 'nowrap' }}>
-                            <button onClick={() => { setFormPelangganNama(p.nama); setFormPelangganWa(p.wa || ''); setFormPelangganEmail(p.email || ''); setFormPelangganAlamat(p.alamat || ''); setEditingPelangganId(p.id); }} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Edit</button>
-                            <button onClick={() => { if(window.confirm('Yakin hapus member ini?')) deleteDoc(doc(db, "pelanggan", p.id)); }} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Hapus</button>
-                          </td>
-                        </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            {/* Form Input Pelanggan Baru */}
-            <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px' }}>
-              <form onSubmit={simpanPelanggan} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#3b82f6', fontSize: '18px', fontWeight: '800' }}>
-                  {editingPelangganId ? '✏️ Edit Member' : '➕ Member Baru'}
-                </h3>
-                
-                <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '6px', color: '#27274F' }}>Nama Lengkap *</label>
-                <input required value={formPelangganNama} onChange={e => setFormPelangganNama(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} />
-                
-                <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '6px', color: '#27274F' }}>Nomor WhatsApp *</label>
-                <input required value={formPelangganWa} onChange={e => setFormPelangganWa(e.target.value)} placeholder="0812..." style={{ width: '100%', padding: '12px', marginBottom: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} />
-                
-                <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '6px', color: '#27274F' }}>Email (Opsional)</label>
-                <input type="email" value={formPelangganEmail} onChange={e => setFormPelangganEmail(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} />
-                
-                <label style={{ fontSize: '12px', fontWeight: '700', display: 'block', marginBottom: '6px', color: '#27274F' }}>Alamat (Opsional)</label>
-                <textarea value={formPelangganAlamat} onChange={e => setFormPelangganAlamat(e.target.value)} rows="3" style={{ width: '100%', padding: '12px', marginBottom: '20px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', resize: 'none', outline: 'none' }} />
-                
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button type="submit" style={{ flex: 1, padding: '14px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', letterSpacing: '1px' }}>
-                    {editingPelangganId ? 'UPDATE' : 'SIMPAN'}
-                  </button>
-                  {editingPelangganId && (
-                    <button type="button" onClick={() => { setEditingPelangganId(null); setFormPelangganNama(''); setFormPelangganWa(''); setFormPelangganEmail(''); setFormPelangganAlamat(''); }} style={{ flex: 1, padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>
-                      BATAL
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* --- MODAL PROFIL & LOGOUT (KODE YANG HILANG) --- */}
-        {/* ========================================================= */}
-        {showProfileModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.8)', zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '450px', maxHeight: '95vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0, color: '#272734', fontSize: '20px', fontWeight: '900' }}>⚙️ Pengaturan Toko</h3>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => setShowHelpModal(true)} style={{ background: '#eff6ff', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#2563eb' }}>?</button>
-                  <button onClick={() => setShowProfileModal(false)} style={{ background: '#fee2e2', border: 'none', width: '36px', height: '36px', borderRadius: '50%', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#dc2626' }}>×</button>
-                </div>
-              </div>
-
-              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '12px', color: '#272734'}}>🔔 Pengaturan Suara</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px' }}>
-                   <span style={{fontSize: '12px', fontWeight: 'bold', color: '#475569'}}>🔊 Suara Scanner (Beep)</span>
-                   <input type="checkbox" checked={soundBeep} onChange={(e) => setSoundBeep(e.target.checked)} style={{transform: 'scale(1.5)', cursor: 'pointer'}} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <span style={{fontSize: '12px', fontWeight: 'bold', color: '#475569'}}>🗣️ Robot Terima Kasih</span>
-                   <input type="checkbox" checked={soundVoice} onChange={(e) => setSoundVoice(e.target.checked)} style={{transform: 'scale(1.5)', cursor: 'pointer'}} />
-                </div>
-              </div>
-
-              <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #fed7aa' }}>
-                <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '4px', display: 'block' }}>🖼️ Upload Background Login</label>
-                <input type="file" accept="image/*" onChange={handleBgUpload} style={{ fontSize: '12px', marginBottom: '12px', display: bgLogin ? 'none' : 'block' }} />
-                {bgLogin && (
-                  <div style={{ textAlign: 'center' }}>
-                    <img src={bgLogin} alt="BG" style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
-                    <br/><button onClick={() => { setBgLogin(''); localStorage.removeItem('pos_bgLogin'); }} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>🗑️ Hapus Background</button>
-                  </div>
-                )}
-              </div>
-              
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>Nama Toko</label>
-              <input value={namaToko} onChange={e => setNamaToko(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box', outline: 'none' }} />
-              
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>Alamat</label>
-              <input value={alamat} onChange={e => setAlamat(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '12px', boxSizing: 'border-box', outline: 'none' }} />
-              
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>WhatsApp</label>
-              <input value={noTelp} onChange={e => setNoTelp(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' }} />
-              
-              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '4px' }}>Pesan Penutup Struk</label>
-              <input value={pesanStruk} onChange={e => setPesanStruk(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', marginBottom: '16px', boxSizing: 'border-box', outline: 'none' }} />
-              
-              <div style={{ background: '#fffaf5', padding: '16px', borderRadius: '16px', marginBottom: '20px', border: '2px dashed #fed7aa' }}>
-                <label style={{ fontSize: '13px', fontWeight: '800', color: '#272734', marginBottom: '8px', display: 'block' }}>📱 Gambar QRIS Toko</label>
-                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '12px', marginBottom: '12px', display: qrisImage ? 'none' : 'block' }} />
-                {qrisImage && (
-                  <div style={{ textAlign: 'center' }}>
-                    <img src={qrisImage} alt="QRIS" style={{ maxWidth: '150px', maxHeight: '150px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '12px' }} />
-                    <br/><button onClick={() => setQrisImage('')} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>🗑️ Hapus QRIS</button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-                <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
-                <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#0369a1'}}>🎁 Pengaturan Loyalitas Poin</p>
-                <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
-                <input type="number" value={minBelanjaPoin} onChange={e => setMinBelanjaPoin(e.target.value)} placeholder="Contoh: 20000" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none', fontWeight: 'bold' }} />
-              </div>
-                <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#272734'}}>📏 Kertas Label (px)</p>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
-                  <div><label style={{fontSize: '11px', fontWeight: 'bold'}}>Lebar</label><input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
-                  <div><label style={{fontSize: '11px', fontWeight: 'bold'}}>Tinggi</label><input type="number" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
-                  <div><label style={{fontSize: '11px', fontWeight: 'bold'}}>Sekat/Gap</label><input type="number" value={labelGap} onChange={e => setLabelGap(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
-                  <div><label style={{fontSize: '11px', fontWeight: 'bold'}}>Kolom</label><input type="number" value={labelCols} onChange={e => setLabelColumns(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
-                </div>
-                <div style={{marginTop:'15px'}}><label style={{fontSize: '11px', fontWeight: 'bold'}}>Skala Isi Label (%)</label><input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
-              </div>
-              <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
-                <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#0369a1'}}>🎁 Pengaturan Loyalitas Poin</p>
-                <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
-                <input 
-                  type="number" 
-                  value={minBelanjaPoin} 
-                  onChange={e => setMinBelanjaPoin(e.target.value)} 
-                  placeholder="Contoh: 20000"
-                  style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none', fontWeight: 'bold' }} 
-                />
-                <p style={{fontSize: '10px', color: '#64748b', marginTop: '6px'}}>*Setiap belanja kelipatan angka ini, member akan mendapat 1 Poin (senilai Rp 100).</p>
-              </div>
-              <button onClick={simpanProfil} style={{ width: '100%', padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', marginBottom: '10px', cursor: 'pointer', fontSize: '14px', letterSpacing: '1px' }}>SIMPAN PERUBAHAN</button>
-              
-              {/* TOMBOL LOGOUT SEKARANG ADA DI SINI */}
-              <button 
-                onClick={() => { if(!isOnline) return alert("Offline!"); signOut(auth); }} 
-                style={{ width: '100%', padding: '14px', background: '#fee2e2', color: '#dc2626', border: '2px solid #fca5a5', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', letterSpacing: '1px' }}
-              >
-                🚪 LOGOUT / KELUAR
-              </button>
             </div>
           </div>
         )}
