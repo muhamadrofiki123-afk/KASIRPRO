@@ -2482,13 +2482,13 @@ const addToCart = (p) => {
                     onChange={(e) => setSearchPelanggan(e.target.value)}
                     style={{ flex: 1, maxWidth: '250px', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', minWidth: '150px' }}
                   />
-                  {/* INI TOMBOL YANG HILANG TADI: */}
-                  <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                     <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
                     📥 Excel
                   </button>
                 </div>
-              </div>
-              
+                </div>
+                
+                  {/* INI TOMBOL YANG HILANG TADI: */}
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                   <thead>
@@ -2635,6 +2635,11 @@ const addToCart = (p) => {
               </div>
 
               <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
+                <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#0369a1'}}>🎁 Pengaturan Loyalitas Poin</p>
+                <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
+                <input type="number" value={minBelanjaPoin} onChange={e => setMinBelanjaPoin(e.target.value)} placeholder="Contoh: 20000" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none', fontWeight: 'bold' }} />
+              </div>
                 <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#272734'}}>📏 Kertas Label (px)</p>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px'}}>
                   <div><label style={{fontSize: '11px', fontWeight: 'bold'}}>Lebar</label><input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
