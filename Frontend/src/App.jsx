@@ -1100,12 +1100,35 @@ function App() {
             <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
           </div>
           <div style={{ flex: 1, padding: '16px 0', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir & Transaksi', icon: '💰' }, { id: 'toko', label: 'Database Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas / Biaya', icon: '💸' }, { id: 'laporan', label: 'Laporan Penjualan', icon: '📉' }, { id: 'pelanggan', label: 'CRM & Pelanggan', icon: '👥' } ].map(tab => (
-              <button key={tab.id} onClick={() => { setActiveTab(tab.id); setIsSidebarOpen(false); }} style={{ background: activeTab === tab.id ? '#fff7ed' : 'transparent', color: activeTab === tab.id ? '#FF7835' : '#475569', border: 'none', borderRight: activeTab === tab.id ? '4px solid #FF7835' : '4px solid transparent', padding: '16px 24px', textAlign: 'left', fontSize: '15px', fontWeight: activeTab === tab.id ? '800' : '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', transition: 'background 0.2s, color 0.2s' }}>
-                <span style={{ fontSize: '20px' }}>{tab.icon}</span>{tab.label}
-              </button>
-            ))}
-          </div>
+  {[ 
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' }, 
+    { id: 'kasir', label: 'Kasir & Transaksi', icon: '💰' }, 
+    { id: 'toko', label: 'Database Produk', icon: '📦' }, 
+    { id: 'pengeluaran', label: 'Arus Kas / Biaya', icon: '💸' }, 
+    { id: 'laporan', label: 'Laporan Penjualan', icon: '📉' }, 
+    { id: 'pelanggan', label: 'CRM & Pelanggan', icon: '👥' } 
+  ].map(tab => (
+    <button 
+      key={tab.id} 
+      onClick={() => { 
+        handleNavClick(tab.id); // <-- Ini kuncinya, memanggil fungsi Satpam
+        setIsSidebarOpen(false); 
+      }} 
+      style={{ background: activeTab === tab.id ? '#fff7ed' : 'transparent', color: activeTab === tab.id ? '#FF7835' : '#475569', border: 'none', borderRight: activeTab === tab.id ? '4px solid #FF7835' : '4px solid transparent', padding: '16px 24px', textAlign: 'left', fontSize: '15px', fontWeight: activeTab === tab.id ? '800' : '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', transition: 'background 0.2s, color 0.2s' }}
+    >
+      <span style={{ fontSize: '20px' }}>{tab.icon}</span>
+      
+      {/* Ini akan memunculkan teks nama menunya (misal: Laporan Penjualan) */}
+      {tab.label} 
+      
+      {/* Ini yang akan memunculkan GEMBOK otomatis jika menu tersebut adalah Dashboard, Laporan, atau Pengeluaran */}
+      {isReportLocked && (tab.id === 'dashboard' || tab.id === 'laporan' || tab.id === 'pengeluaran') && (
+        <span style={{ marginLeft: 'auto', fontSize: '14px' }}>🔒</span>
+      )}
+    </button>
+  ))}
+</div>
+          
           <div style={{ padding: '24px', borderTop: '1px solid #e2e8f0', fontSize: '12px', color: '#94a3b8', textAlign: 'center', fontWeight: '600' }}>Aplikasi Kasir V.2.0<br/>© 2026 Muhamad Rofiki</div>
         </div>
       </div>
