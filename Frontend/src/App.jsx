@@ -177,6 +177,8 @@ function App() {
   const [savedPin, setSavedPin] = useState(() => localStorage.getItem('pos_savedPin') || '');
   
   const [showPinModal, setShowPinModal] = useState(false);
+  const [isForgotPinMode, setIsForgotPinMode] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [pinAction, setPinAction] = useState(''); // Menyimpan aksi (buka laporan, matikan gembok, dll)
   const [tempTargetTab, setTempTargetTab] = useState(''); // Menyimpan tujuan tab sementara
@@ -809,7 +811,7 @@ function App() {
         });
       }
       setFormPelangganNama(''); setFormPelangganWa(''); setFormPelangganEmail(''); setFormPelangganAlamat('');
-      alert("✅ Data Member Berhasil Disimpan!");
+      // alert("✅ Data Member Berhasil Disimpan!");
       setShowMemberModal(false); 
     } catch (error) {
       alert("❌ Gagal menyimpan data: " + error.message);
@@ -864,7 +866,7 @@ function App() {
     addDoc(collection(db, "pengeluaran"), { 
       nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: new Date() 
     });
-    alert("Pengeluaran berhasil dicatat!");
+    // alert("Pengeluaran berhasil dicatat!");
     setNamaPengeluaran(''); setNominalPengeluaran(''); 
   };
 
@@ -875,7 +877,7 @@ function App() {
       labelWidth: Number(labelWidth), labelHeight: Number(labelHeight),
       labelScale: Number(labelScale), labelGap: Number(labelGap), labelCols: Number(labelCols)
     });
-    alert("Profil & Pengaturan Toko Tersimpan!"); 
+    // alert("Profil & Pengaturan Toko Tersimpan!"); 
     setShowProfileModal(false);
   };
 
@@ -1811,45 +1813,95 @@ function App() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '350px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             
-            <h2 style={{ margin: '0 0 10px 0', color: '#272734' }}>
-              {pinAction === 'create_pin' ? 'Buat PIN Baru' : '🔒 Masukkan PIN'}
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px', lineHeight: '1.5' }}>
-              {pinAction === 'create_pin' ? 'Buat PIN 4-6 angka rahasia untuk mengunci laporan.' : 'Otorisasi dibutuhkan untuk mengakses menu ini.'}
-            </p>
+            {/* JIKA BUKAN MODE LUPA PIN (Tampil Numpad ATM biasa) */}
+            {!isForgotPinMode ? (
+              <>
+                <h2 style={{ margin: '0 0 10px 0', color: '#272734' }}>
+                  {pinAction === 'create_pin' ? 'Buat PIN Baru' : '🔒 Masukkan PIN'}
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px', lineHeight: '1.5' }}>
+                  {pinAction === 'create_pin' ? 'Buat PIN 4-6 angka rahasia untuk mengunci laporan.' : 'Otorisasi dibutuhkan untuk mengakses menu ini.'}
+                </p>
 
-            <form onSubmit={handlePinSubmit}>
-              <input 
-                type="password" 
-                autoFocus
-                value={pinInput} 
-                onChange={(e) => setPinInput(e.target.value.replace(/[^0-9]/g, '').slice(0,6))}
-                style={{ width: '100%', padding: '15px', fontSize: '28px', textAlign: 'center', letterSpacing: '15px', borderRadius: '15px', border: '2px solid #cbd5e1', marginBottom: '20px', fontWeight: 'bold', boxSizing: 'border-box', background: '#f8fafc' }}
-                placeholder="••••"
-              />
-            </form>
+                <form onSubmit={handlePinSubmit}>
+                  <input 
+                    type="password" 
+                    autoFocus
+                    value={pinInput} 
+                    onChange={(e) => setPinInput(e.target.value.replace(/[^0-9]/g, '').slice(0,6))}
+                    style={{ width: '100%', padding: '15px', fontSize: '28px', textAlign: 'center', letterSpacing: '15px', borderRadius: '15px', border: '2px solid #cbd5e1', marginBottom: '20px', fontWeight: 'bold', boxSizing: 'border-box', background: '#f8fafc' }}
+                    placeholder="••••"
+                  />
+                </form>
 
-            {/* NUMPAD TOUCHSCREEN */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
-              {['1','2','3','4','5','6','7','8','9','del','0','ok'].map((btn) => (
+                {/* NUMPAD TOUCHSCREEN */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+                  {['1','2','3','4','5','6','7','8','9','del','0','ok'].map((btn) => (
+                    <button 
+                      key={btn}
+                      onClick={() => handleNumpad(btn)}
+                      style={{ 
+                        padding: '15px', fontSize: '20px', fontWeight: 'bold', borderRadius: '12px', border: 'none', cursor: 'pointer', transition: '0.2s',
+                        background: btn === 'del' ? '#fee2e2' : btn === 'ok' ? '#dcfce7' : '#f1f5f9',
+                        color: btn === 'del' ? '#dc2626' : btn === 'ok' ? '#166534' : '#334155'
+                      }}
+                    >
+                      {btn === 'del' ? '⌫' : btn === 'ok' ? 'OK' : btn}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* TOMBOL LUPA PIN (Hanya muncul saat minta PIN, tidak muncul saat lagi bikin PIN) */}
+                {pinAction !== 'create_pin' && (
+                  <button onClick={() => setIsForgotPinMode(true)} style={{ color: '#ef4444', fontSize: '13px', border: 'none', background: 'transparent', cursor: 'pointer', marginBottom: '10px', fontWeight: 'bold' }}>Lupa PIN Keamanan?</button>
+                )}
+
+                <button onClick={() => { setShowPinModal(false); setPinInput(''); setIsForgotPinMode(false); }} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>BATAL</button>
+              </>
+            ) : (
+              
+              /* JIKA MODE LUPA PIN AKTIF (Tampil form Password M-Banking) */
+              <>
+                <h2 style={{ margin: '0 0 10px 0', color: '#272734' }}>Lupa PIN?</h2>
+                <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px', lineHeight: '1.5' }}>
+                  Masukkan Password Login Toko Anda untuk mereset PIN keamanan.
+                </p>
+                
+                <input 
+                  type="password" 
+                  autoFocus
+                  value={adminPasswordInput} 
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  style={{ width: '100%', padding: '15px', fontSize: '16px', borderRadius: '15px', border: '2px solid #cbd5e1', marginBottom: '20px', boxSizing: 'border-box', background: '#f8fafc' }}
+                  placeholder="Password Utama Toko"
+                />
+
                 <button 
-                  key={btn}
-                  onClick={() => handleNumpad(btn)}
-                  style={{ 
-                    padding: '15px', fontSize: '20px', fontWeight: 'bold', borderRadius: '12px', border: 'none', cursor: 'pointer', transition: '0.2s',
-                    background: btn === 'del' ? '#fee2e2' : btn === 'ok' ? '#dcfce7' : '#f1f5f9',
-                    color: btn === 'del' ? '#dc2626' : btn === 'ok' ? '#166534' : '#334155'
+                  onClick={() => {
+                    // SILAKAN GANTI 'admin123' DI BAWAH INI DENGAN PASSWORD TOKO MAS ROFIKI
+                    if(adminPasswordInput === 'admin123') {
+                      setIsReportLocked(false);
+                      setSavedPin('');
+                      setShowPinModal(false);
+                      setIsForgotPinMode(false);
+                      setAdminPasswordInput('');
+                    } else {
+                      alert('❌ Password Utama Salah!');
+                      setAdminPasswordInput('');
+                    }
                   }}
+                  style={{ width: '100%', padding: '15px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}
                 >
-                  {btn === 'del' ? '⌫' : btn === 'ok' ? 'OK' : btn}
+                  Verifikasi & Reset PIN
                 </button>
-              ))}
-            </div>
+                
+                <button onClick={() => { setIsForgotPinMode(false); setAdminPasswordInput(''); }} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>Kembali</button>
+              </>
+            )}
 
-            <button onClick={() => { setShowPinModal(false); setPinInput(''); }} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>BATAL</button>
           </div>
         </div>
-      )}
+      )}   
 
       {showHelpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
