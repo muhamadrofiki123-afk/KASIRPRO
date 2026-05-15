@@ -53,13 +53,19 @@ const auth = getAuth(app);
 let globalAudioCtx = null;
 
 function App() {
+  const [minBelanjaPoin, setMinBelanjaPoin] = useState(20000); // Default 20rb
   // === STATE AUTENTIKASI ===
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
+  // === PENGATURAN TOKO & SUARA ===
+  const [soundBeep, setSoundBeep] = useState(true);
+  const [soundVoice, setSoundVoice] = useState(true);
+  const [minBelanjaPoin, setMinBelanjaPoin] = useState(20000);
+
 // --- MESIN SUARA INTERNAL (WEB AUDIO API) ---
   const playBeep = () => {
     if (!soundBeep) return; // Cek pengaturan di profil
@@ -613,8 +619,10 @@ const addToCartRef = useRef();
   // Logika Diskon Poin Member
   let totalSetelahDiskon = totalAmountVal;
   let diskonPoin = 0;
-  let poinDipakai = 0;
-  let poinDidapat = 0;
+  } else if (memberTerpilih && !gunakanPoin) {
+    // Sekarang membagi berdasarkan angka dari pengaturan (minBelanjaPoin)
+    poinDidapat = Math.floor(totalAmountVal / (minBelanjaPoin || 20000));
+  }
 
   if (memberTerpilih && gunakanPoin) {
     diskonPoin = (memberTerpilih.poin || 0) * 100; // 1 Poin = Rp 100
@@ -703,7 +711,7 @@ const addToCartRef = useRef();
       // TAMBAHKAN SUARA ROBOT DI SINI:
       playSuccessVoice(`Terima kasih. Pembayaran ${metode} sebesar ${totalSetelahDiskon.toLocaleString()} rupiah berhasil.`);
       // Reset State Kasir
-      
+
       setCart([]); 
       setPaymentAmount(''); 
       setMetodePembayaran('Tunai'); 
@@ -821,7 +829,8 @@ const addToCartRef = useRef();
 
   const simpanProfil = () => {
     setDoc(doc(db, "profilToko", user.uid), { 
-      nama: namaToko, alamat, noTelp, qrisImage, pesanStruk: pesanStruk || '*** TERIMA KASIH ***', 
+      nama: namaToko, alamat, noTelp, qrisImage, pesanStruk,
+      minBelanjaPoin: Number(minBelanjaPoin), // Tambahkan ini
       labelWidth: Number(labelWidth), labelHeight: Number(labelHeight),
       labelScale: Number(labelScale), labelGap: Number(labelGap), labelCols: Number(labelCols)
     });
@@ -936,6 +945,24 @@ const addToCartRef = useRef();
     const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
     link.download = `Laporan_Pengeluaran.csv`; link.click();
+  };
+  const exportExcelPelanggan = () => {
+    const headers = ["Nama Pelanggan", "WhatsApp", "Poin", "Email", "Alamat", "Tanggal Daftar"];
+    const rows = pelangganTersaring.map(p => {
+      const d = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('id-ID') : '-';
+      return [
+        `"${p.nama}"`, 
+        `"${p.wa || '-'}"`, 
+        p.poin || 0, 
+        `"${p.email || '-'}"`, 
+        `"${p.alamat || '-'}"`, 
+        `"${d}"`
+      ].join(';');
+    });
+    const csvStr = "\uFEFF" + headers.join(';') + "\n" + rows.join("\n");
+    const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+    link.download = `Data_Member_Pelanggan.csv`; link.click();
   };
 
   const getChartData = () => {
@@ -2455,46 +2482,65 @@ const addToCartRef = useRef();
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
                   👥 Database Pelanggan
                 </h3>
-                <input
-                  type="text"
-                  placeholder="🔍 Cari nama / WA..."
-                  value={searchPelanggan}
-                  onChange={(e) => setSearchPelanggan(e.target.value)}
-                  style={{ flex: 1, maxWidth: '250px', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none' }}
-                />
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+                  <input
+                    type="text"
+                    placeholder="🔍 Cari nama / WA..."
+                    value={searchPelanggan}
+                    onChange={(e) => setSearchPelanggan(e.target.value)}
+                    style={{ flex: 1, maxWidth: '250px', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', minWidth: '150px' }}
+                  />
+                  <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                    📥 Excel
+                  </button>
+                </div>
               </div>
               
-              <div className="table-container" style={{ flex: 1, overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+              <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '12px', textTransform: 'uppercase' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Nama</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Kontak WA</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Poin</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Alamat/Email</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Nama</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Kontak WA</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Poin</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', minWidth: '180px' }}>Alamat/Email</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pelangganTersaring.length === 0 ? (
                       <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>Belum ada data member.</td></tr>
                     ) : (
-                      pelangganTersaring.map(p => (
+                      pelangganTersaring.map(p => {
+                        // RUMUS PEMBERSIH WA: Buang semua huruf/spasi, ubah 0 depan jadi 62
+                        const cleanWa = p.wa ? p.wa.replace(/\D/g, '').replace(/^0/, '62') : '';
+                        
+                        return (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: '800', color: '#272734' }}>{p.nama}</td>
-                          <td style={{ padding: '12px 16px' }}>
-                             <a href={`https://wa.me/${p.wa?.replace(/^0/, '62')}`} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px', display: 'inline-block' }}>
-                               💬 {p.wa || '-'}
-                             </a>
+                          <td style={{ padding: '12px 16px', fontWeight: '800', color: '#272734', whiteSpace: 'nowrap' }}>{p.nama}</td>
+                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                             {cleanWa ? (
+                               <a href={`https://wa.me/${cleanWa}`} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px', display: 'inline-block' }}>
+                                 💬 {p.wa}
+                               </a>
+                             ) : (
+                               <span style={{ color: '#94a3b8' }}>-</span>
+                             )}
                           </td>
-                          <td style={{ padding: '12px 16px', fontWeight: '900', color: '#FF7835', fontSize: '15px' }}>{p.poin || 0} Pts</td>
-                          <td style={{ padding: '12px 16px', fontSize: '11px', color: '#64748b' }}>{p.alamat || '-'}<br/>{p.email || '-'}</td>
-                          <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: '900', color: '#FF7835', fontSize: '15px', whiteSpace: 'nowrap' }}>{p.poin || 0} Pts</td>
+                          <td style={{ padding: '12px 16px', fontSize: '11px', color: '#64748b' }}>
+                            <div style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>
+                              🏠 {p.alamat || '-'}
+                            </div>
+                            <div>📧 {p.email || '-'}</div>
+                          </td>
+                          <td style={{ padding: '12px 16px', display: 'flex', gap: '6px', whiteSpace: 'nowrap' }}>
                             <button onClick={() => { setFormPelangganNama(p.nama); setFormPelangganWa(p.wa || ''); setFormPelangganEmail(p.email || ''); setFormPelangganAlamat(p.alamat || ''); setEditingPelangganId(p.id); }} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Edit</button>
                             <button onClick={() => { if(window.confirm('Yakin hapus member ini?')) deleteDoc(doc(db, "pelanggan", p.id)); }} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Hapus</button>
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -2605,7 +2651,18 @@ const addToCartRef = useRef();
                 </div>
                 <div style={{marginTop:'15px'}}><label style={{fontSize: '11px', fontWeight: 'bold'}}>Skala Isi Label (%)</label><input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none' }} /></div>
               </div>
-
+              <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
+                <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#0369a1'}}>🎁 Pengaturan Loyalitas Poin</p>
+                <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
+                <input 
+                  type="number" 
+                  value={minBelanjaPoin} 
+                  onChange={e => setMinBelanjaPoin(e.target.value)} 
+                  placeholder="Contoh: 20000"
+                  style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', outline: 'none', fontWeight: 'bold' }} 
+                />
+                <p style={{fontSize: '10px', color: '#64748b', marginTop: '6px'}}>*Setiap belanja kelipatan angka ini, member akan mendapat 1 Poin (senilai Rp 100).</p>
+              </div>
               <button onClick={simpanProfil} style={{ width: '100%', padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', marginBottom: '10px', cursor: 'pointer', fontSize: '14px', letterSpacing: '1px' }}>SIMPAN PERUBAHAN</button>
               
               {/* TOMBOL LOGOUT SEKARANG ADA DI SINI */}
