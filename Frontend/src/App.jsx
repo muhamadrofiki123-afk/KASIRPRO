@@ -582,14 +582,21 @@ const addToCartRef = useRef();
     }
   };
 
- const addToCart = (p) => {
+const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
-    playBeep(); // <--- TAMBAHKAN INI
+    
+    // Panggil suara beep jika Mas sudah memasang mesin suaranya
+    if (typeof playBeep === 'function') playBeep();
+    
     const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
+    
     setCart(prev => {
       const existing = prev.find(item => item.id === p.id);
       if (existing) {
-        if(existing.qty >= p.stok) { alert("Stok habis!"); return prev; }
+        if(existing.qty >= p.stok) { 
+          alert("Stok tidak mencukupi!"); 
+          return prev; 
+        }
         return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
       }
       return [...prev, { ...p, harga: hargaAktif, hargaAsli: p.harga, hargaModal: p.hargaModal || 0, qty: 1 }];
@@ -616,7 +623,6 @@ const addToCartRef = useRef();
   // === KALKULASI POIN & TOTAL KERANJANG ===
   const totalAmountVal = cart.reduce((sum, item) => sum + (item.harga * item.qty), 0);
   
-  // Logika Diskon Poin Member
   let totalSetelahDiskon = totalAmountVal;
   let diskonPoin = 0;
   let poinDipakai = 0;
@@ -625,13 +631,13 @@ const addToCartRef = useRef();
   if (memberTerpilih && gunakanPoin) {
     diskonPoin = (memberTerpilih.poin || 0) * 100; // 1 Poin = Rp 100
     if (diskonPoin > totalAmountVal) {
-      diskonPoin = totalAmountVal; // Diskon maksimal
+      diskonPoin = totalAmountVal;
     }
     poinDipakai = Math.ceil(diskonPoin / 100);
     totalSetelahDiskon = totalAmountVal - diskonPoin;
   } else if (memberTerpilih && !gunakanPoin) {
-    // Membagi poin dinamis sesuai pengaturan Profil
-    poinDidapat = Math.floor(totalAmountVal / (minBelanjaPoin || 20000));
+    const syaratPoin = Number(minBelanjaPoin) || 20000;
+    poinDidapat = Math.floor(totalAmountVal / syaratPoin);
   }
 
   const kembalianVal = (metodePembayaran === 'Tunai' && paymentAmount !== '') ? Number(paymentAmount) - totalSetelahDiskon : 0;
@@ -642,7 +648,6 @@ const addToCartRef = useRef();
     
     if (metodePembayaran === 'Bon') {
       if (memberTerpilih) {
-        // Jika sudah pilih member, gunakan namanya langsung untuk Bon
         finalizePayment('Bon');
       } else {
         setShowBonModal(true); 
@@ -687,15 +692,12 @@ const addToCartRef = useRef();
     }
 
     try {
-      // 1. Simpan Transaksi
       await addDoc(collection(db, "transaksi"), dataTrans);
       
-      // 2. Kurangi Stok Produk
       for (const item of cart) { 
-        updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
+        await updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
 
-      // 3. Update Poin Member di Database Pelanggan
       if (memberTerpilih) {
         const memberRef = doc(db, "pelanggan", memberTerpilih.id);
         if (gunakanPoin && poinDipakai > 0) {
@@ -705,20 +707,12 @@ const addToCartRef = useRef();
         }
       }
       
-        setStrukData(dataTrans); 
-      // TAMBAHKAN SUARA ROBOT DI SINI:
-      playSuccessVoice(`Terima kasih. Pembayaran ${metode} sebesar ${totalSetelahDiskon.toLocaleString()} rupiah berhasil.`);
-      // Reset State Kasir
+      if (typeof playSuccessVoice === 'function') {
+        playSuccessVoice(`Transaksi berhasil. Total ${totalSetelahDiskon.toLocaleString()} rupiah.`);
+      }
 
-      setCart([]); 
-      setPaymentAmount(''); 
-      setMetodePembayaran('Tunai'); 
-      setShowQrisModal(false); 
-      setShowBonModal(false); 
-      setNamaPelangganBon('');
-      setMemberTerpilih(null);
-      setGunakanPoin(false);
-
+      setStrukData(dataTrans); 
+      setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon(''); setMemberTerpilih(null); setGunakanPoin(false);
     } catch (err) { 
       alert("Gagal memproses transaksi: " + err.message); 
     }
@@ -2476,7 +2470,7 @@ const addToCartRef = useRef();
             
             {/* Tabel Data Pelanggan */}
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
                   👥 Database Pelanggan
                 </h3>
@@ -2488,6 +2482,7 @@ const addToCartRef = useRef();
                     onChange={(e) => setSearchPelanggan(e.target.value)}
                     style={{ flex: 1, maxWidth: '250px', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', minWidth: '150px' }}
                   />
+                  {/* INI TOMBOL YANG HILANG TADI: */}
                   <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>
                     📥 Excel
                   </button>
