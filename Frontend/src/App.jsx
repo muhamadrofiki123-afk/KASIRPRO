@@ -59,6 +59,38 @@ function App() {
   const [password, setPassword] = useState('');
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+// --- MESIN SUARA INTERNAL (WEB AUDIO API) ---
+  const playBeep = () => {
+    if (!soundBeep) return; // Cek pengaturan di profil
+    try {
+      if (!globalAudioCtx) {
+        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const osc = globalAudioCtx.createOscillator();
+      const gain = globalAudioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, globalAudioCtx.currentTime); // Frekuensi nada tinggi
+      gain.gain.setValueAtTime(0, globalAudioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.1, globalAudioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.01, globalAudioCtx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(globalAudioCtx.destination);
+      osc.start();
+      osc.stop(globalAudioCtx.currentTime + 0.1);
+    } catch (e) { console.log("Audio Error"); }
+  };
+
+  const playSuccessVoice = (text) => {
+    if (!soundVoice) return; // Cek pengaturan di profil
+    try {
+      const msg = new SpeechSynthesisUtterance();
+      msg.text = text;
+      msg.lang = 'id-ID'; // Suara Bahasa Indonesia
+      msg.rate = 1.1;
+      window.speechSynthesis.speak(msg);
+    } catch (e) { console.log("Speech Error"); }
+  };
 
   // === STATE GLOBAL & SIDEBAR HAMBURGER ===
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -544,26 +576,20 @@ const addToCartRef = useRef();
     }
   };
 
-  const addToCart = (p) => {
+ const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
-    
+    playBeep(); // <--- TAMBAHKAN INI
     const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
-    
     setCart(prev => {
       const existing = prev.find(item => item.id === p.id);
       if (existing) {
-        if(existing.qty >= p.stok) { 
-          alert("Stok tidak mencukupi!"); 
-          return prev; 
-        }
-        // Perintah playBeep() sudah dihapus dari sini agar aman
+        if(existing.qty >= p.stok) { alert("Stok habis!"); return prev; }
         return prev.map(item => item.id === p.id ? { ...item, qty: item.qty + 1 } : item);
       }
-      // Perintah playBeep() sudah dihapus dari sini agar aman
       return [...prev, { ...p, harga: hargaAktif, hargaAsli: p.harga, hargaModal: p.hargaModal || 0, qty: 1 }];
     });
   };
-  
+
   const updateQuantity = (id, newQty) => {
     if (newQty <= 0) { 
       setCart(prev => prev.filter(item => item.id !== id)); 
@@ -673,9 +699,11 @@ const addToCartRef = useRef();
         }
       }
       
-      setStrukData(dataTrans); 
-      
+        setStrukData(dataTrans); 
+      // TAMBAHKAN SUARA ROBOT DI SINI:
+      playSuccessVoice(`Terima kasih. Pembayaran ${metode} sebesar ${totalSetelahDiskon.toLocaleString()} rupiah berhasil.`);
       // Reset State Kasir
+      
       setCart([]); 
       setPaymentAmount(''); 
       setMetodePembayaran('Tunai'); 
@@ -690,32 +718,42 @@ const addToCartRef = useRef();
     }
   };
 
-  // --- FUNGSI MASTER DATA PELANGGAN (CRM) ---
+ // --- FUNGSI MASTER DATA PELANGGAN (CRM) ---
   const simpanPelanggan = async (e) => {
     e.preventDefault();
-    if (editingPelangganId) {
-      await updateDoc(doc(db, "pelanggan", editingPelangganId), {
-        nama: formPelangganNama,
-        wa: formPelangganWa,
-        email: formPelangganEmail,
-        alamat: formPelangganAlamat
-      });
-      setEditingPelangganId(null);
-    } else {
-      await addDoc(collection(db, "pelanggan"), {
-        nama: formPelangganNama,
-        wa: formPelangganWa,
-        email: formPelangganEmail,
-        alamat: formPelangganAlamat,
-        poin: 0,
-        userId: user.uid,
-        createdAt: new Date()
-      });
+    try {
+      if (editingPelangganId) {
+        await updateDoc(doc(db, "pelanggan", editingPelangganId), {
+          nama: formPelangganNama,
+          wa: formPelangganWa,
+          email: formPelangganEmail,
+          alamat: formPelangganAlamat
+        });
+        setEditingPelangganId(null);
+      } else {
+        await addDoc(collection(db, "pelanggan"), {
+          nama: formPelangganNama,
+          wa: formPelangganWa,
+          email: formPelangganEmail,
+          alamat: formPelangganAlamat,
+          poin: 0,
+          userId: user.uid,
+          createdAt: new Date()
+        });
+      }
+      // Kosongkan form setelah sukses
+      setFormPelangganNama(''); 
+      setFormPelangganWa(''); 
+      setFormPelangganEmail(''); 
+      setFormPelangganAlamat('');
+      
+      alert("✅ Data Member Berhasil Disimpan!");
+      setShowMemberModal(false); // Tutup pop-up jika dipanggil dari kasir
+      
+    } catch (error) {
+      console.error("Error simpan pelanggan: ", error);
+      alert("❌ Gagal menyimpan data: " + error.message);
     }
-    setFormPelangganNama(''); setFormPelangganWa(''); 
-    setFormPelangganEmail(''); setFormPelangganAlamat('');
-    alert("Data Member Berhasil Disimpan!");
-    setShowMemberModal(false); // Tutup pop-up jika dipanggil dari kasir
   };
 
   const simpanProduk = (e) => {
