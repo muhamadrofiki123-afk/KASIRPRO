@@ -30,7 +30,7 @@ import {
 } from 'firebase/auth';
 import { Html5Qrcode } from 'html5-qrcode';
 
-// --- CONFIG FIREBASE ASLI MILIK VICKY ---
+// --- CONFIG FIREBASE ASLI MILIK MAS ROFIKI ---
 const firebaseConfig = {
   apiKey: "AIzaSyBq9lMekzm_aq-2Buvub7E7f7dx1V5kTiA",
   authDomain: "kasir-pintar-93e03.firebaseapp.com",
@@ -49,11 +49,10 @@ const db = initializeFirestore(app, {
 
 const auth = getAuth(app);
 
-// === MESIN SUARA GLOBAL (SINGLETON) AGAR TIDAK DIBLOKIR BROWSER SAAT KLIK CEPAT ===
+// === MESIN SUARA GLOBAL (SINGLETON) ===
 let globalAudioCtx = null;
 
 function App() {
-  const [minBelanjaPoin, setMinBelanjaPoin] = useState(20000); // Default 20rb
   // === STATE AUTENTIKASI ===
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -61,50 +60,8 @@ function App() {
   const [isRegister, setIsRegister] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // === PENGATURAN TOKO & SUARA ===
-  const [soundBeep, setSoundBeep] = useState(true);
-  const [soundVoice, setSoundVoice] = useState(true);
-  const [minBelanjaPoin, setMinBelanjaPoin] = useState(20000);
-
-// --- MESIN SUARA INTERNAL (WEB AUDIO API) ---
-  const playBeep = () => {
-    if (!soundBeep) return; // Cek pengaturan di profil
-    try {
-      if (!globalAudioCtx) {
-        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      const osc = globalAudioCtx.createOscillator();
-      const gain = globalAudioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, globalAudioCtx.currentTime); // Frekuensi nada tinggi
-      gain.gain.setValueAtTime(0, globalAudioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.1, globalAudioCtx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.01, globalAudioCtx.currentTime + 0.1);
-      osc.connect(gain);
-      gain.connect(globalAudioCtx.destination);
-      osc.start();
-      osc.stop(globalAudioCtx.currentTime + 0.1);
-    } catch (e) { console.log("Audio Error"); }
-  };
-
-  const playSuccessVoice = (text) => {
-    if (!soundVoice) return; // Cek pengaturan di profil
-    try {
-      const msg = new SpeechSynthesisUtterance();
-      msg.text = text;
-      msg.lang = 'id-ID'; // Suara Bahasa Indonesia
-      msg.rate = 1.1;
-      window.speechSynthesis.speak(msg);
-    } catch (e) { console.log("Speech Error"); }
-  };
-
-  // === STATE GLOBAL & SIDEBAR HAMBURGER ===
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
-  const [showOfflineWarning, setShowOfflineWarning] = useState(!window.navigator.onLine);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // === STATE FITUR BARU (BACKGROUND & SUARA LOKAL) ===
+  // === PENGATURAN TOKO & SUARA (DIRAPIKAN AGAR TIDAK GANDA) ===
+  const [minBelanjaPoin, setMinBelanjaPoin] = useState(20000); 
   const [bgLogin, setBgLogin] = useState(() => localStorage.getItem('pos_bgLogin') || '');
   
   const [soundBeep, setSoundBeep] = useState(() => {
@@ -125,6 +82,44 @@ function App() {
   useEffect(() => { 
     localStorage.setItem('pos_soundVoice', JSON.stringify(soundVoice)); 
   }, [soundVoice]);
+
+  // --- MESIN SUARA INTERNAL (WEB AUDIO API) ---
+  const playBeep = () => {
+    if (!soundBeep) return; 
+    try {
+      if (!globalAudioCtx) {
+        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const osc = globalAudioCtx.createOscillator();
+      const gain = globalAudioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, globalAudioCtx.currentTime); 
+      gain.gain.setValueAtTime(0, globalAudioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.1, globalAudioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.01, globalAudioCtx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(globalAudioCtx.destination);
+      osc.start();
+      osc.stop(globalAudioCtx.currentTime + 0.1);
+    } catch (e) { console.log("Audio Error"); }
+  };
+
+  const playSuccessVoice = (text) => {
+    if (!soundVoice) return; 
+    try {
+      const msg = new SpeechSynthesisUtterance();
+      msg.text = text;
+      msg.lang = 'id-ID'; 
+      msg.rate = 1.1;
+      window.speechSynthesis.speak(msg);
+    } catch (e) { console.log("Speech Error"); }
+  };
+
+  // === STATE GLOBAL & SIDEBAR HAMBURGER ===
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
+  const [showOfflineWarning, setShowOfflineWarning] = useState(!window.navigator.onLine);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // === STATE DATABASE UTAMA ===
   const [produk, setProduk] = useState([]);
@@ -239,12 +234,10 @@ function App() {
   
   const isProfit = dashboardStats.labaBersih >= 0;
 
-  // REF PENGAMAN AGAR KAMERA TIDAK LOAD BERULANG
   const produkRef = useRef(produk);
   useEffect(() => { 
     produkRef.current = produk; 
   }, [produk]);
-
   // PENGATURAN JAM OTOMATIS & SENSOR KONEKSI
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -369,6 +362,7 @@ function App() {
         setLabelScale(d.data().labelScale || 100); 
         setLabelGap(d.data().labelGap || 5); 
         setLabelColumns(d.data().labelCols || 4);
+        setMinBelanjaPoin(d.data().minBelanjaPoin || 20000);
       }
     });
 
@@ -410,7 +404,7 @@ function App() {
     };
   }, [user]);
 
-  // EFFECT: HITUNG STATISTIK DASHBOARD (BERDASARKAN FILTER WAKTU DINAMIS)
+  // EFFECT: HITUNG STATISTIK DASHBOARD
   useEffect(() => {
     if (!user) return;
     
@@ -467,12 +461,13 @@ function App() {
       labaBersih: omzet - totModal - totPengOp
     });
   }, [produk, transaksi, pengeluaran, user, dashboardTimeFilter]);
-const addToCartRef = useRef();
+
+  const addToCartRef = useRef();
   useEffect(() => { 
     addToCartRef.current = addToCart; 
   }, [cart]);
 
-  // --- FUNGSI KAMERA (MODE AMAN ANTI BLANK) ---
+  // --- FUNGSI KAMERA ---
   useEffect(() => {
     let html5QrCode;
     let isComponentMounted = true; 
@@ -524,7 +519,6 @@ const addToCartRef = useRef();
     };
   }, [isScanningKasir, isScanningToko]);
 
-  // --- MENU UPLOAD GAMBAR BACKGROUND (Maks 1MB) ---
   const handleBgUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -542,7 +536,6 @@ const addToCartRef = useRef();
     }
   };
 
-  // --- MENU UPLOAD GAMBAR QRIS ---
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -582,10 +575,8 @@ const addToCartRef = useRef();
     }
   };
 
-const addToCart = (p) => {
+  const addToCart = (p) => {
     if (p.stok <= 0) return alert("Stok habis!");
-    
-    // Panggil suara beep jika Mas sudah memasang mesin suaranya
     if (typeof playBeep === 'function') playBeep();
     
     const hargaAktif = p.hargaPromo ? Number(p.hargaPromo) : Number(p.harga);
@@ -718,40 +709,24 @@ const addToCart = (p) => {
     }
   };
 
- // --- FUNGSI MASTER DATA PELANGGAN (CRM) ---
   const simpanPelanggan = async (e) => {
     e.preventDefault();
     try {
       if (editingPelangganId) {
         await updateDoc(doc(db, "pelanggan", editingPelangganId), {
-          nama: formPelangganNama,
-          wa: formPelangganWa,
-          email: formPelangganEmail,
-          alamat: formPelangganAlamat
+          nama: formPelangganNama, wa: formPelangganWa, email: formPelangganEmail, alamat: formPelangganAlamat
         });
         setEditingPelangganId(null);
       } else {
         await addDoc(collection(db, "pelanggan"), {
-          nama: formPelangganNama,
-          wa: formPelangganWa,
-          email: formPelangganEmail,
-          alamat: formPelangganAlamat,
-          poin: 0,
-          userId: user.uid,
-          createdAt: new Date()
+          nama: formPelangganNama, wa: formPelangganWa, email: formPelangganEmail, alamat: formPelangganAlamat,
+          poin: 0, userId: user.uid, createdAt: new Date()
         });
       }
-      // Kosongkan form setelah sukses
-      setFormPelangganNama(''); 
-      setFormPelangganWa(''); 
-      setFormPelangganEmail(''); 
-      setFormPelangganAlamat('');
-      
+      setFormPelangganNama(''); setFormPelangganWa(''); setFormPelangganEmail(''); setFormPelangganAlamat('');
       alert("✅ Data Member Berhasil Disimpan!");
-      setShowMemberModal(false); // Tutup pop-up jika dipanggil dari kasir
-      
+      setShowMemberModal(false); 
     } catch (error) {
-      console.error("Error simpan pelanggan: ", error);
       alert("❌ Gagal menyimpan data: " + error.message);
     }
   };
@@ -766,13 +741,8 @@ const addToCart = (p) => {
       if (checkDuplicate) return alert("⚠️ Barcode sudah digunakan oleh produk lain!");
       
       updateDoc(doc(db, "produk", editingProductId), { 
-        nama: namaProd, 
-        harga: Number(hargaProd), 
-        hargaPromo: promoVal, 
-        hargaModal: modalVal, 
-        stok: Number(stokProd), 
-        barcode: barcodeProd, 
-        satuan: satuanProd 
+        nama: namaProd, harga: Number(hargaProd), hargaPromo: promoVal, hargaModal: modalVal, 
+        stok: Number(stokProd), barcode: barcodeProd, satuan: satuanProd 
       });
       setEditingProductId(null);
     } else {
@@ -783,8 +753,7 @@ const addToCart = (p) => {
         while (!isUnique && attempt < 100) {
           let tempCode = '';
           for (let i = 0; i < 3; i++) {
-            const num = Math.floor(Math.random() * 10).toString();
-            tempCode += num + num; 
+            const num = Math.floor(Math.random() * 10).toString(); tempCode += num + num; 
           }
           const checkExists = produk.find(p => p.barcode === tempCode);
           if (!checkExists) { bcode = tempCode; isUnique = true; }
@@ -801,7 +770,6 @@ const addToCart = (p) => {
         stok: Number(stokProd), barcode: bcode, satuan: satuanProd, userId: user.uid, createdAt: new Date() 
       });
     }
-    
     setNamaProd(''); setHargaProd(''); setHargaPromoProd(''); setHargaModalProd('');
     setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs');
   };
@@ -809,20 +777,16 @@ const addToCart = (p) => {
   const simpanPengeluaran = (e) => {
     e.preventDefault();
     addDoc(collection(db, "pengeluaran"), { 
-      nama: namaPengeluaran, 
-      nominal: Number(nominalPengeluaran), 
-      userId: user.uid, 
-      waktu: new Date() 
+      nama: namaPengeluaran, nominal: Number(nominalPengeluaran), userId: user.uid, waktu: new Date() 
     });
     alert("Pengeluaran berhasil dicatat!");
-    setNamaPengeluaran(''); 
-    setNominalPengeluaran(''); 
+    setNamaPengeluaran(''); setNominalPengeluaran(''); 
   };
 
   const simpanProfil = () => {
     setDoc(doc(db, "profilToko", user.uid), { 
       nama: namaToko, alamat, noTelp, qrisImage, pesanStruk,
-      minBelanjaPoin: Number(minBelanjaPoin), // Tambahkan ini
+      minBelanjaPoin: Number(minBelanjaPoin),
       labelWidth: Number(labelWidth), labelHeight: Number(labelHeight),
       labelScale: Number(labelScale), labelGap: Number(labelGap), labelCols: Number(labelCols)
     });
@@ -832,39 +796,22 @@ const addToCart = (p) => {
 
   const handleResetTahunan = async () => {
     if (!window.confirm(`⚠️ PERINGATAN TERAKHIR: Apakah Anda yakin ingin menghapus SEMUA transaksi pada tahun ${selectedYearReset}? Tindakan ini permanen!`)) return;
-    
     const startOfYear = new Date(`${selectedYearReset}-01-01T00:00:00`);
     const endOfYear = new Date(`${selectedYearReset}-12-31T23:59:59`);
-    
     try {
-      const qReset = query(
-        collection(db, "transaksi"), 
-        where("userId", "==", user.uid), 
-        where("waktu", ">=", startOfYear), 
-        where("waktu", "<=", endOfYear)
-      );
+      const qReset = query(collection(db, "transaksi"), where("userId", "==", user.uid), where("waktu", ">=", startOfYear), where("waktu", "<=", endOfYear));
       const snapshot = await getDocs(qReset);
-      
       if (snapshot.empty) return alert(`Tidak ada data di tahun ${selectedYearReset}.`);
-      
       let deletedCount = 0;
-      for (const document of snapshot.docs) {
-        deleteDoc(doc(db, "transaksi", document.id)); 
-        deletedCount++;
-      }
+      for (const document of snapshot.docs) { deleteDoc(doc(db, "transaksi", document.id)); deletedCount++; }
       alert(`Berhasil! ${deletedCount} transaksi di tahun ${selectedYearReset} telah dihapus.`);
       setShowResetModal(false);
-    } catch (error) {
-      console.error(error);
-      alert("Gagal menghapus data.");
-    }
+    } catch (error) { alert("Gagal menghapus data."); }
   };
 
-  // --- FILTER DINAMIS ---
   const pengeluaranTersaring = pengeluaran.filter(p => {
     if (!p.nama.toLowerCase().includes(searchPengeluaran.toLowerCase())) return false;
     if (!pengeluaranStart || !pengeluaranEnd) return true;
-    
     const pDate = p.waktu?.toDate ? p.waktu.toDate() : new Date(p.waktu);
     const sDate = new Date(pengeluaranStart); sDate.setHours(0,0,0,0);
     const eDate = new Date(pengeluaranEnd); eDate.setHours(23,59,59,999);
@@ -875,55 +822,34 @@ const addToCart = (p) => {
 
   const filteredTransaksi = transaksi.filter(t => {
     if (!t.waktu) return false;
-    
     const cari = searchLaporan.toLowerCase();
-    const matchCari = cari === '' || 
-                      t.items.some(i => i.nama.toLowerCase().includes(cari)) || 
-                      (t.metode && t.metode.toLowerCase().includes(cari)) || 
-                      (t.namaPelanggan && t.namaPelanggan.toLowerCase().includes(cari));
-                      
+    const matchCari = cari === '' || t.items.some(i => i.nama.toLowerCase().includes(cari)) || (t.metode && t.metode.toLowerCase().includes(cari)) || (t.namaPelanggan && t.namaPelanggan.toLowerCase().includes(cari));
     if (!matchCari) return false;
 
     const dateObj = t.waktu.toDate ? t.waktu.toDate() : new Date(); 
     const today = new Date();
     
-    if (reportFilter === 'hari') {
-      return dateObj.toDateString() === today.toDateString();
-    } else if (reportFilter === 'minggu') {
-      return dateObj >= new Date(today.setDate(today.getDate() - today.getDay()));
-    } else if (reportFilter === 'bulan') {
-      return dateObj.getMonth() === today.getMonth() && dateObj.getFullYear() === today.getFullYear();
-    }
+    if (reportFilter === 'hari') return dateObj.toDateString() === today.toDateString();
+    else if (reportFilter === 'minggu') return dateObj >= new Date(today.setDate(today.getDate() - today.getDay()));
+    else if (reportFilter === 'bulan') return dateObj.getMonth() === today.getMonth() && dateObj.getFullYear() === today.getFullYear();
     return true;
   });
 
-  const displayedLaporan = laporanTab === 'bon' 
-    ? filteredTransaksi.filter(t => t.metode === 'Bon' && t.statusBon !== 'Lunas') 
-    : filteredTransaksi;
+  const displayedLaporan = laporanTab === 'bon' ? filteredTransaksi.filter(t => t.metode === 'Bon' && t.statusBon !== 'Lunas') : filteredTransaksi;
+  const pelangganTersaring = pelanggan.filter(p => p.nama.toLowerCase().includes(searchPelanggan.toLowerCase()) || (p.wa && p.wa.includes(searchPelanggan)));
 
-  const pelangganTersaring = pelanggan.filter(p => 
-    p.nama.toLowerCase().includes(searchPelanggan.toLowerCase()) || 
-    (p.wa && p.wa.includes(searchPelanggan))
-  );
-
-  // --- EXPORT EXCEL ---
   const exportExcelTrans = () => {
     const headers = ["Tanggal", "Jam", "Metode Pembayaran", "Nama Pelanggan", "Status", "Items", "Diskon Poin", "Total", "Laba Kotor"];
     const rows = displayedLaporan.map(t => {
       const d = t.waktu?.toDate ? t.waktu.toDate() : new Date();
       const items = t.items.map(i => `${i.qty} ${i.satuan || 'Pcs'} ${i.nama}`).join(' + ');
       const labaKotor = t.items.reduce((sum, item) => sum + ((item.harga - (item.hargaModal || 0)) * item.qty), 0);
-      return [
-        d.toLocaleDateString('id-ID'), d.toLocaleTimeString('id-ID'), t.metode || 'Tunai', 
-        `"${t.namaPelanggan || '-'}"`, `"${t.statusBon || '-'}"`, `"${items}"`, 
-        t.diskonPoin || 0, t.total, labaKotor
-      ].join(';');
+      return [ d.toLocaleDateString('id-ID'), d.toLocaleTimeString('id-ID'), t.metode || 'Tunai', `"${t.namaPelanggan || '-'}"`, `"${t.statusBon || '-'}"`, `"${items}"`, t.diskonPoin || 0, t.total, labaKotor ].join(';');
     });
     const csvStr = "\uFEFF" + headers.join(';') + "\n" + rows.join("\n");
     const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
-    link.download = `Laporan_${laporanTab === 'bon' ? 'Bon' : 'Transaksi'}_Kasir.csv`;
-    link.click();
+    link.download = `Laporan_${laporanTab === 'bon' ? 'Bon' : 'Transaksi'}_Kasir.csv`; link.click();
   };
 
   const exportExcelPengeluaran = () => {
@@ -938,18 +864,12 @@ const addToCart = (p) => {
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
     link.download = `Laporan_Pengeluaran.csv`; link.click();
   };
+  
   const exportExcelPelanggan = () => {
     const headers = ["Nama Pelanggan", "WhatsApp", "Poin", "Email", "Alamat", "Tanggal Daftar"];
     const rows = pelangganTersaring.map(p => {
       const d = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('id-ID') : '-';
-      return [
-        `"${p.nama}"`, 
-        `"${p.wa || '-'}"`, 
-        p.poin || 0, 
-        `"${p.email || '-'}"`, 
-        `"${p.alamat || '-'}"`, 
-        `"${d}"`
-      ].join(';');
+      return [ `"${p.nama}"`, `"${p.wa || '-'}"`, p.poin || 0, `"${p.email || '-'}"`, `"${p.alamat || '-'}"`, `"${d}"` ].join(';');
     });
     const csvStr = "\uFEFF" + headers.join(';') + "\n" + rows.join("\n");
     const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
@@ -962,8 +882,7 @@ const addToCart = (p) => {
     if (chartFilter === 'jam') {
       const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === now.toDateString());
       for(let i=8; i<=22; i+=2) { 
-        labels.push(`${i}:00`); 
-        values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0)); 
+        labels.push(`${i}:00`); values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0)); 
       }
     } else if (chartFilter === 'hari') {
       for(let i=6; i>=0; i--) { 
@@ -998,7 +917,6 @@ const addToCart = (p) => {
      });
      return Object.values(pS).sort((a, b) => b.qty - a.qty).slice(0, 10);
   };
-  
   const topProductsFinal = getTopProductsVal();
 
   const filteredAndSortedProduk = [...produk].filter(p => {
@@ -1010,8 +928,7 @@ const addToCart = (p) => {
   });
 
   const toggleSelectProduct = (id) => setSelectedProducts(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
-
-  // === TAMPILAN: LOADING & LOGIN (DENGAN BACKGROUND CUSTOM LOKAL) ===
+  // === TAMPILAN: LOADING & LOGIN ===
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "'Inter', sans-serif", color: '#FF7835' }}>
@@ -1030,15 +947,9 @@ const addToCart = (p) => {
         <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.4)', zIndex: 1 }}></div>
         <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', width: '100%', maxWidth: '420px', zIndex: 10, position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div style={{ fontSize: '13px', fontWeight: '800', color: '#FF7835', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>
-              Selamat Datang di Aplikasi
-            </div>
-            <h1 style={{ fontSize: '30px', fontWeight: '900', color: '#272734', margin: 0 }}>
-              POS MODERN PRO
-            </h1>
-            <p style={{ color: '#27274F', fontSize: '14px', margin: '8px 0 0 0', fontWeight: '600' }}>
-              UMKM Digital Solution
-            </p>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#FF7835', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>Selamat Datang di Aplikasi</div>
+            <h1 style={{ fontSize: '30px', fontWeight: '900', color: '#272734', margin: 0 }}>POS MODERN PRO</h1>
+            <p style={{ color: '#27274F', fontSize: '14px', margin: '8px 0 0 0', fontWeight: '600' }}>UMKM Digital Solution</p>
           </div>
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '20px' }}>
@@ -1055,118 +966,50 @@ const addToCart = (p) => {
             {isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Daftar disini'}
           </p>
         </div>
-        <div style={{ position: 'absolute', bottom: '20px', right: '24px', color: 'rgba(255,255,255,0.7)', fontSize: '12px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase', zIndex: 10 }}>
-          created by : Muhamad Rofiki
-        </div>
       </div>
     );
   }
-// === TAMPILAN UTAMA APLIKASI ===
+
+  // === TAMPILAN UTAMA APLIKASI ===
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif", background: '#f8fafc', overflow: 'hidden' }}>
       
       {/* --- HEADER --- */}
       <header className="no-print" style={{ flex: 'none', height: '70px', background: 'white', padding: '0 24px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 40, boxSizing: 'border-box' }}>
-        
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
-          {/* TOMBOL HAMBURGER MENU */}
-          <button 
-            tabIndex="0"
-            onClick={() => setIsSidebarOpen(true)} 
-            style={{ background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#272734', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            ☰
-          </button>
-          
+          <button tabIndex="0" onClick={() => setIsSidebarOpen(true)} style={{ background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#272734', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>☰</button>
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {namaToko || 'POS MODERN PRO'}
-            </h1>
-            <p className="header-email" style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Akun: {user.email}
-            </p>
+            <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{namaToko || 'POS MODERN PRO'}</h1>
+            <p className="header-email" style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Akun: {user.email}</p>
           </div>
         </div>
-        
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 'none' }}>
           <div className="live-clock" style={{ textAlign: 'right', paddingRight: '16px', borderRight: '2px solid #e2e8f0', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div className="date-text" style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>
-              {currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
-            </div>
-            <div className="time-text" style={{ fontSize: '15px', fontWeight: '900', color: '#272734', letterSpacing: '0.5px' }}>
-              {currentTime.toLocaleTimeString('id-ID')}
-            </div>
+            <div className="date-text" style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>{currentTime.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</div>
+            <div className="time-text" style={{ fontSize: '15px', fontWeight: '900', color: '#272734', letterSpacing: '0.5px' }}>{currentTime.toLocaleTimeString('id-ID')}</div>
           </div>
-          
-          <button 
-            tabIndex="0" 
-            onClick={() => setShowProfileModal(true)} 
-            style={{ background: '#fff7ed', border: '1px solid #FF7835', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#FF7835' }}
-          >
-            👤
-          </button>
-          {/* TOMBOL LOGOUT TELAH DIHAPUS DARI SINI. PINDAH KE DALAM PROFIL. */}
+          <button tabIndex="0" onClick={() => setShowProfileModal(true)} style={{ background: '#fff7ed', border: '1px solid #FF7835', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', cursor: 'pointer', color: '#FF7835' }}>👤</button>
         </div>
       </header>
 
-      {/* --- SIDEBAR HAMBURGER MENU (LACI) --- */}
-      <div 
-        className="no-print" 
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: isSidebarOpen ? 'block' : 'none', transition: 'opacity 0.3s' }} 
-        onClick={() => setIsSidebarOpen(false)}
-      >
-        <div 
-          style={{ width: '280px', height: '100%', background: 'white', display: 'flex', flexDirection: 'column', transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s ease-in-out', boxShadow: '5px 0 15px rgba(0,0,0,0.1)' }} 
-          onClick={(e) => e.stopPropagation()}
-        >
+      {/* --- SIDEBAR HAMBURGER MENU --- */}
+      <div className="no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: isSidebarOpen ? 'block' : 'none', transition: 'opacity 0.3s' }} onClick={() => setIsSidebarOpen(false)}>
+        <div style={{ width: '280px', height: '100%', background: 'white', display: 'flex', flexDirection: 'column', transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s ease-in-out', boxShadow: '5px 0 15px rgba(0,0,0,0.1)' }} onClick={(e) => e.stopPropagation()}>
           <div style={{ padding: '24px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '1px' }}>MENU UTAMA</h2>
               <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>POS Modern Pro</p>
             </div>
-            <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', fontWeight: 'bold' }}>
-              ×
-            </button>
+            <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
           </div>
-          
           <div style={{ flex: 1, padding: '16px 0', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {[ 
-              { id: 'dashboard', label: 'Dashboard', icon: '📊' }, 
-              { id: 'kasir', label: 'Kasir & Transaksi', icon: '💰' }, 
-              { id: 'toko', label: 'Database Produk', icon: '📦' }, 
-              { id: 'pengeluaran', label: 'Arus Kas / Biaya', icon: '💸' }, 
-              { id: 'laporan', label: 'Laporan Penjualan', icon: '📉' },
-              { id: 'pelanggan', label: 'CRM & Pelanggan', icon: '👥' }
-            ].map(tab => (
-              <button 
-                key={tab.id} 
-                onClick={() => { setActiveTab(tab.id); setIsSidebarOpen(false); }} 
-                style={{ 
-                  background: activeTab === tab.id ? '#fff7ed' : 'transparent', 
-                  color: activeTab === tab.id ? '#FF7835' : '#475569', 
-                  border: 'none', 
-                  borderRight: activeTab === tab.id ? '4px solid #FF7835' : '4px solid transparent', 
-                  padding: '16px 24px', 
-                  textAlign: 'left', 
-                  fontSize: '15px', 
-                  fontWeight: activeTab === tab.id ? '800' : '600', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '16px', 
-                  transition: 'background 0.2s, color 0.2s' 
-                }}
-              >
-                <span style={{ fontSize: '20px' }}>{tab.icon}</span>
-                {tab.label}
+            {[ { id: 'dashboard', label: 'Dashboard', icon: '📊' }, { id: 'kasir', label: 'Kasir & Transaksi', icon: '💰' }, { id: 'toko', label: 'Database Produk', icon: '📦' }, { id: 'pengeluaran', label: 'Arus Kas / Biaya', icon: '💸' }, { id: 'laporan', label: 'Laporan Penjualan', icon: '📉' }, { id: 'pelanggan', label: 'CRM & Pelanggan', icon: '👥' } ].map(tab => (
+              <button key={tab.id} onClick={() => { setActiveTab(tab.id); setIsSidebarOpen(false); }} style={{ background: activeTab === tab.id ? '#fff7ed' : 'transparent', color: activeTab === tab.id ? '#FF7835' : '#475569', border: 'none', borderRight: activeTab === tab.id ? '4px solid #FF7835' : '4px solid transparent', padding: '16px 24px', textAlign: 'left', fontSize: '15px', fontWeight: activeTab === tab.id ? '800' : '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '16px', transition: 'background 0.2s, color 0.2s' }}>
+                <span style={{ fontSize: '20px' }}>{tab.icon}</span>{tab.label}
               </button>
             ))}
           </div>
-
-          <div style={{ padding: '24px', borderTop: '1px solid #e2e8f0', fontSize: '12px', color: '#94a3b8', textAlign: 'center', fontWeight: '600' }}>
-            Aplikasi Kasir V.2.0<br/>
-            © 2026 Muhamad Rofiki
-          </div>
+          <div style={{ padding: '24px', borderTop: '1px solid #e2e8f0', fontSize: '12px', color: '#94a3b8', textAlign: 'center', fontWeight: '600' }}>Aplikasi Kasir V.2.0<br/>© 2026 Muhamad Rofiki</div>
         </div>
       </div>
 
@@ -1175,16 +1018,9 @@ const addToCart = (p) => {
         {/* --- TAB DASHBOARD --- */}
         {activeTab === 'dashboard' && (
           <div className="dashboard-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '24px', boxSizing: 'border-box', width: '100%', overflow: 'hidden' }}>
-            
             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-               <h2 style={{margin: 0, color: '#272734', fontWeight: '900'}}>
-                 🎯 Ringkasan Bisnis
-               </h2>
-               <select 
-                  value={dashboardTimeFilter} 
-                  onChange={(e) => setDashboardTimeFilter(e.target.value)} 
-                  style={{ padding: '8px 16px', borderRadius: '10px', border: '2px solid #FF7835', background: '#fffaf5', color: '#ea580c', fontWeight: '800', outline: 'none', cursor: 'pointer' }}
-               >
+               <h2 style={{margin: 0, color: '#272734', fontWeight: '900'}}>🎯 Ringkasan Bisnis</h2>
+               <select value={dashboardTimeFilter} onChange={(e) => setDashboardTimeFilter(e.target.value)} style={{ padding: '8px 16px', borderRadius: '10px', border: '2px solid #FF7835', background: '#fffaf5', color: '#ea580c', fontWeight: '800', outline: 'none', cursor: 'pointer' }}>
                   <option value="hari_ini">📅 Hari Ini</option>
                   <option value="kemarin">🔙 Kemarin</option>
                   <option value="minggu_ini">📈 Minggu Ini</option>
@@ -1195,147 +1031,75 @@ const addToCart = (p) => {
 
             <div style={{ flex: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: 'linear-gradient(135deg, #4F46E5, #3B82F6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)' }}>
-                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
-                  Rp {dashboardStats.todaySales.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Omset ({dashboardTimeFilter.replace('_', ' ')})
-                </div>
+                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>Rp {dashboardStats.todaySales.toLocaleString()}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Omset ({dashboardTimeFilter.replace('_', ' ')})</div>
               </div>
-              
               <div style={{ background: 'linear-gradient(135deg, #0D9488, #14B8A6)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(20, 184, 166, 0.3)' }}>
-                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
-                  Rp {dashboardStats.totalPengeluaran.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Pengeluaran ({dashboardTimeFilter.replace('_', ' ')})
-                </div>
+                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>Rp {dashboardStats.totalPengeluaran.toLocaleString()}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pengeluaran ({dashboardTimeFilter.replace('_', ' ')})</div>
               </div>
-              
               <div style={{ background: 'white', border: `2px solid ${isProfit ? '#10b981' : '#ef4444'}`, padding: '20px', borderRadius: '16px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: isProfit ? '#10b981' : '#ef4444' }}>
-                  {isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b' }}>
-                  Laba Bersih ({dashboardTimeFilter.replace('_', ' ')})
-                </div>
+                <div style={{ fontSize: '26px', fontWeight: '900', marginBottom: '4px', color: isProfit ? '#10b981' : '#ef4444' }}>{isProfit ? '' : '- '}Rp {Math.abs(dashboardStats.labaBersih).toLocaleString()}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b' }}>Laba Bersih ({dashboardTimeFilter.replace('_', ' ')})</div>
               </div>
-
               <div style={{ background: 'linear-gradient(135deg, #EA580C, #F59E0B)', color: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(245, 158, 11, 0.3)' }}>
-                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>
-                  {dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span>
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Produk & Stok Tipis
-                </div>
+                <div style={{ fontSize: '26px', fontWeight: '800', marginBottom: '4px' }}>{dashboardStats.totalProducts} <span style={{ fontSize: '14px', fontWeight: '500' }}>/ {dashboardStats.lowStock} Tipis</span></div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Produk & Stok Tipis</div>
               </div>
             </div>
 
             <div className="dashboard-bottom-panel" style={{ display: 'flex', flexDirection: 'row', gap: '20px', flex: 1, minHeight: 0 }}>
-                
                 {/* GRAFIK PENDAPATAN */}
                 <div style={{ flex: 2, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                    <h3 style={{ margin: 0, color: '#272734', fontSize: '16px', fontWeight: '800' }}>
-                      📈 Grafik Pendapatan
-                    </h3>
+                    <h3 style={{ margin: 0, color: '#272734', fontSize: '16px', fontWeight: '800' }}>📈 Grafik Pendapatan</h3>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <div style={{ background: '#f1f5f9', borderRadius: '8px', padding: '4px', display: 'flex', gap: '4px' }}>
-                         <button 
-                           onClick={() => setChartVisualType('bar')} 
-                           style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'bar' ? 'white' : 'transparent', color: chartVisualType === 'bar' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'bar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}
-                         >
-                           📊 Bar
-                         </button>
-                         <button 
-                           onClick={() => setChartVisualType('line')} 
-                           style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'line' ? 'white' : 'transparent', color: chartVisualType === 'line' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'line' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}
-                         >
-                           📈 Line
-                         </button>
+                         <button onClick={() => setChartVisualType('bar')} style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'bar' ? 'white' : 'transparent', color: chartVisualType === 'bar' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'bar' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}>📊 Bar</button>
+                         <button onClick={() => setChartVisualType('line')} style={{ border: 'none', padding: '6px 12px', borderRadius: '6px', background: chartVisualType === 'line' ? 'white' : 'transparent', color: chartVisualType === 'line' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', boxShadow: chartVisualType === 'line' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', fontSize: '11px', transition: '0.2s' }}>📈 Line</button>
                       </div>
-                      <select 
-                        value={chartFilter} 
-                        onChange={(e) => setChartFilter(e.target.value)} 
-                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', color: '#27274F', background: '#fff', fontSize: '11px' }}
-                      >
-                        <option value="jam">Hari Ini (Per Jam)</option>
-                        <option value="hari">7 Hari Terakhir</option>
-                        <option value="bulan">6 Bulan Terakhir</option>
-                        <option value="tahun">5 Tahun Terakhir</option>
+                      <select value={chartFilter} onChange={(e) => setChartFilter(e.target.value)} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', color: '#27274F', background: '#fff', fontSize: '11px' }}>
+                        <option value="jam">Hari Ini (Per Jam)</option><option value="hari">7 Hari Terakhir</option><option value="bulan">6 Bulan Terakhir</option><option value="tahun">5 Tahun Terakhir</option>
                       </select>
                     </div>
                   </div>
-  
                   <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: 0 }}>
                     {chartVisualType === 'line' && (
                       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
-                        <polyline 
-                          points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} 
-                          fill="none" 
-                          stroke="#3b82f6" 
-                          strokeWidth="3" 
-                          vectorEffect="non-scaling-stroke" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                        />
+                        <polyline points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                     {chartDataFinal.data.map((d, i) => (
                       <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
-                        {d.total > 0 && (
-                          <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
-                            {d.total.toLocaleString()}
-                          </div>
-                        )}
-                        {chartVisualType === 'bar' ? (
-                          <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div>
-                        ) : (
-                          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}>
-                             <div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div>
-                          </div>
-                        )}
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>
-                          {d.label}
-                        </div>
+                        {d.total > 0 && <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>{d.total.toLocaleString()}</div>}
+                        {chartVisualType === 'bar' ? ( <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div> ) : ( <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}><div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div></div> )}
+                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>{d.label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* FITUR BARU: BEST SELLER & LABA PER ITEM */}
+                {/* BEST SELLER */}
                 <div style={{ flex: 1, background: 'white', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                   <h3 style={{ margin: '0 0 16px 0', color: '#272734', fontSize: '16px', fontWeight: '800', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>🏆 Top Produk (Terlaris)</span>
-                    <span style={{fontSize: '11px', color: '#10b981', background: '#dcfce7', padding: '4px 8px', borderRadius: '8px'}}>All Time</span>
+                    <span>🏆 Top Produk (Terlaris)</span><span style={{fontSize: '11px', color: '#10b981', background: '#dcfce7', padding: '4px 8px', borderRadius: '8px'}}>All Time</span>
                   </h3>
-                  
                   <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
                     {topProductsFinal.length === 0 ? (
-                        <div style={{textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '50px'}}>
-                          Belum ada data penjualan...
-                        </div>
+                        <div style={{textAlign: 'center', color: '#94a3b8', fontSize: '13px', marginTop: '50px'}}>Belum ada data penjualan...</div>
                     ) : (
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                           <thead>
                             <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', position: 'sticky', top: 0, background: 'white' }}>
-                              <th style={{ padding: '8px 0' }}>Nama Item</th>
-                              <th style={{ padding: '8px 0', textAlign: 'center' }}>Terjual</th>
-                              <th style={{ padding: '8px 0', textAlign: 'right' }}>Laba Kotor</th>
+                              <th style={{ padding: '8px 0' }}>Nama Item</th><th style={{ padding: '8px 0', textAlign: 'center' }}>Terjual</th><th style={{ padding: '8px 0', textAlign: 'right' }}>Laba Kotor</th>
                             </tr>
                           </thead>
                           <tbody>
                             {topProductsFinal.map((p, i) => (
                               <tr key={i} style={{ borderBottom: '1px dashed #f1f5f9' }}>
-                                <td style={{ padding: '12px 0', fontWeight: '700', color: '#272734' }}>
-                                  {i+1}. {p.nama}
-                                </td>
-                                <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: '800', color: '#FF7835' }}>
-                                  {p.qty}x
-                                </td>
-                                <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>
-                                  Rp {p.laba.toLocaleString()}
-                                </td>
+                                <td style={{ padding: '12px 0', fontWeight: '700', color: '#272734' }}>{i+1}. {p.nama}</td>
+                                <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: '800', color: '#FF7835' }}>{p.qty}x</td>
+                                <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: '800', color: '#10b981' }}>Rp {p.laba.toLocaleString()}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1343,101 +1107,38 @@ const addToCart = (p) => {
                     )}
                   </div>
                 </div>
-
             </div>
           </div>
         )}
-{/* --- TAB KASIR --- */}
+
+        {/* --- TAB KASIR --- */}
         {activeTab === 'kasir' && (
           <div className="desktop-row-mobile-col" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
-            
             <div className="kasir-left-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              
               <div className="kasir-tools" style={{ flex: 'none', display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'nowrap', width: '100%' }}>
-                <input 
-                  type="text" 
-                  placeholder="🔍 Cari nama..." 
-                  value={search} 
-                  onChange={(e) => setSearch(e.target.value)} 
-                  style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} 
-                />
+                <input type="text" placeholder="🔍 Cari nama..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
                 <form onSubmit={handleManualScan} style={{ flex: 1, minWidth: 0 }}>
-                  <input 
-                    type="text" 
-                    placeholder="🔫 Scan..." 
-                    value={barcodeInput} 
-                    onChange={(e) => setBarcodeInput(e.target.value)} 
-                    style={{ width: '100%', padding: '10px 12px', border: '2px solid #FF7835', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} 
-                  />
+                  <input type="text" placeholder="🔫 Scan..." value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '2px solid #FF7835', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
                 </form>
-                <button 
-                  tabIndex="0" 
-                  onClick={() => setIsScanningKasir(!isScanningKasir)} 
-                  style={{ flex: 'none', padding: '10px 12px', background: isScanningKasir ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}
-                >
-                  {isScanningKasir ? '❌ Tutup' : '📸 Kamera'}
-                </button>
+                <button tabIndex="0" onClick={() => setIsScanningKasir(!isScanningKasir)} style={{ flex: 'none', padding: '10px 12px', background: isScanningKasir ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}>{isScanningKasir ? '❌ Tutup' : '📸 Kamera'}</button>
               </div>
 
               <div id="camera-popup-container" style={{ flex: 'none', background: '#272734', padding: '16px', borderRadius: '12px', marginBottom: '16px', textAlign: 'center', display: isScanningKasir ? 'block' : 'none' }}>
-                <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>
-                  Arahkan Barcode ke Kamera
-                </p>
+                <p style={{ color: 'white', margin: '0 0 10px 0', fontWeight: 'bold', fontSize: '14px' }}>Arahkan Barcode ke Kamera</p>
                 <div id="reader-kasir"></div>
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', paddingBottom: '20px' }}>
                 <div className="grid-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
                   {produk.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search)).map(p => (
-                    <div 
-                      key={p.id} 
-                      tabIndex="0" 
-                      onClick={() => addToCart(p)} 
-                      onKeyDown={(e) => { if(e.key === 'Enter') addToCart(p); }} 
-                      style={{ 
-                        background: 'white', 
-                        borderRadius: '12px', 
-                        padding: '12px', 
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)', 
-                        cursor: 'pointer', 
-                        border: p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent', 
-                        position: 'relative', 
-                        transition: 'transform 0.1s, border 0.1s', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        height: '115px', 
-                        justifyContent: 'space-between', 
-                        boxSizing: 'border-box', 
-                        overflow: 'hidden' 
-                      }} 
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.border = '2px solid #FF7835'; }} 
-                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent'; }}
-                    >
-                      {p.stok < 50 && (
-                        <div style={{ position: 'absolute', top: '6px', right: '6px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>
-                          {p.stok === 0 ? 'HABIS' : 'TIPIS'}
-                        </div>
-                      )}
-                      
-                      <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '700', color: '#272734', lineHeight: '1.2', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '31px' }}>
-                        {p.nama}
-                      </h3>
-                      
+                    <div key={p.id} tabIndex="0" onClick={() => addToCart(p)} onKeyDown={(e) => { if(e.key === 'Enter') addToCart(p); }} style={{ background: 'white', borderRadius: '12px', padding: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', cursor: 'pointer', border: p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent', position: 'relative', transition: 'transform 0.1s, border 0.1s', display: 'flex', flexDirection: 'column', height: '115px', justifyContent: 'space-between', boxSizing: 'border-box', overflow: 'hidden' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.border = '2px solid #FF7835'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.border = p.stok < 50 ? '2px solid #fee2e2' : '2px solid transparent'; }}>
+                      {p.stok < 50 && <div style={{ position: 'absolute', top: '6px', right: '6px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>{p.stok === 0 ? 'HABIS' : 'TIPIS'}</div>}
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '700', color: '#272734', lineHeight: '1.2', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '31px' }}>{p.nama}</h3>
                       <div className="harga-text" style={{ fontSize: '16px', fontWeight: '900', color: p.hargaPromo ? '#e11d48' : '#0ea5e9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {p.hargaPromo && (
-                          <span style={{textDecoration: 'line-through', fontSize: '10px', color: '#94a3b8', marginRight: '4px'}}>
-                            Rp{p.harga.toLocaleString()}
-                          </span>
-                        )}
-                        Rp {(p.hargaPromo || p.harga).toLocaleString()}
+                        {p.hargaPromo && <span style={{textDecoration: 'line-through', fontSize: '10px', color: '#94a3b8', marginRight: '4px'}}>Rp{p.harga.toLocaleString()}</span>} Rp {(p.hargaPromo || p.harga).toLocaleString()}
                       </div>
-                      
                       <div style={{ fontSize: '11px', color: '#27274F', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                        <span style={{ background: p.stok < 50 ? '#fee2e2' : '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>
-                          <span style={{ color: p.stok < 50 ? '#dc2626' : '#16a34a' }}>
-                            {p.stok} {p.satuan || 'Pcs'}
-                          </span>
-                        </span>
+                        <span style={{ background: p.stok < 50 ? '#fee2e2' : '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}><span style={{ color: p.stok < 50 ? '#dc2626' : '#16a34a' }}>{p.stok} {p.satuan || 'Pcs'}</span></span>
                       </div>
                     </div>
                   ))}
@@ -1447,75 +1148,29 @@ const addToCart = (p) => {
 
             <div className="kasir-right-panel" style={{ flex: '0 0 420px', background: 'white', borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
               <div style={{ flex: 'none', padding: '16px 20px', borderBottom: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fffaf5' }}>
-                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#272734' }}>
-                  🛒 Keranjang ({cart.length})
-                </h2>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#272734' }}>🛒 Keranjang ({cart.length})</h2>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {/* TOMBOL MEMBER BARU DI HEADER KERANJANG */}
-                  <button 
-                    tabIndex="0" 
-                    onClick={() => setShowMemberModal(true)} 
-                    style={{ background: '#3b82f6', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}
-                  >
-                    👤 + Member
-                  </button>
-                  {cart.length > 0 && (
-                    <button 
-                      tabIndex="0" 
-                      onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); setMemberTerpilih(null); setGunakanPoin(false); }} 
-                      style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}
-                    >
-                      Kosongkan
-                    </button>
-                  )}
+                  <button tabIndex="0" onClick={() => setShowMemberModal(true)} style={{ background: '#3b82f6', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}>👤 + Member</button>
+                  {cart.length > 0 && <button tabIndex="0" onClick={() => { setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); setMemberTerpilih(null); setGunakanPoin(false); }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: '700', cursor: 'pointer', transition: '0.2s', fontSize: '11px' }}>Kosongkan</button>}
                 </div>
               </div>
               
               <div className="cart-list" style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
                 {cart.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#27274F', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>
-                    Belum ada pesanan...
-                  </div>
+                  <div style={{ textAlign: 'center', color: '#27274F', marginTop: '30px', fontSize: '13px', fontWeight: '500' }}>Belum ada pesanan...</div>
                 ) : (
                   cart.map(item => (
                   <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 0', borderBottom: '1px dashed #e2e8f0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#272734' }}>
-                        {item.nama} <span style={{fontSize:'11px', color:'#94a3b8'}}>({item.satuan || 'Pcs'})</span>
-                      </h3>
-                      <button 
-                        tabIndex="0" 
-                        onClick={() => updateQuantity(item.id, 0)} 
-                        style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
-                      >
-                        ×
-                      </button>
+                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#272734' }}>{item.nama} <span style={{fontSize:'11px', color:'#94a3b8'}}>({item.satuan || 'Pcs'})</span></h3>
+                      <button tabIndex="0" onClick={() => updateQuantity(item.id, 0)} style={{ background: '#fee2e2', border: 'none', color: '#dc2626', width: '20px', height: '20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>×</button>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#FF7835' }}>
-                        Rp {(item.harga * item.qty).toLocaleString()}
-                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: '900', color: '#FF7835' }}>Rp {(item.harga * item.qty).toLocaleString()}</div>
                       <div style={{ display: 'flex', alignItems: 'center', background: 'white', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                        <button 
-                          tabIndex="0" 
-                          onClick={() => updateQuantity(item.id, item.qty - 1)} 
-                          style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#f1f5f9', border: 'none', color: '#27274F', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-                        >
-                          −
-                        </button>
-                        <input 
-                          type="number" 
-                          value={item.qty} 
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 0)} 
-                          style={{ width: '30px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '13px', fontWeight: '800', color: '#272734', outline: 'none' }} 
-                        />
-                        <button 
-                          tabIndex="0" 
-                          onClick={() => addToCart(item)} 
-                          style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#FF7835', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-                        >
-                          +
-                        </button>
+                        <button tabIndex="0" onClick={() => updateQuantity(item.id, item.qty - 1)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#f1f5f9', border: 'none', color: '#27274F', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>−</button>
+                        <input type="number" value={item.qty} onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 0)} style={{ width: '30px', textAlign: 'center', background: 'transparent', border: 'none', fontSize: '13px', fontWeight: '800', color: '#272734', outline: 'none' }} />
+                        <button tabIndex="0" onClick={() => addToCart(item)} style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#FF7835', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>+</button>
                       </div>
                     </div>
                   </div>
@@ -1523,87 +1178,30 @@ const addToCart = (p) => {
               </div>
 
               <div style={{ flex: 'none', padding: '16px 20px', background: '#fffaf5', borderTop: '2px solid #fed7aa' }}>
-                
-                {/* === INDIKATOR POIN PELANGGAN (SUPER TIPIS) === */}
                 {memberTerpilih && (
                   <div style={{ padding: '8px 12px', background: '#dcfce7', borderRadius: '8px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #bbf7d0' }}>
                     <div>
-                      <span style={{ fontSize: '12px', fontWeight: '800', color: '#166534' }}>
-                        👤 {memberTerpilih.nama}
-                      </span>
-                      <div style={{ fontSize: '10px', color: '#15803d', fontWeight: '600' }}>
-                        Saldo: {memberTerpilih.poin || 0} Poin
-                      </div>
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: '#166534' }}>👤 {memberTerpilih.nama}</span>
+                      <div style={{ fontSize: '10px', color: '#15803d', fontWeight: '600' }}>Saldo: {memberTerpilih.poin || 0} Poin</div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      {memberTerpilih.poin > 0 && (
-                        <button 
-                          onClick={() => setGunakanPoin(!gunakanPoin)} 
-                          style={{ background: gunakanPoin ? '#16a34a' : 'white', color: gunakanPoin ? 'white' : '#16a34a', border: '1px solid #16a34a', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
-                        >
-                          {gunakanPoin ? '✅ Poin Dipakai' : '🎁 Pakai Poin'}
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => { setMemberTerpilih(null); setGunakanPoin(false); }} 
-                        style={{ background: 'transparent', border: 'none', color: '#dc2626', fontSize: '14px', cursor: 'pointer', fontWeight: 'bold' }}
-                      >
-                        ×
-                      </button>
+                      {memberTerpilih.poin > 0 && <button onClick={() => setGunakanPoin(!gunakanPoin)} style={{ background: gunakanPoin ? '#16a34a' : 'white', color: gunakanPoin ? 'white' : '#16a34a', border: '1px solid #16a34a', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>{gunakanPoin ? '✅ Poin Dipakai' : '🎁 Pakai Poin'}</button>}
+                      <button onClick={() => { setMemberTerpilih(null); setGunakanPoin(false); }} style={{ background: 'transparent', border: 'none', color: '#dc2626', fontSize: '14px', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
                     </div>
                   </div>
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#27274F' }}>
-                    Total {gunakanPoin ? 'Diskon Poin:' : 'Pembelian:'}
-                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#27274F' }}>Total {gunakanPoin ? 'Diskon Poin:' : 'Pembelian:'}</span>
                   <div style={{ textAlign: 'right' }}>
-                    {gunakanPoin && (
-                       <div style={{ fontSize: '12px', color: '#94a3b8', textDecoration: 'line-through' }}>
-                         Rp {totalAmountVal.toLocaleString()}
-                       </div>
-                    )}
-                    <span style={{ fontSize: '20px', fontWeight: '900', color: gunakanPoin ? '#16a34a' : '#272734' }}>
-                      Rp {totalSetelahDiskon.toLocaleString()}
-                    </span>
+                    {gunakanPoin && <div style={{ fontSize: '12px', color: '#94a3b8', textDecoration: 'line-through' }}>Rp {totalAmountVal.toLocaleString()}</div>}
+                    <span style={{ fontSize: '20px', fontWeight: '900', color: gunakanPoin ? '#16a34a' : '#272734' }}>Rp {totalSetelahDiskon.toLocaleString()}</span>
                   </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
                   {['Tunai', 'QRIS', 'Transfer', 'Bon'].map(metode => (
-                    <button
-                      key={metode} 
-                      tabIndex="0" 
-                      className="btn-metode"
-                      onClick={() => {
-                        if (metode === 'Bon' && cart.length === 0) { 
-                          alert('Keranjang masih kosong!'); 
-                          return; 
-                        }
-                        setMetodePembayaran(metode);
-                        if(metode !== 'Tunai' && metode !== 'Bon') {
-                          setPaymentAmount(totalSetelahDiskon);
-                        } else {
-                          setPaymentAmount('');
-                        }
-                      }}
-                      style={{ 
-                        flex: 1, 
-                        padding: '8px 4px', 
-                        borderRadius: '8px', 
-                        cursor: 'pointer', 
-                        fontWeight: '800', 
-                        fontSize: '12px', 
-                        background: metodePembayaran === metode ? '#FF7835' : 'white', 
-                        color: metodePembayaran === metode ? 'white' : '#27274F', 
-                        border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1', 
-                        transition: 'all 0.2s', 
-                        whiteSpace: 'nowrap', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis' 
-                      }}
-                    >
+                    <button key={metode} tabIndex="0" className="btn-metode" onClick={() => { if (metode === 'Bon' && cart.length === 0) { alert('Keranjang masih kosong!'); return; } setMetodePembayaran(metode); if(metode !== 'Tunai' && metode !== 'Bon') { setPaymentAmount(totalSetelahDiskon); } else { setPaymentAmount(''); } }} style={{ flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer', fontWeight: '800', fontSize: '12px', background: metodePembayaran === metode ? '#FF7835' : 'white', color: metodePembayaran === metode ? 'white' : '#27274F', border: metodePembayaran === metode ? 'none' : '1px solid #cbd5e1', transition: 'all 0.2s', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {metode === 'Tunai' ? '💵 Tunai' : metode === 'QRIS' ? '📱 QRIS' : metode === 'Transfer' ? '💳 Trans' : '📝 Bon'}
                     </button>
                   ))}
@@ -1611,52 +1209,24 @@ const addToCart = (p) => {
 
                 <div style={{ marginBottom: '12px' }}>
                   {metodePembayaran === 'Tunai' ? (
-                    <input 
-                      type="number" 
-                      placeholder="Ketik Nominal Uang (Rp)" 
-                      value={paymentAmount} 
-                      onChange={(e) => setPaymentAmount(e.target.value)} 
-                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalSetelahDiskon ? '2px solid #ef4444' : '2px solid #cbd5e1', fontSize: '16px', fontWeight: '800', outline: 'none', background: 'white', color: '#272734', boxSizing: 'border-box' }} 
-                    />
+                    <input type="number" placeholder="Ketik Nominal Uang (Rp)" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: paymentAmount !== '' && Number(paymentAmount) < totalSetelahDiskon ? '2px solid #ef4444' : '2px solid #cbd5e1', fontSize: '16px', fontWeight: '800', outline: 'none', background: 'white', color: '#272734', boxSizing: 'border-box' }} />
                   ) : metodePembayaran === 'QRIS' ? (
-                    <button 
-                      tabIndex="0" 
-                      onClick={() => setShowQrisModal(true)} 
-                      disabled={!qrisImage} 
-                      style={{ width: '100%', padding: '12px', borderRadius: '8px', background: !qrisImage ? '#cbd5e1' : '#272734', color: 'white', border: 'none', fontWeight: '800', cursor: !qrisImage ? 'not-allowed' : 'pointer', fontSize: '13px', textTransform: 'uppercase' }}
-                    >
-                      {qrisImage ? '📱 TAMPILKAN QRIS' : '⚠️ QRIS BELUM DIATUR'}
-                    </button>
+                    <button tabIndex="0" onClick={() => setShowQrisModal(true)} disabled={!qrisImage} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: !qrisImage ? '#cbd5e1' : '#272734', color: 'white', border: 'none', fontWeight: '800', cursor: !qrisImage ? 'not-allowed' : 'pointer', fontSize: '13px', textTransform: 'uppercase' }}>{qrisImage ? '📱 TAMPILKAN QRIS' : '⚠️ QRIS BELUM DIATUR'}</button>
                   ) : metodePembayaran === 'Transfer' ? (
-                    <div style={{ padding: '10px', background: '#eff6ff', color: '#0369a1', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #bae6fd' }}>
-                      💳 Pastikan transfer masuk sebelum cetak struk.
-                    </div>
+                    <div style={{ padding: '10px', background: '#eff6ff', color: '#0369a1', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #bae6fd' }}>💳 Pastikan transfer masuk sebelum cetak struk.</div>
                   ) : (
-                    <div style={{ padding: '10px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #ffedd5' }}>
-                      📝 {memberTerpilih ? `Bon akan tercatat atas nama ${memberTerpilih.nama}` : 'Klik Bayar & Cetak untuk mencatat nama Bon.'}
-                    </div>
+                    <div style={{ padding: '10px', background: '#fff7ed', color: '#ea580c', borderRadius: '8px', textAlign: 'center', fontWeight: '700', fontSize: '12px', border: '1px solid #ffedd5' }}>📝 {memberTerpilih ? `Bon akan tercatat atas nama ${memberTerpilih.nama}` : 'Klik Bayar & Cetak untuk mencatat nama Bon.'}</div>
                   )}
                 </div>
 
                 {metodePembayaran === 'Tunai' && paymentAmount !== '' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', padding: '10px', background: Number(paymentAmount) >= totalSetelahDiskon ? '#dcfce7' : '#fee2e2', borderRadius: '8px', border: `1px solid ${Number(paymentAmount) >= totalSetelahDiskon ? '#bbf7d0' : '#fecaca'}` }}>
-                    <span style={{ fontWeight: '800', fontSize: '12px', color: Number(paymentAmount) >= totalSetelahDiskon ? '#16a34a' : '#dc2626' }}>
-                      {Number(paymentAmount) >= totalSetelahDiskon ? 'Kembalian:' : '⚠️ Uang Kurang:'}
-                    </span>
-                    <span style={{ fontWeight: '900', fontSize: '16px', color: Number(paymentAmount) >= totalSetelahDiskon ? '#16a34a' : '#dc2626' }}>
-                      Rp {Math.abs(kembalianVal).toLocaleString()}
-                    </span>
+                    <span style={{ fontWeight: '800', fontSize: '12px', color: Number(paymentAmount) >= totalSetelahDiskon ? '#16a34a' : '#dc2626' }}>{Number(paymentAmount) >= totalSetelahDiskon ? 'Kembalian:' : '⚠️ Uang Kurang:'}</span>
+                    <span style={{ fontWeight: '900', fontSize: '16px', color: Number(paymentAmount) >= totalSetelahDiskon ? '#16a34a' : '#dc2626' }}>Rp {Math.abs(kembalianVal).toLocaleString()}</span>
                   </div>
                 )}
 
-                <button 
-                  tabIndex="0" 
-                  onClick={processPayment} 
-                  disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))} 
-                  style={{ width: '100%', padding: '14px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))) ? '#e2e8f0' : '#FF7835', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}
-                >
-                  BAYAR & CETAK
-                </button>
+                <button tabIndex="0" onClick={processPayment} disabled={cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))} style={{ width: '100%', padding: '14px', background: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))) ? '#e2e8f0' : '#FF7835', color: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))) ? '#94a3b8' : 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '800', cursor: (cart.length === 0 || (metodePembayaran === 'Tunai' && (paymentAmount === '' || Number(paymentAmount) < totalSetelahDiskon))) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '1px' }}>BAYAR & CETAK</button>
               </div>
             </div>
           </div>
@@ -1665,50 +1235,18 @@ const addToCart = (p) => {
         {/* --- TAB TOKO (PRODUK) --- */}
         {activeTab === 'toko' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
-            
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              
               <div className="tabel-header-container" style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                  <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>
-                    📦 Database Produk
-                  </h3>
-                  <input 
-                    type="text" 
-                    placeholder="🔍 Cari nama / barcode..." 
-                    value={searchProduk} 
-                    onChange={(e) => setSearchProduk(e.target.value)} 
-                    style={{ flex: 1, maxWidth: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} 
-                  />
+                  <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>📦 Database Produk</h3>
+                  <input type="text" placeholder="🔍 Cari nama / barcode..." value={searchProduk} onChange={(e) => setSearchProduk(e.target.value)} style={{ flex: 1, maxWidth: '220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} />
                 </div>
                 <div className="action-buttons-mobile" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
-                  <select 
-                    tabIndex="0" 
-                    value={sortOrder} 
-                    onChange={e => setSortOrder(e.target.value)} 
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', fontSize: '12px', color: '#27274F', background: '#f8fafc', margin: 0, width: 'auto' }}
-                  >
-                    <option value="terbaru">Terbaru</option>
-                    <option value="az">A - Z</option>
+                  <select tabIndex="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: '700', fontSize: '12px', color: '#27274F', background: '#f8fafc', margin: 0, width: 'auto' }}>
+                    <option value="terbaru">Terbaru</option><option value="az">A - Z</option>
                   </select>
-                  
-                  {selectedProducts.length > 0 && (
-                    <button 
-                      tabIndex="0" 
-                      onClick={() => { setPrintData(produk.filter(p => selectedProducts.includes(p.id))); setPrintMode('label'); }} 
-                      style={{ background: '#0ea5e9', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
-                    >
-                      🖨️ Cetak ({selectedProducts.length})
-                    </button>
-                  )}
-                  
-                  <button 
-                    tabIndex="0" 
-                    onClick={() => { setPrintData(produk); setPrintMode('label'); }} 
-                    style={{ background: '#FF7835', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
-                  >
-                    🖨️ Cetak Semua
-                  </button>
+                  {selectedProducts.length > 0 && <button tabIndex="0" onClick={() => { setPrintData(produk.filter(p => selectedProducts.includes(p.id))); setPrintMode('label'); }} style={{ background: '#0ea5e9', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>🖨️ Cetak ({selectedProducts.length})</button>}
+                  <button tabIndex="0" onClick={() => { setPrintData(produk); setPrintMode('label'); }} style={{ background: '#FF7835', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>🖨️ Cetak Semua</button>
                 </div>
               </div>
               
@@ -1726,28 +1264,17 @@ const addToCart = (p) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredAndSortedProduk.length === 0 ? (
-                      <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Tidak ada produk.</td></tr>
-                    ) : (
-                      filteredAndSortedProduk.map(p => (
+                    {filteredAndSortedProduk.length === 0 ? ( <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Tidak ada produk.</td></tr> ) : ( filteredAndSortedProduk.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px', textAlign: 'center' }}>
-                          <input type="checkbox" checked={selectedProducts.includes(p.id)} onChange={() => toggleSelectProduct(p.id)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}><input type="checkbox" checked={selectedProducts.includes(p.id)} onChange={() => toggleSelectProduct(p.id)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} /></td>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px', whiteSpace: 'nowrap' }}>{p.nama}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: '800', color: '#0ea5e9', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                          {p.hargaPromo ? (
-                            <><span style={{ textDecoration: 'line-through', fontSize: '10px', color: '#94a3b8' }}>Rp {p.harga.toLocaleString()}</span><br/><span style={{ color: '#e11d48', fontWeight: 'bold' }}>Rp {p.hargaPromo.toLocaleString()}</span></>
-                          ) : ( <span>Rp {p.harga.toLocaleString()}</span> )}
-                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: '800', color: '#0ea5e9', fontSize: '13px', whiteSpace: 'nowrap' }}>{p.hargaPromo ? ( <><span style={{ textDecoration: 'line-through', fontSize: '10px', color: '#94a3b8' }}>Rp {p.harga.toLocaleString()}</span><br/><span style={{ color: '#e11d48', fontWeight: 'bold' }}>Rp {p.hargaPromo.toLocaleString()}</span></> ) : ( <span>Rp {p.harga.toLocaleString()}</span> )}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '600', color: '#64748b', fontSize: '13px', whiteSpace: 'nowrap' }}>Rp {(p.hargaModal || 0).toLocaleString()}</td>
-                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                          <span style={{ background: p.stok < 50 ? '#fee2e2' : '#dcfce7', color: p.stok < 50 ? '#dc2626' : '#16a34a', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px' }}>{p.stok} {p.satuan || 'Pcs'}</span>
-                        </td>
+                        <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}><span style={{ background: p.stok < 50 ? '#fee2e2' : '#dcfce7', color: p.stok < 50 ? '#dc2626' : '#16a34a', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px' }}>{p.stok} {p.satuan || 'Pcs'}</span></td>
                         <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: '#27274F', fontSize: '12px' }}>{p.barcode}</td>
                         <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
                           <button tabIndex="0" onClick={() => { setNamaProd(p.nama); setHargaProd(p.harga); setHargaPromoProd(p.hargaPromo || ''); setHargaModalProd(p.hargaModal || ''); setStokProd(p.stok); setBarcodeProd(p.barcode); setSatuanProd(p.satuan || 'Pcs'); setEditingProductId(p.id); }} style={{ background: '#272734', border: 'none', padding: '6px 10px', borderRadius: '6px', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Edit</button>
-                          <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin ingin menghapus produk ini?')) { deleteDoc(doc(db, "produk", p.id)); } }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
+                          <button tabIndex="0" onClick={async () => { if(window.confirm('Yakin hapus produk ini?')) { deleteDoc(doc(db, "produk", p.id)); } }} style={{ background: '#fee2e2', border: 'none', padding: '6px 10px', borderRadius: '6px', color: '#dc2626', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                         </td>
                       </tr>
                     )))}
@@ -1758,31 +1285,16 @@ const addToCart = (p) => {
 
             <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', display: 'flex', flexDirection: 'column' }}>
               <form onSubmit={simpanProduk} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', flex: 1, overflowY: 'auto' }}>
-                <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>
-                  {editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}
-                </h3>
-                
+                <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#FF7835', fontSize: '18px', fontWeight: '800' }}>{editingProductId ? '✏️ Edit Produk' : '➕ Tambah Produk'}</h3>
                 <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Nama Produk</label>
                 <input className="form-input" value={namaProd} onChange={e => setNamaProd(e.target.value)} required style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
-                
                 <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Normal</label>
-                    <input className="form-input" value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Promo</label>
-                    <input className="form-input" value={hargaPromoProd} onChange={e => setHargaPromoProd(e.target.value)} placeholder="Opsional" type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none', background: '#fef08a' }} />
-                  </div>
+                  <div style={{ flex: 1 }}><label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Normal</label><input className="form-input" value={hargaProd} onChange={e => setHargaProd(e.target.value)} required type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }} /></div>
+                  <div style={{ flex: 1 }}><label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Harga Promo</label><input className="form-input" value={hargaPromoProd} onChange={e => setHargaPromoProd(e.target.value)} placeholder="Opsional" type="number" style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none', background: '#fef08a' }} /></div>
                 </div>
-
                 <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#10b981', display: 'block', marginBottom: '6px' }}>Harga Modal / Beli</label>
-                    <input className="form-input" value={hargaModalProd} onChange={e => setHargaModalProd(e.target.value)} placeholder="Opsional" type="number" style={{ width: '100%', padding: '12px', border: '1px solid #a7f3d0', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none', background: '#ecfdf5' }} />
-                  </div>
+                  <div style={{ flex: 1 }}><label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#10b981', display: 'block', marginBottom: '6px' }}>Harga Modal / Beli</label><input className="form-input" value={hargaModalProd} onChange={e => setHargaModalProd(e.target.value)} placeholder="Opsional" type="number" style={{ width: '100%', padding: '12px', border: '1px solid #a7f3d0', borderRadius: '8px', boxSizing: 'border-box', fontSize: '13px', outline: 'none', background: '#ecfdf5' }} /></div>
                 </div>
-
                 <div className="form-row" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                   <div style={{ flex: 1 }}>
                     <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Stok Awal</label>
@@ -1794,29 +1306,18 @@ const addToCart = (p) => {
                     </div>
                   </div>
                 </div>
-                
                 <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 <div className="form-row barcode-row" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
                   <input className="form-input" value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Kosong = Auto" style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '12px', outline: 'none' }} />
-                  <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>
-                    {isScanningToko ? '❌ Tutup' : '📸 Scan'}
-                  </button>
+                  <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
                 </div>
-
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
                   <p style={{ color: 'white', margin: '0 0 10px 0', fontSize: '12px', fontWeight: 'bold' }}>Arahkan Barcode ke Kamera</p>
                   <div id="reader-toko"></div>
                 </div>
-                
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="form-btn-submit" tabIndex="0" type="submit" style={{ flex: 1, padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    {editingProductId ? 'UPDATE' : 'SIMPAN'}
-                  </button>
-                  {editingProductId && (
-                    <button className="form-btn-submit" tabIndex="0" type="button" onClick={() => { setEditingProductId(null); setNamaProd(''); setHargaProd(''); setHargaPromoProd(''); setHargaModalProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs'); }} style={{ flex: 1, padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      BATAL
-                    </button>
-                  )}
+                  <button className="form-btn-submit" tabIndex="0" type="submit" style={{ flex: 1, padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>{editingProductId ? 'UPDATE' : 'SIMPAN'}</button>
+                  {editingProductId && <button className="form-btn-submit" tabIndex="0" type="button" onClick={() => { setEditingProductId(null); setNamaProd(''); setHargaProd(''); setHargaPromoProd(''); setHargaModalProd(''); setStokProd(''); setBarcodeProd(''); setSatuanProd('Pcs'); }} style={{ flex: 1, padding: '14px', background: '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>BATAL</button>}
                 </div>
               </form>
             </div>
@@ -1826,36 +1327,22 @@ const addToCart = (p) => {
         {/* --- TAB PENGELUARAN --- */}
         {activeTab === 'pengeluaran' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
-            
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-              
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800', whiteSpace: 'nowrap' }}>💸 Riwayat Pengeluaran</h3>
-                
                 <div style={{ display: 'flex', gap: '8px', flex: 1, maxWidth: '600px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <input type="text" placeholder="🔍 Cari keterangan..." value={searchPengeluaran} onChange={(e) => setSearchPengeluaran(e.target.value)} style={{ flex: 1, minWidth: '150px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', outline: 'none', color: '#272734', fontWeight: '600', margin: 0, boxSizing: 'border-box' }} />
-                  
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '4px 8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <span style={{fontSize:'10px', fontWeight:'700', color:'#64748b'}}>Dari:</span>
-                    <input type="date" value={pengeluaranStart} onChange={e => setPengeluaranStart(e.target.value)} style={{ border:'none', background:'transparent', fontSize:'11px', outline:'none', color:'#272734', fontWeight:'bold' }} />
-                    <span style={{fontSize:'10px', fontWeight:'700', color:'#64748b'}}>Sampai:</span>
-                    <input type="date" value={pengeluaranEnd} onChange={e => setPengeluaranEnd(e.target.value)} style={{ border:'none', background:'transparent', fontSize:'11px', outline:'none', color:'#272734', fontWeight:'bold' }} />
+                    <span style={{fontSize:'10px', fontWeight:'700', color:'#64748b'}}>Dari:</span><input type="date" value={pengeluaranStart} onChange={e => setPengeluaranStart(e.target.value)} style={{ border:'none', background:'transparent', fontSize:'11px', outline:'none', color:'#272734', fontWeight:'bold' }} />
+                    <span style={{fontSize:'10px', fontWeight:'700', color:'#64748b'}}>Sampai:</span><input type="date" value={pengeluaranEnd} onChange={e => setPengeluaranEnd(e.target.value)} style={{ border:'none', background:'transparent', fontSize:'11px', outline:'none', color:'#272734', fontWeight:'bold' }} />
                   </div>
-
                   <button onClick={exportExcelPengeluaran} style={{ background: '#10b981', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📥 Excel</button>
                 </div>
               </div>
-              
               <div style={{ padding: '12px 16px', background: '#fff7ed', borderRadius: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <span style={{fontSize:'12px', color:'#ea580c', fontWeight:'700'}}>Total Rekap Sesuai Filter:</span>
-                  <div style={{fontSize:'20px', fontWeight:'900', color:'#272734'}}>Rp {totalPengeluaranTersaring.toLocaleString()}</div>
-                </div>
-                {(pengeluaranStart || pengeluaranEnd) && (
-                  <button onClick={() => { setPengeluaranStart(''); setPengeluaranEnd(''); }} style={{ background:'white', border:'1px solid #ea580c', color:'#ea580c', padding:'6px 12px', borderRadius:'8px', fontSize:'11px', fontWeight:'800', cursor:'pointer' }}>Reset Filter Tanggal</button>
-                )}
+                <div><span style={{fontSize:'12px', color:'#ea580c', fontWeight:'700'}}>Total Rekap Sesuai Filter:</span><div style={{fontSize:'20px', fontWeight:'900', color:'#272734'}}>Rp {totalPengeluaranTersaring.toLocaleString()}</div></div>
+                {(pengeluaranStart || pengeluaranEnd) && <button onClick={() => { setPengeluaranStart(''); setPengeluaranEnd(''); }} style={{ background:'white', border:'1px solid #ea580c', color:'#ea580c', padding:'6px 12px', borderRadius:'8px', fontSize:'11px', fontWeight:'800', cursor:'pointer' }}>Reset Filter Tanggal</button>}
               </div>
-              
               <div className="table-container" style={{ flex: 1, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                   <thead>
@@ -1867,10 +1354,7 @@ const addToCart = (p) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {pengeluaranTersaring.length === 0 ? (
-                      <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada data pengeluaran.</td></tr>
-                    ) : (
-                      pengeluaranTersaring.map(p => (
+                    {pengeluaranTersaring.length === 0 ? ( <tr><td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#27274F' }}>Belum ada data pengeluaran.</td></tr> ) : ( pengeluaranTersaring.map(p => (
                       <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px 16px', color: '#27274F', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' }}>{p.waktu ? (p.waktu.toDate ? p.waktu.toDate().toLocaleString('id-ID') : new Date(p.waktu).toLocaleString('id-ID')) : 'Baru saja'}</td>
                         <td style={{ padding: '12px 16px', fontWeight: '700', color: '#272734', fontSize: '13px', whiteSpace: 'nowrap' }}>{p.nama}</td>
@@ -1885,7 +1369,6 @@ const addToCart = (p) => {
                 </table>
               </div>
             </div>
-
             <div className="form-section sticky-box diet-form" style={{ flex: '0 0 350px', overflowY: 'visible', height: 'auto' }}>
               <form onSubmit={simpanPengeluaran} style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 className="form-title" style={{ margin: '0 0 20px 0', color: '#e11d48', fontSize: '18px', fontWeight: '800' }}>➖ Catat Pengeluaran</h3>
@@ -1898,38 +1381,22 @@ const addToCart = (p) => {
             </div>
           </div>
         )}
-        {/* ========================================================= */}
         {/* --- TAB CRM & PELANGGAN --- */}
-        {/* ========================================================= */}
         {activeTab === 'pelanggan' && (
           <div className="desktop-row-mobile-col mobile-reverse" style={{ height: '100%', display: 'flex', padding: '16px', gap: '16px', boxSizing: 'border-box', width: '100%' }}>
-            
             <div className="table-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
               <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 style={{ margin: 0, color: '#272734', fontSize: '18px', fontWeight: '800' }}>👥 Database Pelanggan</h3>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    placeholder="🔍 Cari nama / WA..."
-                    value={searchPelanggan}
-                    onChange={(e) => setSearchPelanggan(e.target.value)}
-                    style={{ padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none' }}
-                  />
-                  <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-                    📥 Excel
-                  </button>
+                  <input type="text" placeholder="🔍 Cari nama / WA..." value={searchPelanggan} onChange={(e) => setSearchPelanggan(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', outline: 'none' }} />
+                  <button onClick={exportExcelPelanggan} style={{ background: '#10b981', color: 'white', padding: '10px 16px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>📥 Excel</button>
                 </div>
               </div>
-              
               <div className="table-container" style={{ flex: 1, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
                   <thead>
                     <tr style={{ background: '#f8fafc', color: '#64748b', fontSize: '12px' }}>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Nama</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>WhatsApp</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Poin</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Alamat</th>
-                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
+                      <th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Nama</th><th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>WhatsApp</th><th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Poin</th><th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Alamat</th><th style={{ padding: '12px 16px', borderBottom: '2px solid #e2e8f0' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1938,9 +1405,7 @@ const addToCart = (p) => {
                       return (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '12px 16px', fontWeight: '800' }}>{p.nama}</td>
-                          <td style={{ padding: '12px 16px' }}>
-                             <a href={`https://wa.me/${cleanWa}`} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px' }}>💬 WA</a>
-                          </td>
+                          <td style={{ padding: '12px 16px' }}><a href={`https://wa.me/${cleanWa}`} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '12px' }}>💬 WA</a></td>
                           <td style={{ padding: '12px 16px', fontWeight: '900', color: '#FF7835' }}>{p.poin || 0} Pts</td>
                           <td style={{ padding: '12px 16px', fontSize: '11px', color: '#64748b' }}>{p.alamat || '-'}</td>
                           <td style={{ padding: '12px 16px', display: 'flex', gap: '6px' }}>
@@ -1954,8 +1419,6 @@ const addToCart = (p) => {
                 </table>
               </div>
             </div>
-
-            {/* Form Input Pelanggan */}
             <div style={{ flex: '0 0 320px' }}>
               <form onSubmit={simpanPelanggan} style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#3b82f6', fontSize: '16px', fontWeight: '800' }}>➕ Member Baru</h3>
@@ -1969,67 +1432,23 @@ const addToCart = (p) => {
           </div>
         )}
         
-{/* --- TAB LAPORAN (TRANSAKSI & BON) --- */}
+        {/* --- TAB LAPORAN (TRANSAKSI & BON) --- */}
         {activeTab === 'laporan' && (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '16px', boxSizing: 'border-box', width: '100%' }}>
-            
             <div style={{ flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
-              <h2 style={{ margin: '0', fontSize: '20px', color: '#272734', fontWeight: '800' }}>
-                📋 Laporan Transaksi
-              </h2>
-              
+              <h2 style={{ margin: '0', fontSize: '20px', color: '#272734', fontWeight: '800' }}>📋 Laporan Transaksi</h2>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button 
-                  tabIndex="0" 
-                  className="tab-laporan-btn" 
-                  onClick={() => setLaporanTab('transaksi')} 
-                  style={{ padding: '8px 16px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}
-                >
-                  Semua Transaksi
-                </button>
-                <button 
-                  tabIndex="0" 
-                  className="tab-laporan-btn" 
-                  onClick={() => setLaporanTab('bon')} 
-                  style={{ padding: '8px 16px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}
-                >
-                  Buku Bon (Piutang)
-                </button>
-                <button 
-                  tabIndex="0" 
-                  onClick={exportExcelTrans} 
-                  style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
-                >
-                  📥 Download Excel
-                </button>
-                <button 
-                  tabIndex="0" 
-                  onClick={() => setShowResetModal(true)} 
-                  style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
-                >
-                  🗑️ Hapus Data Lama
-                </button>
+                <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('transaksi')} style={{ padding: '8px 16px', background: laporanTab === 'transaksi' ? '#272734' : '#f1f5f9', color: laporanTab === 'transaksi' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Semua Transaksi</button>
+                <button tabIndex="0" className="tab-laporan-btn" onClick={() => setLaporanTab('bon')} style={{ padding: '8px 16px', background: laporanTab === 'bon' ? '#FF7835' : '#f1f5f9', color: laporanTab === 'bon' ? 'white' : '#64748b', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', fontSize: '13px', transition: '0.2s' }}>Buku Bon (Piutang)</button>
+                <button tabIndex="0" onClick={exportExcelTrans} style={{ padding: '8px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>📥 Download Excel</button>
+                <button tabIndex="0" onClick={() => setShowResetModal(true)} style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}>🗑️ Hapus Data Lama</button>
               </div>
             </div>
 
             <div style={{ flex: 'none', background: 'white', padding: '12px 16px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '8px', display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
-              <input 
-                type="text" 
-                placeholder="🔍 Cari nama barang, metode bayar, atau nama pelanggan..." 
-                value={searchLaporan} 
-                onChange={(e) => setSearchLaporan(e.target.value)} 
-                style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} 
-              />
-              <select 
-                tabIndex="0" 
-                value={reportFilter} 
-                onChange={(e) => setReportFilter(e.target.value)} 
-                style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}
-              >
-                <option value="hari">📅 Hari Ini</option>
-                <option value="minggu">📈 Minggu Ini</option>
-                <option value="bulan">📉 Bulan Ini</option>
-                <option value="semua">📂 Semua Waktu</option>
+              <input type="text" placeholder="🔍 Cari nama barang, metode bayar, atau nama pelanggan..." value={searchLaporan} onChange={(e) => setSearchLaporan(e.target.value)} style={{ flex: 2, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', minWidth: '200px' }} />
+              <select tabIndex="0" value={reportFilter} onChange={(e) => setReportFilter(e.target.value)} style={{ flex: 1, padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc', fontSize: '13px', fontWeight: '600', color: '#27274F', outline: 'none', minWidth: '150px' }}>
+                <option value="hari">📅 Hari Ini</option><option value="minggu">📈 Minggu Ini</option><option value="bulan">📉 Bulan Ini</option><option value="semua">📂 Semua Waktu</option>
               </select>
             </div>
 
@@ -2039,9 +1458,7 @@ const addToCart = (p) => {
 
             <div style={{ flex: 1, background: 'white', borderRadius: '16px', overflowY: 'auto', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', width: '100%' }}>
               {displayedLaporan.length === 0 ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>
-                  Belum ada data di tabel ini.
-                </div>
+                <div style={{ padding: '40px', textAlign: 'center', color: '#27274F', fontSize: '14px', fontWeight: '500' }}>Belum ada data di tabel ini.</div>
               ) : (
                 displayedLaporan.map(t => (
                 <div key={t.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2051,9 +1468,7 @@ const addToCart = (p) => {
                     </div>
                     {t.metode === 'Bon' && (
                       <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '900', color: '#272734' }}>
-                          👤 {t.namaPelanggan}
-                        </span>
+                        <span style={{ fontSize: '13px', fontWeight: '900', color: '#272734' }}>👤 {t.namaPelanggan}</span>
                         <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '900', background: t.statusBon === 'Lunas' ? '#dcfce7' : '#fee2e2', color: t.statusBon === 'Lunas' ? '#16a34a' : '#dc2626' }}>
                           {t.statusBon === 'Lunas' ? '✓ LUNAS' : '⚠️ BELUM LUNAS'}
                         </span>
@@ -2070,9 +1485,7 @@ const addToCart = (p) => {
                   
                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '15px', marginBottom: '2px' }}>
-                        Rp {t.total.toLocaleString()}
-                      </div>
+                      <div style={{ fontWeight: '900', color: '#FF7835', fontSize: '15px', marginBottom: '2px' }}>Rp {t.total.toLocaleString()}</div>
                       {t.metode === 'Tunai' && (
                         <div style={{ fontSize: '10px', color: '#27274F', fontWeight: '600' }}>
                           Tunai: Rp {t.uangBayar?.toLocaleString()} <span style={{ margin: '0 4px', color: '#cbd5e1' }}>|</span> Kem: Rp {t.kembalian?.toLocaleString()}
@@ -2081,25 +1494,9 @@ const addToCart = (p) => {
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {t.metode === 'Bon' && t.statusBon === 'Belum Lunas' && (
-                        <button 
-                          tabIndex="0" 
-                          onClick={async () => { 
-                            if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) {
-                              updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: new Date() }); 
-                            }
-                          }} 
-                          style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}
-                        >
-                          ✓ LUNAS
-                        </button>
+                        <button tabIndex="0" onClick={async () => { if(window.confirm(`Tandai tagihan Rp ${t.total.toLocaleString()} atas nama ${t.namaPelanggan} ini sudah LUNAS?`)) { updateDoc(doc(db, "transaksi", t.id), { statusBon: 'Lunas', waktuLunas: new Date() }); } }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(16,185,129,0.3)' }}>✓ LUNAS</button>
                       )}
-                      <button 
-                        tabIndex="0" 
-                        onClick={() => setStrukData(t)} 
-                        style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}
-                      >
-                        🖨️ Cetak
-                      </button>
+                      <button tabIndex="0" onClick={() => setStrukData(t)} style={{ background: '#272734', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '900', cursor: 'pointer', textTransform: 'uppercase' }}>🖨️ Cetak</button>
                     </div>
                   </div>
                 </div>
@@ -2107,636 +1504,373 @@ const addToCart = (p) => {
             </div>
           </div>
         )}
-{/* --- MODAL POP-UP CARI MEMBER (KASIR) --- */}
-        {showMemberModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '24px', borderRadius: '20px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ margin: 0, color: '#3b82f6', fontSize: '18px', fontWeight: '800' }}>Cari / Daftar Member</h3>
-                <button onClick={() => setShowMemberModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
-              </div>
-              
-              <input 
-                autoFocus
-                type="text" 
-                placeholder="🔍 Ketik nama atau WA..." 
-                value={searchPelanggan} 
-                onChange={e => setSearchPelanggan(e.target.value)} 
-                style={{ width: '100%', padding: '14px', marginBottom: '16px', border: '2px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: '600', outline: 'none', boxSizing: 'border-box' }} 
-              />
-              
-              <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
-                {pelangganTersaring.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px', padding: '20px' }}>
-                    Member tidak ditemukan.
-                  </div>
-                ) : (
-                  pelangganTersaring.map(p => (
-                    <div 
-                      key={p.id} 
-                      onClick={() => { setMemberTerpilih(p); setShowMemberModal(false); setSearchPelanggan(''); }}
-                      style={{ padding: '12px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: '800', color: '#272734', fontSize: '14px' }}>{p.nama}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{p.wa}</div>
-                      </div>
-                      <div style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px' }}>
-                        {p.poin || 0} Pts
-                      </div>
+      </main> 
+      {/* --- BATAS AKHIR AREA MAIN (KONTEN UTAMA) --- */}
+
+      {/* --- MODAL POP-UP CARI MEMBER (KASIR) --- */}
+      {showMemberModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '20px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, color: '#3b82f6', fontSize: '18px', fontWeight: '800' }}>Cari / Daftar Member</h3>
+              <button onClick={() => setShowMemberModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            <input autoFocus type="text" placeholder="🔍 Ketik nama atau WA..." value={searchPelanggan} onChange={e => setSearchPelanggan(e.target.value)} style={{ width: '100%', padding: '14px', marginBottom: '16px', border: '2px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: '600', outline: 'none', boxSizing: 'border-box' }} />
+            
+            <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
+              {pelangganTersaring.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '13px', padding: '20px' }}>Member tidak ditemukan.</div>
+              ) : (
+                pelangganTersaring.map(p => (
+                  <div key={p.id} onClick={() => { setMemberTerpilih(p); setShowMemberModal(false); setSearchPelanggan(''); }} style={{ padding: '12px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '800', color: '#272734', fontSize: '14px' }}>{p.nama}</div>
+                      <div style={{ fontSize: '12px', color: '#64748b' }}>{p.wa}</div>
                     </div>
-                  ))
-                )}
-              </div>
-              
-              <button 
-                onClick={() => { setShowMemberModal(false); setActiveTab('pelanggan'); }} 
-                style={{ width: '100%', padding: '14px', background: '#eff6ff', color: '#3b82f6', border: '2px dashed #bfdbfe', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}
-              >
-                ➕ DAFTARKAN MEMBER BARU
-              </button>
+                    <div style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '6px', fontWeight: '800', fontSize: '11px' }}>{p.poin || 0} Pts</div>
+                  </div>
+                ))
+              )}
             </div>
+            <button onClick={() => { setShowMemberModal(false); setActiveTab('pelanggan'); }} style={{ width: '100%', padding: '14px', background: '#eff6ff', color: '#3b82f6', border: '2px dashed #bfdbfe', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', fontSize: '13px' }}>➕ DAFTARKAN MEMBER BARU</button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* --- MODAL PUSAT BANTUAN --- */}
-        {showHelpModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ color: '#2563eb', margin: 0 }}>📖 Pusat Bantuan</h3>
-                <button onClick={() => setShowHelpModal(false)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
-              </div>
-              
-              <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>1. Sistem Member & Poin</summary>
-                <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>
-                  Pelanggan akan mendapat 1 Poin untuk setiap kelipatan belanja Rp 10.000. Poin tersebut dapat ditukar menjadi diskon pada transaksi berikutnya (1 Poin = Diskon Rp 100).
-                </p>
-              </details>
-              
-              <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>2. Fitur Enterprise (Laba & Harga Modal)</summary>
-                <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>
-                  Sekarang Anda bisa mengisi Harga Modal pada saat menambah produk. Sistem akan otomatis menghitung Laba Bersih yang akurat (Total Omset dikurangi Total Harga Modal Barang yang terjual dan Biaya Operasional).
-                </p>
-              </details>
-
-              <button onClick={() => setShowHelpModal(false)} style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer' }}>SAYA MENGERTI</button>
+      {/* --- MODAL PENGATURAN TOKO (YANG SEMPAT HILANG) --- */}
+      {showProfileModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '20px', width: '400px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '20px', fontWeight: '900' }}>⚙️ Pengaturan Toko</h2>
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Nama Toko</label>
+            <input value={namaToko} onChange={e => setNamaToko(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Alamat Toko</label>
+            <input value={alamat} onChange={e => setAlamat(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>No Telp / WA</label>
+            <input value={noTelp} onChange={e => setNoTelp(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <label style={{ fontSize: '12px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>Pesan di Bawah Struk</label>
+            <input value={pesanStruk} onChange={e => setPesanStruk(e.target.value)} placeholder="Contoh: Terima Kasih" style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+            
+            <div style={{ background: '#f0f9ff', padding: '15px', borderRadius: '12px', border: '1px solid #bae6fd', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#0369a1'}}>🎁 Pengaturan Loyalitas Poin</p>
+              <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Minimal Belanja per 1 Poin (Rp)</label>
+              <input type="number" value={minBelanjaPoin} onChange={e => setMinBelanjaPoin(e.target.value)} placeholder="Contoh: 20000" style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontWeight: 'bold' }} />
             </div>
-          </div>
-        )}
 
-        {/* --- POP-UP MODAL BON --- */}
-        {showBonModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'left', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-              <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: '900', color: '#272734' }}>📝 Catat Bon Pelanggan</h2>
-              <p style={{ margin: '0 0 24px 0', fontWeight: '600', color: '#27274F' }}>
-                Tagihan: <strong style={{ color: '#FF7835', fontSize: '20px' }}>Rp {totalSetelahDiskon.toLocaleString()}</strong>
-              </p>
-              
-              <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>
-                Nama Pelanggan <span style={{color: '#ef4444'}}>*</span>
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>🖼️ Background Login (Maks 1MB)</p>
+              <input type="file" accept="image/*" onChange={handleBgUpload} style={{ fontSize: '12px', width: '100%' }} />
+              {bgLogin && <button onClick={() => { setBgLogin(''); localStorage.removeItem('pos_bgLogin'); }} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer' }}>Hapus Background</button>}
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>📱 Gambar QRIS</p>
+              <input type="file" accept="image/*" onChange={handleImageUpload} style={{ fontSize: '12px', width: '100%', marginBottom: qrisImage ? '10px' : '0' }} />
+              {qrisImage && (
+                <div style={{ textAlign: 'center' }}>
+                  <img src={qrisImage} alt="QRIS" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }} />
+                  <br/>
+                  <button onClick={() => setQrisImage(null)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🗑️ Hapus QRIS</button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px'}}>🏷️ Kertas Label (px)</p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Lebar</label>
+                  <input type="number" value={labelWidth} onChange={e => setLabelWidth(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Tinggi</label>
+                  <input type="number" value={labelHeight} onChange={e => setLabelHeight(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Sekat/Gap</label>
+                  <input type="number" value={labelGap} onChange={e => setLabelGap(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Kolom</label>
+                  <input type="number" value={labelCols} onChange={e => setLabelColumns(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <label style={{fontSize: '11px', fontWeight: 'bold', display: 'block', marginBottom: '4px'}}>Skala Isi Label (%)</label>
+                <input type="number" value={labelScale} onChange={e => setLabelScale(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
+              <p style={{fontWeight: 'bold', fontSize: '13px', marginBottom: '10px', color: '#b91c1c'}}>🔊 Pengaturan Suara</p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                <input type="checkbox" checked={soundBeep} onChange={e => setSoundBeep(e.target.checked)} />
+                Bunyi "Beep" saat klik produk
               </label>
-              
-              <input 
-                autoFocus 
-                list="dataPelanggan" 
-                value={namaPelangganBon} 
-                onChange={e => setNamaPelangganBon(e.target.value)} 
-                placeholder="Contoh: Pak Budi" 
-                style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', fontSize: '15px', fontWeight: '700', outline: 'none', boxSizing: 'border-box' }} 
-              />
-              
-              <datalist id="dataPelanggan">
-                {pelanggan.map(p => (
-                  <option key={p.id} value={p.nama} />
-                ))}
-              </datalist>
-              
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={() => { setShowBonModal(false); setMetodePembayaran('Tunai'); }} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor:'pointer' }}>BATAL</button>
-                <button onClick={() => finalizePayment('Bon')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor:'pointer', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SIMPAN BON</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- MODAL TAMPIL QRIS --- */}
-        {showQrisModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
-              <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
-              <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px' }}>
-                Total: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalSetelahDiskon.toLocaleString()}</strong>
-              </p>
-              
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                <img src={qrisImage} alt="QRIS" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor:'pointer', fontSize: '14px' }}>TUTUP</button>
-                <button onClick={() => finalizePayment('QRIS')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor:'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH BAYAR</button>
-              </div>
-            </div>
-          </div>
-        )}
-{/* --- MODAL RESET DATA TAHUNAN --- */}
-        {showResetModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-              <h2 style={{ margin: '0 0 10px 0', color: '#dc2626', fontSize: '22px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚠️ Hapus Data Tahunan
-              </h2>
-              
-              <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
-                <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: '700', lineHeight: '1.5' }}>
-                  PERINGATAN! Data yang dihapus tidak dapat dikembalikan. Pastikan Anda sudah men-download data (Excel) untuk tahun tersebut sebelum menghapus.
-                </p>
-              </div>
-
-              <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>
-                Pilih Tahun Transaksi yang Ingin Dihapus:
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                <input type="checkbox" checked={soundVoice} onChange={e => setSoundVoice(e.target.checked)} />
+                Suara Robot saat transaksi berhasil
               </label>
-              <select 
-                tabIndex="0" 
-                value={selectedYearReset} 
-                onChange={e => setSelectedYearReset(e.target.value)} 
-                style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid #cbd5e1', marginBottom: '24px', fontSize: '15px', fontWeight: 'bold', color: '#272734', outline: 'none' }}
-              >
-                {Array.from({ length: 26 }, (_, i) => 2025 + i).map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button 
-                  tabIndex="0" 
-                  onClick={() => setShowResetModal(false)} 
-                  style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#f1f5f9', color: '#27274F', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}
-                >
-                  BATAL
-                </button>
-                <button 
-                  tabIndex="0" 
-                  onClick={handleResetTahunan} 
-                  style={{ flex: 2, padding: '14px', borderRadius: '12px', border: 'none', background: '#dc2626', color: 'white', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}
-                >
-                  HAPUS PERMANEN
-                </button>
-              </div>
             </div>
-          </div>
-        )}
 
-        {/* --- POPUP PERINGATAN OFFLINE DENGAN TOMBOL OKE --- */}
-        {showOfflineWarning && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
-            <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
-              <div style={{ fontSize: '50px', marginBottom: '16px' }}>⚠️</div>
-              <h2 style={{ margin: '0 0 16px 0', color: '#dc2626', fontSize: '20px', fontWeight: '900', lineHeight: '1.4' }}>
-                MODE OFFLINE AKTIF<br />INTERNET TERPUTUS
-              </h2>
-              <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '700', lineHeight: '1.6', background: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #ffedd5' }}>
-                Jangan refresh halaman atau menutup browser agar data transaksi tidak hilang!
-              </p>
-              <button 
-                tabIndex="0" 
-                onClick={() => setShowOfflineWarning(false)} 
-                style={{ width: '100%', padding: '16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}
-              >
-                Oke, Saya Mengerti
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* --- STRUK PENGELUARAN (BUKTI KAS KELUAR) --- */}
-        {strukPengeluaran && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
-            <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
-              <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', margin: 'auto' }}>
-                <h2 style={{ margin: '0' }}>{namaToko || 'TOKO SAYA'}</h2>
-                <p style={{ fontSize: '12px', margin: '5px 0' }}>
-                  {alamat}<br/>Telp/WA: {noTelp}
-                </p>
-                
-                <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-                <h3 style={{ margin: '5px 0', textDecoration: 'underline' }}>BUKTI KAS KELUAR</h3>
-                <p style={{ fontSize: '12px', textAlign: 'left', margin: '8px 0 2px 0' }}>
-                  Tgl: {strukPengeluaran.waktu?.toDate ? strukPengeluaran.waktu.toDate().toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}
-                </p>
-                
-                <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-                
-                <div style={{ fontSize: '14px', textAlign: 'left', marginBottom: '10px' }}>
-                  <strong>KETERANGAN:</strong><br/>
-                  {strukPengeluaran.nama}
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px', padding: '10px 0', borderTop: '1px solid #000', borderBottom: '1px solid #000' }}>
-                  <span>NOMINAL</span>
-                  <span>Rp {strukPengeluaran.nominal.toLocaleString()}</span>
-                </div>
-                
-                <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 30px 0' }}>Kasir/Admin</p>
-                    <p style={{ margin: 0 }}>(..................)</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 30px 0' }}>Penerima Dana</p>
-                    <p style={{ margin: 0 }}>(..................)</p>
-                  </div>
-                </div>
-                
-                <div className="no-print" style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={() => window.print()} 
-                    style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    Print (Enter)
-                  </button>
-                  <button 
-                    onClick={() => setStrukPengeluaran(null)} 
-                    style={{ flex: 1, background: '#e2e8f0', color: '#27274F', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    Tutup (Esc)
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- STRUK TRANSAKSI KASIR --- */}
-        {strukData && !strukPengeluaran && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
-            <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
-              <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', margin: 'auto' }}>
-                <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
-                <p style={{ fontSize: '12px', margin: '5px 0' }}>
-                  {alamat}<br/>Telp/WA: {noTelp}
-                </p>
-                
-                <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-                <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>
-                  Tgl: {strukData.waktu?.toDate ? strukData.waktu.toDate().toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}
-                  <br/>Metode: {strukData.metode}
-                </p>
-                
-                {strukData.metode === 'Bon' && (
-                  <p style={{ fontSize: '13px', textAlign: 'left', margin: '4px 0', fontWeight: 'bold' }}>
-                    PELANGGAN: {strukData.namaPelanggan}
-                  </p>
-                )}
-                
-                <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-                
-                {strukData.items.map((it, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', fontSize: '14px', marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{it.qty} {it.satuan} {it.nama}</span>
-                      <span>{(it.harga * it.qty).toLocaleString()}</span>
-                    </div>
-                    {it.hargaAsli > it.harga && (
-                      <div style={{ fontSize: '11px', textAlign: 'left', color: '#555' }}>
-                        <span style={{textDecoration: 'line-through'}}>Rp {it.hargaAsli.toLocaleString()}</span> (Promo)
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}>
-                  <span>TOTAL</span>
-                  <span>Rp {strukData.totalKotor?.toLocaleString() || strukData.total.toLocaleString()}</span>
-                </div>
-                
-                {strukData.diskonPoin > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px', color: '#16a34a' }}>
-                    <span>DISKON POIN</span>
-                    <span>-Rp {strukData.diskonPoin.toLocaleString()}</span>
-                  </div>
-                )}
-                
-                {strukData.diskonPoin > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px', marginTop: '5px' }}>
-                    <span>GRAND TOTAL</span>
-                    <span>Rp {strukData.total.toLocaleString()}</span>
-                  </div>
-                )}
-
-                {strukData.metode === 'Tunai' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px' }}>
-                      <span>BAYAR</span>
-                      <span>Rp {strukData.uangBayar?.toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px' }}>
-                      <span>KEMBALI</span>
-                      <span>Rp {strukData.kembalian?.toLocaleString()}</span>
-                    </div>
-                  </>
-                )}
-                
-                {strukData.poinDidapat > 0 && (
-                  <>
-                    <div style={{ borderTop: '2px dashed #000', margin: '10px 0' }}></div>
-                    <p style={{ fontSize: '12px', textAlign: 'center', margin: '4px 0', fontWeight: 'bold' }}>
-                      🎉 Hore! Anda dapat {strukData.poinDidapat} Poin!
-                    </p>
-                  </>
-                )}
-
-                <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
-                <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{pesanStruk}</p>
-                
-                <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={() => window.print()} 
-                    style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    Print (Enter)
-                  </button>
-                  <button 
-                    onClick={() => setStrukData(null)} 
-                    style={{ flex: 1, background: '#e2e8f0', color: '#27274F', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    Tutup (Esc)
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- CETAK LABEL PRODUK --- */}
-        {printMode === 'label' && printData && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', zIndex: 9999, overflowY: 'auto' }}>
-            <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, zIndex: 10 }}>
-              <button 
-                onClick={() => window.print()} 
-                style={{ background: '#FF7835', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor:'pointer' }}
-              >
-                🖨️ PRINT SIMPAN PDF
-              </button>
-              <button 
-                onClick={() => setPrintMode(null)} 
-                style={{ background: 'white', color: '#272734', padding: '12px 24px', border: 'none', borderRadius: '10px', marginLeft: '10px', cursor:'pointer', fontWeight: 'bold' }}
-              >
-                TUTUP
-              </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowProfileModal(false)} style={{ flex: 1, padding: '12px', background: '#e2e8f0', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Batal</button>
+              <button onClick={simpanProfil} style={{ flex: 1, padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Simpan Perubahan</button>
             </div>
             
-            <div id="print-area" style={{ background: '#fff', padding: '10px', display: 'grid', gridTemplateColumns: `repeat(${labelCols}, auto)`, gap: `${labelGap}px`, justifyContent: 'center' }}>
-              {printData.map((p, i) => (
-                <div key={i} style={{ border: '1px dashed #000', width: `${labelWidth}px`, height: `${labelHeight}px`, display: 'flex', background: p.hargaPromo ? '#fef08a' : '#fff', boxSizing: 'border-box', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{ display: 'flex', width: '100%', height: '100%', transform: `scale(${labelScale / 100})`, transformOrigin: 'top left', width: `${(100 / (labelScale / 100))}%`, height: `${(100 / (labelScale / 100))}%` }}>
-                    
-                    <div style={{ width: '25px', borderRight: '1px dashed #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '8px', fontWeight: 'bold', textAlign: 'center', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        {namaToko || 'TOKO'}
-                      </div>
-                    </div>
-                    
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3px', justifyContent: 'space-between' }}>
-                      <div style={{ height: '30px', fontSize: '10px', fontWeight: 'bold', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        {p.nama}
-                      </div>
-                      
-                      <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <img src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=1&height=6`} style={{ width: '90%', height: '25px', margin: '0 auto' }} alt="bc" />
-                        <div style={{ fontSize: '8px', fontFamily: 'monospace', marginTop: '2px' }}>
-                          {p.barcode}
-                        </div>
-                      </div>
-                      
-                      <div style={{ height: '28px', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                        {p.hargaPromo && (
-                          <span style={{ fontSize: '8px', textDecoration: 'line-through' }}>
-                            Rp{p.harga.toLocaleString()}
-                          </span>
-                        )}
-                        <div style={{ fontSize: '15px', fontWeight: '900' }}>
-                          Rp{(p.hargaPromo || p.harga).toLocaleString()}/<span style={{fontSize:'9px'}}>{p.satuan}</span>
-                        </div>
-                      </div>
-                    </div>
+            <button onClick={() => signOut(auth)} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px' }}>LOGOUT / KELUAR</button>
+          </div>
+        </div>
+      )}
 
-                  </div>
-                </div>
-              ))}
+      {/* --- MODAL PUSAT BANTUAN --- */}
+      {showHelpModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '25px', borderRadius: '20px', width: '100%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ color: '#2563eb', margin: 0 }}>📖 Pusat Bantuan</h3>
+              <button onClick={() => setShowHelpModal(false)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
+            </div>
+            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>1. Sistem Member & Poin</summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Pelanggan akan mendapat Poin untuk setiap kelipatan belanja sesuai pengaturan. Poin tersebut dapat ditukar menjadi diskon pada transaksi berikutnya (1 Poin = Diskon Rp 100).</p>
+            </details>
+            <details style={{ marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <summary style={{ fontWeight: 'bold', cursor: 'pointer', color: '#272734' }}>2. Fitur Enterprise (Laba & Harga Modal)</summary>
+              <p style={{ fontSize: '13px', color: '#475569', marginTop: '8px', lineHeight: '1.5' }}>Sekarang Anda bisa mengisi Harga Modal pada saat menambah produk. Sistem akan otomatis menghitung Laba Bersih yang akurat.</p>
+            </details>
+            <button onClick={() => setShowHelpModal(false)} style={{ width: '100%', padding: '14px', background: '#FF7835', color: 'white', border: 'none', borderRadius: '10px', marginTop: '15px', fontWeight: 'bold', cursor: 'pointer' }}>SAYA MENGERTI</button>
+          </div>
+        </div>
+      )}
+
+      {/* --- POP-UP MODAL BON --- */}
+      {showBonModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'left', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', fontSize: '22px', fontWeight: '900', color: '#272734' }}>📝 Catat Bon Pelanggan</h2>
+            <p style={{ margin: '0 0 24px 0', fontWeight: '600', color: '#27274F' }}>Tagihan: <strong style={{ color: '#FF7835', fontSize: '20px' }}>Rp {totalSetelahDiskon.toLocaleString()}</strong></p>
+            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>Nama Pelanggan <span style={{color: '#ef4444'}}>*</span></label>
+            <input autoFocus list="dataPelanggan" value={namaPelangganBon} onChange={e => setNamaPelangganBon(e.target.value)} placeholder="Contoh: Pak Budi" style={{ width: '100%', padding: '16px', marginBottom: '24px', border: '2px solid #cbd5e1', borderRadius: '12px', fontSize: '15px', fontWeight: '700', outline: 'none', boxSizing: 'border-box' }} />
+            <datalist id="dataPelanggan">{pelanggan.map(p => (<option key={p.id} value={p.nama} />))}</datalist>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => { setShowBonModal(false); setMetodePembayaran('Tunai'); }} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '800', cursor:'pointer' }}>BATAL</button>
+              <button onClick={() => finalizePayment('Bon')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor:'pointer', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SIMPAN BON</button>
             </div>
           </div>
-        )}
-        </main>
+        </div>
+      )}
+
+      {/* --- MODAL TAMPIL QRIS --- */}
+      {showQrisModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', width: '100%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 8px 0', color: '#272734', fontSize: '24px', fontWeight: '800' }}>Silakan Scan QRIS</h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px' }}>Total: <strong style={{ color: '#FF7835', fontSize: '18px' }}>Rp {totalSetelahDiskon.toLocaleString()}</strong></p>
+            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '16px', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <img src={qrisImage} alt="QRIS" style={{ width: '100%', maxWidth: '300px', height: 'auto', borderRadius: '8px' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setShowQrisModal(false)} style={{ flex: 1, padding: '16px', background: '#f1f5f9', color: '#27274F', border: 'none', borderRadius: '12px', fontWeight: '700', cursor:'pointer', fontSize: '14px' }}>TUTUP</button>
+              <button onClick={() => finalizePayment('QRIS')} style={{ flex: 2, padding: '16px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor:'pointer', fontSize: '14px', boxShadow: '0 10px 15px -3px rgba(255, 120, 53, 0.4)' }}>SUDAH BAYAR</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL RESET DATA TAHUNAN --- */}
+      {showResetModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.85)', zIndex: 9900, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ margin: '0 0 10px 0', color: '#dc2626', fontSize: '22px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>⚠️ Hapus Data Tahunan</h2>
+            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '12px', border: '1px solid #fecaca', marginBottom: '20px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#b91c1c', fontWeight: '700', lineHeight: '1.5' }}>PERINGATAN! Data yang dihapus tidak dapat dikembalikan. Pastikan Anda sudah men-download data (Excel) untuk tahun tersebut sebelum menghapus.</p>
+            </div>
+            <label style={{ fontSize: '13px', fontWeight: '800', color: '#27274F', display: 'block', marginBottom: '8px' }}>Pilih Tahun Transaksi yang Ingin Dihapus:</label>
+            <select tabIndex="0" value={selectedYearReset} onChange={e => setSelectedYearReset(e.target.value)} style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '2px solid #cbd5e1', marginBottom: '24px', fontSize: '15px', fontWeight: 'bold', color: '#272734', outline: 'none' }}>
+              {Array.from({ length: 26 }, (_, i) => 2025 + i).map(year => ( <option key={year} value={year}>{year}</option> ))}
+            </select>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button tabIndex="0" onClick={() => setShowResetModal(false)} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#f1f5f9', color: '#27274F', fontWeight: '800', cursor: 'pointer', fontSize: '14px' }}>BATAL</button>
+              <button tabIndex="0" onClick={handleResetTahunan} style={{ flex: 2, padding: '14px', borderRadius: '12px', border: 'none', background: '#dc2626', color: 'white', fontWeight: '900', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}>HAPUS PERMANEN</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- POPUP PERINGATAN OFFLINE --- */}
+      {showOfflineWarning && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(39, 39, 52, 0.9)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+          <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '420px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <div style={{ fontSize: '50px', marginBottom: '16px' }}>⚠️</div>
+            <h2 style={{ margin: '0 0 16px 0', color: '#dc2626', fontSize: '20px', fontWeight: '900', lineHeight: '1.4' }}>MODE OFFLINE AKTIF<br />INTERNET TERPUTUS</h2>
+            <p style={{ margin: '0 0 24px 0', color: '#27274F', fontSize: '14px', fontWeight: '700', lineHeight: '1.6', background: '#fff7ed', padding: '12px', borderRadius: '12px', border: '1px solid #ffedd5' }}>Jangan refresh halaman atau menutup browser agar data transaksi tidak hilang!</p>
+            <button tabIndex="0" onClick={() => setShowOfflineWarning(false)} style={{ width: '100%', padding: '16px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', boxShadow: '0 4px 6px rgba(220, 38, 38, 0.3)' }}>Oke, Saya Mengerti</button>
+          </div>
+        </div>
+      )}
+
+      {/* --- STRUK PENGELUARAN (BUKTI KAS KELUAR) --- */}
+      {strukPengeluaran && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
+          <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
+            <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', margin: 'auto' }}>
+              <h2 style={{ margin: '0' }}>{namaToko || 'TOKO SAYA'}</h2>
+              <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
+              <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
+              <h3 style={{ margin: '5px 0', textDecoration: 'underline' }}>BUKTI KAS KELUAR</h3>
+              <p style={{ fontSize: '12px', textAlign: 'left', margin: '8px 0 2px 0' }}>Tgl: {strukPengeluaran.waktu?.toDate ? strukPengeluaran.waktu.toDate().toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}</p>
+              <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
+              <div style={{ fontSize: '14px', textAlign: 'left', marginBottom: '10px' }}><strong>KETERANGAN:</strong><br/>{strukPengeluaran.nama}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px', padding: '10px 0', borderTop: '1px solid #000', borderBottom: '1px solid #000' }}><span>NOMINAL</span><span>Rp {strukPengeluaran.nominal.toLocaleString()}</span></div>
+              <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <div style={{ textAlign: 'center' }}><p style={{ margin: '0 0 30px 0' }}>Kasir/Admin</p><p style={{ margin: 0 }}>(..................)</p></div>
+                <div style={{ textAlign: 'center' }}><p style={{ margin: '0 0 30px 0' }}>Penerima Dana</p><p style={{ margin: 0 }}>(..................)</p></div>
+              </div>
+              <div className="no-print" style={{ marginTop: '30px', display: 'flex', gap: '10px' }}>
+                <button onClick={() => window.print()} style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print (Enter)</button>
+                <button onClick={() => setStrukPengeluaran(null)} style={{ flex: 1, background: '#e2e8f0', color: '#27274F', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Tutup (Esc)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- STRUK TRANSAKSI KASIR --- */}
+      {strukData && !strukPengeluaran && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', zIndex: 9999, overflowY: 'auto' }}>
+          <div style={{ minHeight: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '40px 20px', boxSizing: 'border-box' }}>
+            <div id="strukArea" style={{ background: '#fff', width: '320px', padding: '24px', textAlign: 'center', color: '#000', fontFamily: 'monospace', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', margin: 'auto' }}>
+              <h2 style={{ margin: '0' }}>{namaToko || 'STRUK BELANJA'}</h2>
+              <p style={{ fontSize: '12px', margin: '5px 0' }}>{alamat}<br/>Telp/WA: {noTelp}</p>
+              <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
+              <p style={{ fontSize: '12px', textAlign: 'left', margin: '2px 0' }}>
+                Tgl: {strukData.waktu?.toDate ? strukData.waktu.toDate().toLocaleString('id-ID') : new Date().toLocaleString('id-ID')}<br/>Metode: {strukData.metode}
+              </p>
+              {strukData.metode === 'Bon' && <p style={{ fontSize: '13px', textAlign: 'left', margin: '4px 0', fontWeight: 'bold' }}>PELANGGAN: {strukData.namaPelanggan}</p>}
+              <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
+              {strukData.items.map((it, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', fontSize: '14px', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{it.qty} {it.satuan} {it.nama}</span><span>{(it.harga * it.qty).toLocaleString()}</span></div>
+                  {it.hargaAsli > it.harga && <div style={{ fontSize: '11px', textAlign: 'left', color: '#555' }}><span style={{textDecoration: 'line-through'}}>Rp {it.hargaAsli.toLocaleString()}</span> (Promo)</div>}
+                </div>
+              ))}
+              <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px' }}>
+                <span>TOTAL</span><span>Rp {strukData.totalKotor?.toLocaleString() || strukData.total.toLocaleString()}</span>
+              </div>
+              {strukData.diskonPoin > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px', color: '#16a34a' }}><span>DISKON POIN</span><span>-Rp {strukData.diskonPoin.toLocaleString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '16px', marginTop: '5px' }}><span>GRAND TOTAL</span><span>Rp {strukData.total.toLocaleString()}</span></div>
+                </>
+              )}
+              {strukData.metode === 'Tunai' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px' }}><span>BAYAR</span><span>Rp {strukData.uangBayar?.toLocaleString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginTop: '5px' }}><span>KEMBALI</span><span>Rp {strukData.kembalian?.toLocaleString()}</span></div>
+                </>
+              )}
+              {strukData.poinDidapat > 0 && (
+                <>
+                  <div style={{ borderTop: '2px dashed #000', margin: '10px 0' }}></div>
+                  <p style={{ fontSize: '12px', textAlign: 'center', margin: '4px 0', fontWeight: 'bold' }}>🎉 Hore! Anda dapat {strukData.poinDidapat} Poin!</p>
+                </>
+              )}
+              <div style={{ borderTop: '2px dashed #000', margin: '15px 0' }}></div>
+              <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{pesanStruk}</p>
+              <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                <button onClick={() => window.print()} style={{ flex: 1, background: '#FF7835', color: '#fff', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Print (Enter)</button>
+                <button onClick={() => setStrukData(null)} style={{ flex: 1, background: '#e2e8f0', color: '#27274F', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Tutup (Esc)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- CETAK LABEL PRODUK --- */}
+      {printMode === 'label' && printData && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', zIndex: 9999, overflowY: 'auto' }}>
+          <div className="no-print" style={{ textAlign: 'center', padding: '15px', background: '#272734', position: 'sticky', top: 0, zIndex: 10 }}>
+            <button onClick={() => window.print()} style={{ background: '#FF7835', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor:'pointer' }}>🖨️ PRINT SIMPAN PDF</button>
+            <button onClick={() => setPrintMode(null)} style={{ background: 'white', color: '#272734', padding: '12px 24px', border: 'none', borderRadius: '10px', marginLeft: '10px', cursor:'pointer', fontWeight: 'bold' }}>TUTUP</button>
+          </div>
+          <div id="print-area" style={{ background: '#fff', padding: '10px', display: 'grid', gridTemplateColumns: `repeat(${labelCols}, auto)`, gap: `${labelGap}px`, justifyContent: 'center' }}>
+            {printData.map((p, i) => (
+              <div key={i} style={{ border: '1px dashed #000', width: `${labelWidth}px`, height: `${labelHeight}px`, display: 'flex', background: p.hargaPromo ? '#fef08a' : '#fff', boxSizing: 'border-box', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ display: 'flex', width: '100%', height: '100%', transform: `scale(${labelScale / 100})`, transformOrigin: 'top left', width: `${(100 / (labelScale / 100))}%`, height: `${(100 / (labelScale / 100))}%` }}>
+                  <div style={{ width: '25px', borderRight: '1px dashed #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: '8px', fontWeight: 'bold', textAlign: 'center', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{namaToko || 'TOKO'}</div>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '3px', justifyContent: 'space-between' }}>
+                    <div style={{ height: '30px', fontSize: '10px', fontWeight: 'bold', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>{p.nama}</div>
+                    <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <img src={`https://bwipjs-api.metafloor.com/?bcid=code128&text=${p.barcode}&scale=1&height=6`} style={{ width: '90%', height: '25px', margin: '0 auto' }} alt="bc" />
+                      <div style={{ fontSize: '8px', fontFamily: 'monospace', marginTop: '2px' }}>{p.barcode}</div>
+                    </div>
+                    <div style={{ height: '28px', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                      {p.hargaPromo && <span style={{ fontSize: '8px', textDecoration: 'line-through' }}>Rp{p.harga.toLocaleString()}</span>}
+                      <div style={{ fontSize: '15px', fontWeight: '900' }}>Rp{(p.hargaPromo || p.harga).toLocaleString()}/<span style={{fontSize:'9px'}}>{p.satuan}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* CSS GLOBAL DAN MEDIA QUERIES */}
       <style>{`
-        * { 
-          -webkit-tap-highlight-color: transparent; 
-        }
-        
+        * { -webkit-tap-highlight-color: transparent; }
         @media print { 
-          .no-print { 
-            display: none !important; 
-          } 
-          body * { 
-            visibility: hidden; 
-          } 
-          #strukArea, #strukArea * { 
-            visibility: visible; 
-          } 
-          #strukArea { 
-            position: absolute; 
-            left: 50%; 
-            top: 0; 
-            transform: translateX(-50%); 
-            width: 100%; 
-            margin: 0 !important; 
-            box-shadow: none !important; 
-          } 
-          #print-area, #print-area * { 
-            visibility: visible; 
-          } 
-          #print-area { 
-            position: absolute; 
-            left: 0; 
-            top: 0; 
-            width: 100%; 
-            display: grid !important; 
-          } 
+          .no-print { display: none !important; } 
+          body * { visibility: hidden; } 
+          #strukArea, #strukArea * { visibility: visible; } 
+          #strukArea { position: absolute; left: 50%; top: 0; transform: translateX(-50%); width: 100%; margin: 0 !important; box-shadow: none !important; } 
+          #print-area, #print-area * { visibility: visible; } 
+          #print-area { position: absolute; left: 0; top: 0; width: 100%; display: grid !important; } 
         }
-        
-        ::-webkit-scrollbar { 
-          width: 6px; 
-          height: 6px; 
-        }
-        
-        ::-webkit-scrollbar-track { 
-          background: transparent; 
-        }
-        
-        ::-webkit-scrollbar-thumb { 
-          background: #fed7aa; 
-          border-radius: 10px; 
-        }
-        
-        ::-webkit-scrollbar-thumb:hover { 
-          background: #FF7835; 
-        }
-        
-        .nav-btn:active { 
-          transform: scale(0.95); 
-          opacity: 0.7; 
-        }
-        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FF7835; }
+        .nav-btn:active { transform: scale(0.95); opacity: 0.7; }
         @media (max-width: 768px) {
-          .header-title { 
-            font-size: 16px !important; 
-          } 
-          
-          .live-clock { 
-            display: none !important; 
-          }
-          
-          .desktop-row-mobile-col { 
-            flex-direction: column !important; 
-            overflow-y: auto !important; 
-            padding-bottom: 20px !important; 
-            gap: 8px !important; 
-          }
-          
-          /* KUNCI DASHBOARD AGAR BISA SCROLL DI HP TAPI TIDAK DI LAPTOP */
-          .dashboard-container {
-            overflow-y: auto !important;
-            display: block !important;
-          }
-          .dashboard-bottom-panel {
-            flex-direction: column !important;
-          }
-          .dashboard-bottom-panel > div {
-            min-height: 300px !important;
-            flex: none !important;
-            margin-bottom: 16px;
-          }
-          
-          .mobile-reverse { 
-            flex-direction: column-reverse !important; 
-            justify-content: flex-start !important; 
-          }
-          
-          .kasir-left-panel { 
-            height: 35vh !important; 
-            flex: none !important; 
-            border-bottom: 2px solid #e2e8f0; 
-          } 
-          
-          .kasir-right-panel { 
-            height: auto !important; 
-            flex: none !important; 
-          }
-          
-          .kasir-tools input, .kasir-tools button { 
-            padding: 10px 8px !important; 
-            font-size: 12px !important; 
-            height: 40px !important; 
-            box-sizing: border-box !important; 
-          }
-          
-          /* PENYESUAIAN GRID & KOTAK PRODUK DI HP */
-          .kasir-left-panel .grid-container { 
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; 
-            gap: 8px !important; 
-          }
-          
-          .kasir-left-panel .grid-container > div { 
-            padding: 10px !important; 
-            border-radius: 8px !important; 
-            height: 110px !important; 
-          }
-          
-          .kasir-left-panel .grid-container > div h3 { 
-            font-size: 12px !important; 
-            height: 28px !important; 
-          }
-          
-          .kasir-left-panel .grid-container > div .harga-text { 
-            font-size: 14px !important; 
-          }
-          
-          .table-section { 
-            min-height: 40vh !important; 
-            flex: 1 !important; 
-            margin-top: 0 !important; 
-          }
-          
-          .form-section { 
-            height: auto !important; 
-            max-height: none !important; 
-            overflow-y: visible !important; 
-            flex: none !important; 
-            margin-bottom: 0 !important; 
-          }
-          
-          /* DIET FORM (Hanya di HP) */
-          .diet-form .form-title { 
-            font-size: 16px !important; 
-            margin-bottom: 12px !important; 
-          }
-          
-          .diet-form .form-label { 
-            font-size: 11px !important; 
-            margin-bottom: 4px !important; 
-          }
-          
-          .diet-form .form-input { 
-            padding: 8px 10px !important; 
-            font-size: 12px !important; 
-            margin-bottom: 10px !important; 
-            height: 38px !important; 
-          }
-          
-          .diet-form .form-row { 
-            margin-bottom: 10px !important; 
-            gap: 8px !important; 
-          }
-          
-          .diet-form .barcode-row { 
-            margin-bottom: 16px !important; 
-          }
-          
-          .diet-form .form-btn-submit { 
-            padding: 10px !important; 
-            font-size: 12px !important; 
-            height: 40px !important; 
-          }
-          
-          /* ATURAN KAMERA */
-          #reader-kasir, #reader-toko { 
-            width: 100% !important; 
-            height: 200px !important; 
-            border-radius: 8px !important; 
-            overflow: hidden !important; 
-            border: 2px solid #FF7835 !important; 
-            position: relative !important; 
-            background: black !important; 
-          }
-          
-          #reader-kasir video, #reader-toko video { 
-            object-fit: cover !important; 
-            width: 100% !important; 
-            height: 100% !important; 
-            position: absolute !important; 
-            top: 0 !important; 
-            left: 0 !important; 
-          }
+          .header-title { font-size: 16px !important; } 
+          .live-clock { display: none !important; }
+          .desktop-row-mobile-col { flex-direction: column !important; overflow-y: auto !important; padding-bottom: 20px !important; gap: 8px !important; }
+          .dashboard-container { overflow-y: auto !important; display: block !important; }
+          .dashboard-bottom-panel { flex-direction: column !important; }
+          .dashboard-bottom-panel > div { min-height: 300px !important; flex: none !important; margin-bottom: 16px; }
+          .mobile-reverse { flex-direction: column-reverse !important; justify-content: flex-start !important; }
+          .kasir-left-panel { height: 35vh !important; flex: none !important; border-bottom: 2px solid #e2e8f0; } 
+          .kasir-right-panel { height: auto !important; flex: none !important; }
+          .kasir-tools input, .kasir-tools button { padding: 10px 8px !important; font-size: 12px !important; height: 40px !important; box-sizing: border-box !important; }
+          .kasir-left-panel .grid-container { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important; gap: 8px !important; }
+          .kasir-left-panel .grid-container > div { padding: 10px !important; border-radius: 8px !important; height: 110px !important; }
+          .kasir-left-panel .grid-container > div h3 { font-size: 12px !important; height: 28px !important; }
+          .kasir-left-panel .grid-container > div .harga-text { font-size: 14px !important; }
+          .table-section { min-height: 40vh !important; flex: 1 !important; margin-top: 0 !important; }
+          .form-section { height: auto !important; max-height: none !important; overflow-y: visible !important; flex: none !important; margin-bottom: 0 !important; }
+          .diet-form .form-title { font-size: 16px !important; margin-bottom: 12px !important; }
+          .diet-form .form-label { font-size: 11px !important; margin-bottom: 4px !important; }
+          .diet-form .form-input { padding: 8px 10px !important; font-size: 12px !important; margin-bottom: 10px !important; height: 38px !important; }
+          .diet-form .form-row { margin-bottom: 10px !important; gap: 8px !important; }
+          .diet-form .barcode-row { margin-bottom: 16px !important; }
+          .diet-form .form-btn-submit { padding: 10px !important; font-size: 12px !important; height: 40px !important; }
+          #reader-kasir, #reader-toko { width: 100% !important; height: 200px !important; border-radius: 8px !important; overflow: hidden !important; border: 2px solid #FF7835 !important; position: relative !important; background: black !important; }
+          #reader-kasir video, #reader-toko video { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
         }
       `}</style>
     </div>
   );
 }
 
-export default App;    
+export default App;
