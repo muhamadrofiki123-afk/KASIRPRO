@@ -168,6 +168,79 @@ function App() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showQrisModal, setShowQrisModal] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
+
+  // === STATE KEAMANAN & PIN (TAHAP 1) ===
+  const [isReportLocked, setIsReportLocked] = useState(() => {
+    const saved = localStorage.getItem('pos_isReportLocked');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  const [savedPin, setSavedPin] = useState(() => localStorage.getItem('pos_savedPin') || '');
+  
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinAction, setPinAction] = useState(''); // Menyimpan aksi (buka laporan, matikan gembok, dll)
+  const [tempTargetTab, setTempTargetTab] = useState(''); // Menyimpan tujuan tab sementara
+
+  // Menyimpan otomatis status gembok & PIN ke penyimpanan browser
+  useEffect(() => { localStorage.setItem('pos_isReportLocked', JSON.stringify(isReportLocked)); }, [isReportLocked]);
+  useEffect(() => { localStorage.setItem('pos_savedPin', savedPin); }, [savedPin]);
+
+  // === MESIN PEMROSES PIN (TAHAP 2) ===
+  const handlePinSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!pinInput) return;
+
+    if (pinAction === 'verify_tab') {
+      if (pinInput === savedPin) {
+        setActiveTab(tempTargetTab);
+        setShowPinModal(false);
+        setPinInput('');
+      } else {
+        alert('❌ PIN yang Anda masukkan SALAH!');
+        setPinInput('');
+      }
+    } else if (pinAction === 'turn_off_lock') {
+      if (pinInput === savedPin) {
+        setIsReportLocked(false);
+        setShowPinModal(false);
+        setPinInput('');
+        alert('🔓 Gembok berhasil dinonaktifkan.');
+      } else {
+        alert('❌ PIN yang Anda masukkan SALAH!');
+        setPinInput('');
+      }
+    } else if (pinAction === 'create_pin') {
+      if (pinInput.length < 4) { alert('⚠️ PIN minimal 4 angka!'); return; }
+      setSavedPin(pinInput);
+      setIsReportLocked(true);
+      setShowPinModal(false);
+      setPinInput('');
+      alert('🔒 PIN berhasil dibuat! Gembok laporan sekarang AKTIF.');
+    }
+  };
+
+  const handleNumpad = (num) => {
+    if (num === 'del') {
+      setPinInput(prev => prev.slice(0, -1));
+    } else if (num === 'ok') {
+      handlePinSubmit();
+    } else {
+      if (pinInput.length < 6) setPinInput(prev => prev + num);
+    }
+  };
+
+  // === SATPAM NAVIGASI (TAHAP 3) ===
+  const handleNavClick = (tabName) => {
+    // Jika gembok aktif dan yang diklik adalah menu rahasia
+    if (isReportLocked && (tabName === 'laporan' || tabName === 'pengeluaran' || tabName === 'dashboard')) {
+      setTempTargetTab(tabName);
+      setPinAction('verify_tab');
+      setShowPinModal(true);
+    } else {
+      // Jika aman, langsung buka halamannya
+      setActiveTab(tabName);
+    }
+  };
   
   // === STATE PRINT ===
   const [strukData, setStrukData] = useState(null);
@@ -683,15 +756,27 @@ function App() {
     }
 
     try {
-      // 1. PINDAHKAN SUARA KE SINI (PALING ATAS SEBELUM LOADING DATABASE)
+      // 1. SUARA ROBOT JALAN DULUAN
       if (typeof playSuccessVoice === 'function') {
         playSuccessVoice(`Terima kasih, transaksi berhasil. Total harga ${totalSetelahDiskon.toLocaleString()} rupiah.`);
       }
 
-      // 2. PROSES DATABASE DI BELAKANG LAYAR (SIMPAN TRANSAKSI & KURANGI STOK)
+      // 2. BERSIHKAN LAYAR & MUNCULKAN STRUK INSTAN
+      const keranjangSementara = [...cart]; 
+      setStrukData(dataTrans); 
+      setCart([]); 
+      setPaymentAmount(''); 
+      setMetodePembayaran('Tunai'); 
+      setShowQrisModal(false); 
+      setShowBonModal(false); 
+      setNamaPelangganBon(''); 
+      setMemberTerpilih(null); 
+      setGunakanPoin(false);
+
+      // 3. PROSES DATABASE DI BELAKANG (Firebase)
       await addDoc(collection(db, "transaksi"), dataTrans);
       
-      for (const item of cart) { 
+      for (const item of keranjangSementara) { 
         await updateDoc(doc(db, "produk", item.id), { stok: increment(-item.qty) }); 
       }
 
@@ -704,12 +789,8 @@ function App() {
         }
       }
       
-      // 3. TAMPILKAN POP-UP STRUK (TIDAK OTOMATIS NGE-PRINT)
-      setStrukData(dataTrans); 
-      setCart([]); setPaymentAmount(''); setMetodePembayaran('Tunai'); setShowQrisModal(false); setShowBonModal(false); setNamaPelangganBon(''); setMemberTerpilih(null); setGunakanPoin(false);
-      
     } catch (err) { 
-      alert("Gagal memproses transaksi: " + err.message); 
+      console.log("Antrean Offline: " + err.message); 
     }
   };
 
@@ -951,7 +1032,7 @@ function App() {
       </div>
     );
   }
-  
+
   if (!user) {
     return (
       <div style={{ 
@@ -1667,7 +1748,27 @@ function App() {
                     <input type="checkbox" checked={soundVoice} onChange={e => setSoundVoice(e.target.checked)} /> Suara Robot Transaksi
                   </label>
                 </div>
-
+                {/* --- KOTAK KEAMANAN PIN --- */}
+                <div style={{ background: '#fef2f2', padding: '15px', borderRadius: '15px', marginTop: '15px', border: '1px solid #fecaca' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', color: '#991b1b' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isReportLocked} 
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setPinAction('create_pin');
+                          setShowPinModal(true);
+                        } else {
+                          setPinAction('turn_off_lock');
+                          setShowPinModal(true);
+                        }
+                      }} 
+                    /> 
+                    🔒 Gembok Laporan & Keuangan
+                  </label>
+                  <p style={{ margin: '5px 0 0 25px', fontSize: '11px', color: '#dc2626' }}>Wajib PIN untuk buka Laporan & Arus Kas</p>
+                </div>
+                
                 <div style={{ marginTop: '20px' }}>
                   <button onClick={simpanProfil} style={{ width: '100%', padding: '15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer', boxShadow: '0 4px 6px rgba(16,185,129,0.2)' }}>
                     SIMPAN PERUBAHAN
@@ -1683,7 +1784,51 @@ function App() {
         </div>
       )}
 
-      {/* --- MODAL PUSAT BANTUAN LENGKAP (Q&A) --- */}
+      {/* --- MODAL PIN KEAMANAN (BRANKAS) --- */}
+      {showPinModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '350px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            
+            <h2 style={{ margin: '0 0 10px 0', color: '#272734' }}>
+              {pinAction === 'create_pin' ? 'Buat PIN Baru' : '🔒 Masukkan PIN'}
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '20px', lineHeight: '1.5' }}>
+              {pinAction === 'create_pin' ? 'Buat PIN 4-6 angka rahasia untuk mengunci laporan.' : 'Otorisasi dibutuhkan untuk mengakses menu ini.'}
+            </p>
+
+            <form onSubmit={handlePinSubmit}>
+              <input 
+                type="password" 
+                autoFocus
+                value={pinInput} 
+                onChange={(e) => setPinInput(e.target.value.replace(/[^0-9]/g, '').slice(0,6))}
+                style={{ width: '100%', padding: '15px', fontSize: '28px', textAlign: 'center', letterSpacing: '15px', borderRadius: '15px', border: '2px solid #cbd5e1', marginBottom: '20px', fontWeight: 'bold', boxSizing: 'border-box', background: '#f8fafc' }}
+                placeholder="••••"
+              />
+            </form>
+
+            {/* NUMPAD TOUCHSCREEN */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+              {['1','2','3','4','5','6','7','8','9','del','0','ok'].map((btn) => (
+                <button 
+                  key={btn}
+                  onClick={() => handleNumpad(btn)}
+                  style={{ 
+                    padding: '15px', fontSize: '20px', fontWeight: 'bold', borderRadius: '12px', border: 'none', cursor: 'pointer', transition: '0.2s',
+                    background: btn === 'del' ? '#fee2e2' : btn === 'ok' ? '#dcfce7' : '#f1f5f9',
+                    color: btn === 'del' ? '#dc2626' : btn === 'ok' ? '#166534' : '#334155'
+                  }}
+                >
+                  {btn === 'del' ? '⌫' : btn === 'ok' ? 'OK' : btn}
+                </button>
+              ))}
+            </div>
+
+            <button onClick={() => { setShowPinModal(false); setPinInput(''); }} style={{ width: '100%', padding: '12px', background: 'transparent', color: '#94a3b8', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}>BATAL</button>
+          </div>
+        </div>
+      )}
+
       {showHelpModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.7)', zIndex: 10500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
