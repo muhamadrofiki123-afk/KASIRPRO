@@ -269,7 +269,8 @@ function App() {
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
   const [hargaPromoProd, setHargaPromoProd] = useState('');
-  const [hargaModalProd, setHargaModalProd] = useState(''); 
+  const [hargaModalProd, setHargaModalProd] = useState('');
+  const [statusBarcode, setStatusBarcode] = useState(''); 
   const [stokProd, setStokProd] = useState('');
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
@@ -1431,28 +1432,43 @@ function App() {
                 <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 <div className="form-row barcode-row" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
                 <div style={{ position: 'relative', width: '100%' }}>
-                <input
+                        <input
                           type="text"
                           placeholder="Scan Barcode / Ketik..."
-                          // 1. PAKAI STATE ASLI MAS ROFIKI
                           value={barcodeProd} 
                           onChange={(e) => {
                             const val = e.target.value || ''; 
-                            
-                            // 2. SIMPAN KE STATE ASLI MAS ROFIKI
                             setBarcodeProd(val);
                             
-                            // 3. DETEKSI OTOMATIS 13 DIGIT (TANPA ERROR NULL)
+                            // DETEKSI OTOMATIS: Begitu scanner selesai nembak 13 digit
                             if (val && val.length === 13) {
-                              import('./apiBarcode').then((mod) => {
-                                mod.cariNamaBarangDiInternet(val).then((namaKetemu) => {
-                                  if (namaKetemu) {
-                                    // 4. MASUKKAN NAMA HASIL SCAN KE STATE NAMA PRODUK MAS
-                                    // (Ganti setNamaProd sesuai dengan yang ada di file Mas Rofiki)
-                                    setNamaProd(namaKetemu); 
+                              setStatusBarcode('⏳ Mencari...');
+                              
+                              // LANGSUNG FETCH DI SINI (TANPA IMPORT FILE LUAR)
+                              // Ditambah batasan waktu (Timeout) maksimal 3 detik
+                              const controller = new AbortController();
+                              const timeoutId = setTimeout(() => controller.abort(), 3000); // Batas 3 detik
+
+                              fetch(`https://world.openfoodfacts.org/api/v0/product/${val}.json`, { signal: controller.signal })
+                                .then((response) => response.json())
+                                .then((data) => {
+                                  clearTimeout(timeoutId);
+                                  if (data.status === 1 && data.product && data.product.product_name) {
+                                    setNamaProd(data.product.product_name); 
+                                    setStatusBarcode('✅ Produk Ditemukan!');
+                                    // Sembunyikan teks sukses setelah 1.5 detik
+                                    setTimeout(() => setStatusBarcode(''), 1500);
+                                  } else {
+                                    setStatusBarcode('❌ Tidak terdaftar, ketik manual');
+                                    setTimeout(() => setStatusBarcode(''), 2000);
                                   }
+                                })
+                                .catch((err) => {
+                                  clearTimeout(timeoutId);
+                                  console.log("Pencarian selesai/timeout:", err);
+                                  setStatusBarcode('❌ Gagal memuat atau melewati batas 3 detik');
+                                  setTimeout(() => setStatusBarcode(''), 2000);
                                 });
-                              }).catch(err => console.log("Gagal:", err));
                             }
                           }}
                           onKeyDown={(e) => {
@@ -1466,10 +1482,16 @@ function App() {
                           }}
                         />
                         
-                        {/* 5. CEK LENGTH DENGAN AMAN MENGGUNAKAN STATE ASLI */}
-                        {(barcodeProd && barcodeProd.length >= 8) && (
-                          <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: '500' }}>
-                            ⏳ Menyinkronkan barcode otomatis (13 digit)...
+                        {/* INDIKATOR STATUS PINTAR: OTOMATIS BERUBAH DAN MENUTUP SAKLAR */}
+                        {statusBarcode && (
+                          <span style={{ 
+                            fontSize: '11px', 
+                            color: statusBarcode.includes('✅') ? '#10B981' : (statusBarcode.includes('❌') ? '#EF4444' : '#FF7835'), 
+                            marginTop: '4px', 
+                            display: 'block', 
+                            fontWeight: '500' 
+                          }}>
+                            {statusBarcode}
                           </span>
                         )}
                       </div>
