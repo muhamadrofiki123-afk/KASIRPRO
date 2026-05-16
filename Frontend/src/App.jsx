@@ -53,6 +53,28 @@ const auth = getAuth(app);
 let globalAudioCtx = null;
 
 function App() {
+
+// --- MESIN PENCARI BARCODE (MULAI) ---
+  const [isCariInternet, setIsCariInternet] = useState(false);
+
+  const handleCariBarcode = async (nomorBarcode) => {
+    if (!nomorBarcode || nomorBarcode.length < 8) return; 
+    setIsCariInternet(true);
+    try {
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${nomorBarcode}.json`);
+      const data = await response.json();
+      if (data.status === 1 && data.product && data.product.product_name) {
+        // Mengisi nama barang otomatis ke form data
+        setFormData(prev => ({ ...prev, nama: data.product.product_name })); 
+      }
+    } catch (error) {
+      console.log("Gagal cari barcode", error);
+    } finally {
+      setIsCariInternet(false);
+    }
+  };
+  // --- MESIN PENCARI BARCODE (SELESAI) ---
+
   // === STATE AUTENTIKASI ===
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -431,7 +453,7 @@ function App() {
         setAlamat(d.data().alamat || ''); 
         setNoTelp(d.data().noTelp || ''); 
         setQrisImage(d.data().qrisImage || ''); 
-        setPesanStruk(d.data().pesanStruk || '*** TERIMA KASIH ***'); 
+        setPesanStruk(d.data().pesanStruk || 'TERIMA KASIH'); 
         setLabelWidth(d.data().labelWidth || 185); 
         setLabelHeight(d.data().labelHeight || 95);
         setLabelScale(d.data().labelScale || 100); 
@@ -1429,8 +1451,21 @@ function App() {
                 </div>
                 <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 <div className="form-row barcode-row" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
-                  <input className="form-input" value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} placeholder="Kosong = Auto" style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '12px', outline: 'none' }} />
-                  <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
+                <input className="form-input" value={barcodeProd} onChange={e => setBarcodeProd(e.target.value)} onBlur={(e) => handleCariBarcode(e.target.value)} onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleCariBarcode(e.target.value);
+                          }
+                        }}
+                        placeholder="Kosong = Auto" 
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '12px', outline: 'none' }} 
+                      />
+                      {isCariInternet && (
+                        <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', fontWeight: 'bold' }}>
+                          ⏳ Mencari di internet...
+                        </span>
+                           )}
+                          <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
                 </div>
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
                   <p style={{ color: 'white', margin: '0 0 10px 0', fontSize: '12px', fontWeight: 'bold' }}>Arahkan Barcode ke Kamera</p>
