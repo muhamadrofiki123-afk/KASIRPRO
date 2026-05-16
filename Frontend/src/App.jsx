@@ -1434,23 +1434,25 @@ function App() {
                         <input
                           type="text"
                           placeholder="Scan Barcode / Ketik..."
-                          // PELINDUNG 1: Pastikan nilai awal tidak pernah null/undefined
+                          // PELINDUNG 1: Pastikan nilai awal tidak pernah null
                           value={isEditing ? (editProduct?.barcode || '') : (produkBaru?.barcode || '')}
                           onChange={(e) => {
-                            // PELINDUNG 2: Pastikan val selalu berupa string kosong jika e.target.value bermasalah
+                            // PELINDUNG 2: Jika kosong, jadikan string kosong ('') bukan null
                             const val = e.target.value || ''; 
                             
                             if (isEditing) {
-                              setEditProduct(prev => ({ ...prev, barcode: val }));
+                              // TANPA PREV (Anti Garis Merah)
+                              setEditProduct({ ...editProduct, barcode: val });
                             } else {
-                              setProdukBaru(prev => ({ ...prev, barcode: val }));
+                              // TANPA PREV (Anti Garis Merah)
+                              setProdukBaru({ ...produkBaru, barcode: val });
                               
-                              // PELINDUNG 3: Hanya jalankan jika val benar-benar ada dan panjangnya 13
                               if (val && val.length === 13) {
                                 import('./apiBarcode').then((mod) => {
                                   mod.cariNamaBarangDiInternet(val).then((namaKetemu) => {
                                     if (namaKetemu) {
-                                      setProdukBaru(prev => ({ ...prev, nama: namaKetemu }));
+                                      // Update nama produk secara aman
+                                      setProdukBaru(dataSekarang => ({ ...dataSekarang, nama: namaKetemu }));
                                     }
                                   });
                                 }).catch(err => console.log("Gagal import:", err));
@@ -1468,14 +1470,13 @@ function App() {
                           }}
                         />
                         
-                        {/* PELINDUNG 4: Pastikan produkBaru.barcode ada sebelum dicek length-nya */}
+                        {/* PELINDUNG 3: Jangan cek length kalau barcodenya tidak ada */}
                         {(produkBaru?.barcode && produkBaru.barcode.length >= 8) && !isEditing && (
                           <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: '500' }}>
-                            ⏳ Sistem Sedang Mencocokkan Barcode...
+                            ⏳ Sistem sedang mencocokkan barcode...
                           </span>
                         )}
                       </div>
-              
                           <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
                 </div>
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
