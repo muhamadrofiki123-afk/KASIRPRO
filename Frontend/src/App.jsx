@@ -1431,32 +1431,28 @@ function App() {
                 <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 <div className="form-row barcode-row" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
                 <div style={{ position: 'relative', width: '100%' }}>
-                        <input
+                <input
                           type="text"
                           placeholder="Scan Barcode / Ketik..."
-                          // PELINDUNG 1: Pastikan nilai awal tidak pernah null
-                          value={isEditing ? (editProduct?.barcode || '') : (produkBaru?.barcode || '')}
+                          // 1. PAKAI STATE ASLI MAS ROFIKI
+                          value={barcodeProd} 
                           onChange={(e) => {
-                            // PELINDUNG 2: Jika kosong, jadikan string kosong ('') bukan null
                             const val = e.target.value || ''; 
                             
-                            if (isEditing) {
-                              // TANPA PREV (Anti Garis Merah)
-                              setEditProduct({ ...editProduct, barcode: val });
-                            } else {
-                              // TANPA PREV (Anti Garis Merah)
-                              setProdukBaru({ ...produkBaru, barcode: val });
-                              
-                              if (val && val.length === 13) {
-                                import('./apiBarcode').then((mod) => {
-                                  mod.cariNamaBarangDiInternet(val).then((namaKetemu) => {
-                                    if (namaKetemu) {
-                                      // Update nama produk secara aman
-                                      setProdukBaru(dataSekarang => ({ ...dataSekarang, nama: namaKetemu }));
-                                    }
-                                  });
-                                }).catch(err => console.log("Gagal import:", err));
-                              }
+                            // 2. SIMPAN KE STATE ASLI MAS ROFIKI
+                            setBarcodeProd(val);
+                            
+                            // 3. DETEKSI OTOMATIS 13 DIGIT (TANPA ERROR NULL)
+                            if (val && val.length === 13) {
+                              import('./apiBarcode').then((mod) => {
+                                mod.cariNamaBarangDiInternet(val).then((namaKetemu) => {
+                                  if (namaKetemu) {
+                                    // 4. MASUKKAN NAMA HASIL SCAN KE STATE NAMA PRODUK MAS
+                                    // (Ganti setNamaProd sesuai dengan yang ada di file Mas Rofiki)
+                                    setNamaProd(namaKetemu); 
+                                  }
+                                });
+                              }).catch(err => console.log("Gagal:", err));
                             }
                           }}
                           onKeyDown={(e) => {
@@ -1470,13 +1466,13 @@ function App() {
                           }}
                         />
                         
-                        {/* MENGAMANKAN PEMBACAAN LENGTH DENGAN OPTIONAL CHAINING */}
-                        {(produkBaru?.barcode?.length >= 8) && !isEditing && (
+                        {/* 5. CEK LENGTH DENGAN AMAN MENGGUNAKAN STATE ASLI */}
+                        {(barcodeProd && barcodeProd.length >= 8) && (
                           <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: '500' }}>
-                            ⏳ Menyinkronkan barcode ...
+                            ⏳ Menyinkronkan barcode otomatis (13 digit)...
                           </span>
                         )}
-                        </div>
+                      </div>
                           <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
                 </div>
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
