@@ -1470,13 +1470,13 @@ function App() {
                           }}
                         />
                         
-                        {/* PELINDUNG 3: Jangan cek length kalau barcodenya tidak ada */}
-                        {(produkBaru?.barcode && produkBaru.barcode.length >= 8) && !isEditing && (
+                        {/* MENGAMANKAN PEMBACAAN LENGTH DENGAN OPTIONAL CHAINING */}
+                        {(produkBaru?.barcode?.length >= 8) && !isEditing && (
                           <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: '500' }}>
-                            ⏳ Sistem sedang mencocokkan barcode...
+                            ⏳ Menyinkronkan barcode ...
                           </span>
                         )}
-                      </div>
+                        </div>
                           <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
                 </div>
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
