@@ -265,7 +265,6 @@ function App() {
   const [labelGap, setLabelGap] = useState(5);
   const [labelCols, setLabelColumns] = useState(4);
   
-  // === STATE FORM PRODUK ===
   const [namaProd, setNamaProd] = useState('');
   const [hargaProd, setHargaProd] = useState('');
   const [hargaPromoProd, setHargaPromoProd] = useState('');
@@ -275,6 +274,38 @@ function App() {
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
   const [editingProductId, setEditingProductId] = useState(null);
+
+  // === CCTV PEMANTAU (POSISI SUDAH 100% AMAN KARENA SEMUA STATE SUDAH LAHIR) ===
+  useEffect(() => {
+    if (barcodeProd && barcodeProd.length >= 8) {
+      const jedaPencarian = setTimeout(() => {
+        setStatusBarcode('⏳ Mencari di internet...');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeProd}.json`, { signal: controller.signal })
+          .then(res => res.json())
+          .then(data => {
+            clearTimeout(timeoutId);
+            if (data.status === 1 && data.product && data.product.product_name) {
+              setNamaProd(data.product.product_name);
+              setStatusBarcode('✅ Produk Ditemukan!');
+              setTimeout(() => setStatusBarcode(''), 1500);
+            } else {
+              setStatusBarcode('❌ Tidak terdaftar, ketik manual');
+              setTimeout(() => setStatusBarcode(''), 2000);
+            }
+          }).catch(() => {
+            clearTimeout(timeoutId);
+            setStatusBarcode('❌ Gagal memuat/timeout');
+            setTimeout(() => setStatusBarcode(''), 2000);
+          });
+      }, 800); 
+
+      return () => clearTimeout(jedaPencarian);
+    }
+  }, [barcodeProd]);
 
   // === STATE FORM PELANGGAN BARU ===
   const [formPelangganNama, setFormPelangganNama] = useState('');
