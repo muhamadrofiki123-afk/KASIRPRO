@@ -270,8 +270,30 @@ function App() {
   const [hargaProd, setHargaProd] = useState('');
   const [hargaPromoProd, setHargaPromoProd] = useState('');
   const [hargaModalProd, setHargaModalProd] = useState('');
-  const [statusBarcode, setStatusBarcode] = useState('');
-  
+  const [statusBarcode, setStatusBarcode] = useState(''); 
+  const [stokProd, setStokProd] = useState('');
+  const [barcodeProd, setBarcodeProd] = useState('');
+  const [satuanProd, setSatuanProd] = useState('Pcs'); 
+  const [editingProductId, setEditingProductId] = useState(null);
+
+  // === STATE FORM PELANGGAN BARU ===
+  const [formPelangganNama, setFormPelangganNama] = useState('');
+  const [formPelangganWa, setFormPelangganWa] = useState('');
+  const [formPelangganEmail, setFormPelangganEmail] = useState('');
+  const [formPelangganAlamat, setFormPelangganAlamat] = useState('');
+  const [editingPelangganId, setEditingPelangganId] = useState(null);
+
+  // === STATE SORTIR & CETAK PILIHAN ===
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [sortOrder, setSortOrder] = useState('terbaru');
+
+  // === STATE CHART / GRAFIK / DASHBOARD ===
+  const [chartVisualType, setChartVisualType] = useState('bar');
+  const [chartFilter, setChartFilter] = useState('hari'); 
+  const [reportFilter, setReportFilter] = useState('hari');
+  const [dashboardTimeFilter, setDashboardTimeFilter] = useState('hari_ini'); 
+
+   
   // CCTV PEMANTAU BARCODE (Bisa untuk Semua Ukuran Barcode & Kamera HP)
   useEffect(() => {
     // Syarat: Barcode harus ada dan minimal 8 digit (ukuran barcode paling pendek)
@@ -308,27 +330,6 @@ function App() {
     }
   }, [barcodeProd]); // CCTV memantau setiap perubahan angka
   
-  const [stokProd, setStokProd] = useState('');
-  const [barcodeProd, setBarcodeProd] = useState('');
-  const [satuanProd, setSatuanProd] = useState('Pcs'); 
-  const [editingProductId, setEditingProductId] = useState(null);
-
-  // === STATE FORM PELANGGAN BARU ===
-  const [formPelangganNama, setFormPelangganNama] = useState('');
-  const [formPelangganWa, setFormPelangganWa] = useState('');
-  const [formPelangganEmail, setFormPelangganEmail] = useState('');
-  const [formPelangganAlamat, setFormPelangganAlamat] = useState('');
-  const [editingPelangganId, setEditingPelangganId] = useState(null);
-
-  // === STATE SORTIR & CETAK PILIHAN ===
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [sortOrder, setSortOrder] = useState('terbaru');
-
-  // === STATE CHART / GRAFIK / DASHBOARD ===
-  const [chartVisualType, setChartVisualType] = useState('bar');
-  const [chartFilter, setChartFilter] = useState('hari'); 
-  const [reportFilter, setReportFilter] = useState('hari');
-  const [dashboardTimeFilter, setDashboardTimeFilter] = useState('hari_ini'); 
 
   // === STATE FILTER KHUSUS PENGELUARAN (TANGGAL KUSTOM) ===
   const [pengeluaranStart, setPengeluaranStart] = useState('');
