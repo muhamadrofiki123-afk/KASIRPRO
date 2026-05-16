@@ -1430,45 +1430,46 @@ function App() {
                 </div>
                 <label className="form-label" style={{ fontSize: '12px', fontWeight: '700', color: '#27274F', display: 'block', marginBottom: '6px' }}>Barcode Produk</label>
                 <div className="form-row barcode-row" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'nowrap', width: '100%' }}>
-                <input 
-                        className="form-input" 
-                        value={barcodeProd} 
-                        onChange={e => setBarcodeProd(e.target.value)} 
-                        onBlur={async (e) => {
-                          const nilaiBarcode = e.target.value;
-                          if (nilaiBarcode.length >= 8) {
-                            // Trik panggil file luar biar anti-merah & langsung jalan
-                            const { cariNamaBarangDiInternet } = await import('./apiBarcode');
-                            const namaKetemu = await cariNamaBarangDiInternet(nilaiBarcode);
-                            if (namaKetemu) {
-                              // Sesuaikan dengan fungsi pengisi nama produk di aplikasi Mas
-                              if (typeof setNamaProd === 'function') setNamaProd(namaKetemu);
+                <div style={{ position: 'relative', width: '100%' }}>
+                <input type="text" placeholder="Scan Barcode / Ketik..."
+                          value={isEditing ? editProduct.barcode : produkBaru.barcode}
+                          onChange={async (e) => {
+                            const val = e.target.value;
+                            // 1. Update nilai input terlebih dahulu
+                            if (isEditing) {
+                              setEditProduct({ ...editProduct, barcode: val });
+                            } else {
+                              setProdukBaru({ ...produkBaru, barcode: val });
                             }
-                          }
-                        }} 
-                        onKeyDown={async (e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const nilaiBarcode = e.target.value;
-                            if (nilaiBarcode.length >= 8) {
+
+                            // 2. DETEKSI LANGSUNG: Begitu panjang barcode pas 13 digit (EAN-13), langsung tembak tanpa tunda!
+                            if (!isEditing && val.length === 13) {
                               const { cariNamaBarangDiInternet } = await import('./apiBarcode');
-                              const namaKetemu = await cariNamaBarangDiInternet(nilaiBarcode);
+                              const namaKetemu = await cariNamaBarangDiInternet(val);
                               if (namaKetemu) {
-                                if (typeof setNamaProd === 'function') setNamaProd(namaKetemu);
+                                setProdukBaru(prev => ({ ...prev, nama: namaKetemu }));
                               }
                             }
-                          }
-                        }}
-                        placeholder="Kosong = Auto" 
-                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', boxSizing: 'border-box', fontSize: '12px', outline: 'none' }} 
-                      />
-                      
-                      {/* Teks indikator loading yang otomatis muncul saat barcode diisi minim 8 digit */}
-                      {barcodeProd && barcodeProd.length >= 8 && (
-                        <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: 'bold' }}>
-                          ⏳ Mencari di internet... (Klik luar / pencet Enter)
-                        </span>
-                      )}
+                          }}
+                          onKeyDown={(e) => {
+                            // Mencegah form tersubmit acak kalau scanner mengirim auto-enter
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                            }
+                          }}
+                          style={{
+                            width: '100%', padding: '12px', background: '#f8fafc',
+                            border: '1px solid #e2e8f0', borderRadius: '12px', outline: 'none'
+                          }}
+                        />
+                        
+                        {/* Teks Loading Otomatis Aktif Saat Mengetik Panjang */}
+                        {produkBaru.barcode && produkBaru.barcode.length >= 8 && !isEditing && (
+                          <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: '500' }}>
+                            ⏳ Sistem sedang mencocokkan barcode...
+                          </span>
+                        )}
+                      </div>
                           <button className="form-input" tabIndex="0" type="button" onClick={() => setIsScanningToko(!isScanningToko)} style={{ flex: 'none', padding: '10px 12px', background: isScanningToko ? '#ef4444' : '#272734', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}>{isScanningToko ? '❌ Tutup' : '📸 Scan'}</button>
                 </div>
                 <div style={{ background: '#272734', padding: '12px', borderRadius: '12px', marginBottom: '24px', textAlign: 'center', display: isScanningToko ? 'block' : 'none' }}>
