@@ -1437,43 +1437,43 @@ function App() {
                           placeholder="Scan Barcode / Ketik..."
                           value={barcodeProd} 
                           onChange={(e) => {
-                            const val = e.target.value || ''; 
-                            setBarcodeProd(val);
-                            
-                            // DETEKSI OTOMATIS: Begitu scanner selesai nembak 13 digit
-                            if (val && val.length === 13) {
-                              setStatusBarcode('⏳ Mencari...');
-                              
-                              // LANGSUNG FETCH DI SINI (TANPA IMPORT FILE LUAR)
-                              // Ditambah batasan waktu (Timeout) maksimal 3 detik
-                              const controller = new AbortController();
-                              const timeoutId = setTimeout(() => controller.abort(), 3000); // Batas 3 detik
-
-                              fetch(`https://world.openfoodfacts.org/api/v0/product/${val}.json`, { signal: controller.signal })
-                                .then((response) => response.json())
-                                .then((data) => {
-                                  clearTimeout(timeoutId);
-                                  if (data.status === 1 && data.product && data.product.product_name) {
-                                    setNamaProd(data.product.product_name); 
-                                    setStatusBarcode('✅ Produk Ditemukan!');
-                                    // Sembunyikan teks sukses setelah 1.5 detik
-                                    setTimeout(() => setStatusBarcode(''), 1500);
-                                  } else {
-                                    setStatusBarcode('❌ Tidak terdaftar, ketik manual');
-                                    setTimeout(() => setStatusBarcode(''), 2000);
-                                  }
-                                })
-                                .catch((err) => {
-                                  clearTimeout(timeoutId);
-                                  console.log("Pencarian selesai/timeout:", err);
-                                  setStatusBarcode('❌ Gagal memuat atau melewati batas 3 detik');
-                                  setTimeout(() => setStatusBarcode(''), 2000);
-                                });
-                            }
+                            setBarcodeProd(e.target.value || '');
                           }}
                           onKeyDown={(e) => {
+                            // SAAT SCANNER MENEKAN ENTER OTOMATIS
                             if (e.key === 'Enter') {
-                              e.preventDefault();
+                              e.preventDefault(); // Biar layar tidak refresh
+                              
+                              const val = e.target.value || '';
+                              
+                              // Bereaksi asalkan panjang barcode 8 angka atau lebih
+                              if (val.length >= 8) {
+                                setStatusBarcode('⏳ Mencari di internet...');
+                                
+                                const controller = new AbortController();
+                                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                                // PERHATIKAN: URL di bawah ini wajib pakai kutip miring (backtick) ` bukan '
+                                fetch(`https://world.openfoodfacts.org/api/v0/product/${val}.json`, { signal: controller.signal })
+                                  .then((response) => response.json())
+                                  .then((data) => {
+                                    clearTimeout(timeoutId);
+                                    if (data.status === 1 && data.product && data.product.product_name) {
+                                      setNamaProd(data.product.product_name); 
+                                      setStatusBarcode('✅ Produk Ditemukan!');
+                                      setTimeout(() => setStatusBarcode(''), 1500);
+                                    } else {
+                                      setStatusBarcode('❌ Tidak terdaftar, ketik manual');
+                                      setTimeout(() => setStatusBarcode(''), 2000);
+                                    }
+                                  })
+                                  .catch((err) => {
+                                    clearTimeout(timeoutId);
+                                    console.log("Pencarian gagal/timeout:", err);
+                                    setStatusBarcode('❌ Gagal memuat atau timeout');
+                                    setTimeout(() => setStatusBarcode(''), 2000);
+                                  });
+                              }
                             }
                           }}
                           style={{
@@ -1482,7 +1482,7 @@ function App() {
                           }}
                         />
                         
-                        {/* INDIKATOR STATUS PINTAR: OTOMATIS BERUBAH DAN MENUTUP SAKLAR */}
+                        {/* INDIKATOR STATUS */}
                         {statusBarcode && (
                           <span style={{ 
                             fontSize: '11px', 
