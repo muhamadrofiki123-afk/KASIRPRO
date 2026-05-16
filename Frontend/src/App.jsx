@@ -270,7 +270,44 @@ function App() {
   const [hargaProd, setHargaProd] = useState('');
   const [hargaPromoProd, setHargaPromoProd] = useState('');
   const [hargaModalProd, setHargaModalProd] = useState('');
-  const [statusBarcode, setStatusBarcode] = useState(''); 
+  const [statusBarcode, setStatusBarcode] = useState('');
+  
+  // CCTV PEMANTAU BARCODE (Bisa untuk Semua Ukuran Barcode & Kamera HP)
+  useEffect(() => {
+    // Syarat: Barcode harus ada dan minimal 8 digit (ukuran barcode paling pendek)
+    if (barcodeProd && barcodeProd.length >= 8) {
+      
+      // Mesin menahan napas (menunggu) 0.8 detik setelah angka terakhir masuk
+      const jedaPencarian = setTimeout(() => {
+        setStatusBarcode('⏳ Mencari di internet...');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeProd}.json`, { signal: controller.signal })
+          .then(res => res.json())
+          .then(data => {
+            clearTimeout(timeoutId);
+            if (data.status === 1 && data.product && data.product.product_name) {
+              setNamaProd(data.product.product_name); // Pastikan ini nama state Mas Rofiki
+              setStatusBarcode('✅ Produk Ditemukan!');
+              setTimeout(() => setStatusBarcode(''), 1500);
+            } else {
+              setStatusBarcode('❌ Tidak terdaftar, ketik manual');
+              setTimeout(() => setStatusBarcode(''), 2000);
+            }
+          }).catch(() => {
+            clearTimeout(timeoutId);
+            setStatusBarcode('❌ Gagal memuat/timeout');
+            setTimeout(() => setStatusBarcode(''), 2000);
+          });
+      }, 800); // 800 milidetik = 0.8 detik waktu tunggu
+
+      // Kalau angkanya berubah (Masih ngetik/scan), batalkan pencarian yang lama biar gak dobel
+      return () => clearTimeout(jedaPencarian);
+    }
+  }, [barcodeProd]); // CCTV memantau setiap perubahan angka
+  
   const [stokProd, setStokProd] = useState('');
   const [barcodeProd, setBarcodeProd] = useState('');
   const [satuanProd, setSatuanProd] = useState('Pcs'); 
@@ -1434,48 +1471,9 @@ function App() {
                 <div style={{ position: 'relative', width: '100%' }}>
                         <input
                           type="text"
-                          placeholder="Scan Barcode / Ketik..."
+                          placeholder="Scan Barcode Kamera / Ketik..."
                           value={barcodeProd} 
-                          onChange={(e) => {
-                            setBarcodeProd(e.target.value || '');
-                          }}
-                          onKeyDown={(e) => {
-                            // SAAT SCANNER MENEKAN ENTER OTOMATIS
-                            if (e.key === 'Enter') {
-                              e.preventDefault(); // Biar layar tidak refresh
-                              
-                              const val = e.target.value || '';
-                              
-                              // Bereaksi asalkan panjang barcode 8 angka atau lebih
-                              if (val.length >= 8) {
-                                setStatusBarcode('⏳ Mencari di internet...');
-                                
-                                const controller = new AbortController();
-                                const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-                                // PERHATIKAN: URL di bawah ini wajib pakai kutip miring (backtick) ` bukan '
-                                fetch(`https://world.openfoodfacts.org/api/v0/product/${val}.json`, { signal: controller.signal })
-                                  .then((response) => response.json())
-                                  .then((data) => {
-                                    clearTimeout(timeoutId);
-                                    if (data.status === 1 && data.product && data.product.product_name) {
-                                      setNamaProd(data.product.product_name); 
-                                      setStatusBarcode('✅ Produk Ditemukan!');
-                                      setTimeout(() => setStatusBarcode(''), 1500);
-                                    } else {
-                                      setStatusBarcode('❌ Tidak terdaftar, ketik manual');
-                                      setTimeout(() => setStatusBarcode(''), 2000);
-                                    }
-                                  })
-                                  .catch((err) => {
-                                    clearTimeout(timeoutId);
-                                    console.log("Pencarian gagal/timeout:", err);
-                                    setStatusBarcode('❌ Gagal memuat atau timeout');
-                                    setTimeout(() => setStatusBarcode(''), 2000);
-                                  });
-                              }
-                            }
-                          }}
+                          onChange={(e) => setBarcodeProd(e.target.value)}
                           style={{
                             width: '100%', padding: '12px', background: '#f8fafc',
                             border: '1px solid #e2e8f0', borderRadius: '12px', outline: 'none'
