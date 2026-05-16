@@ -1434,16 +1434,19 @@ function App() {
                         <input
                           type="text"
                           placeholder="Scan Barcode / Ketik..."
-                          /* Tambahkan tanda tanya (?) agar tidak crash saat data kosong */
+                          // PELINDUNG 1: Pastikan nilai awal tidak pernah null/undefined
                           value={isEditing ? (editProduct?.barcode || '') : (produkBaru?.barcode || '')}
                           onChange={(e) => {
-                            const val = e.target.value;
+                            // PELINDUNG 2: Pastikan val selalu berupa string kosong jika e.target.value bermasalah
+                            const val = e.target.value || ''; 
+                            
                             if (isEditing) {
                               setEditProduct(prev => ({ ...prev, barcode: val }));
                             } else {
                               setProdukBaru(prev => ({ ...prev, barcode: val }));
                               
-                              if (val.length === 13) {
+                              // PELINDUNG 3: Hanya jalankan jika val benar-benar ada dan panjangnya 13
+                              if (val && val.length === 13) {
                                 import('./apiBarcode').then((mod) => {
                                   mod.cariNamaBarangDiInternet(val).then((namaKetemu) => {
                                     if (namaKetemu) {
@@ -1465,10 +1468,10 @@ function App() {
                           }}
                         />
                         
-                        {/* Pakai tanda tanya juga di sini */}
-                        {(produkBaru?.barcode?.length >= 8) && !isEditing && (
+                        {/* PELINDUNG 4: Pastikan produkBaru.barcode ada sebelum dicek length-nya */}
+                        {(produkBaru?.barcode && produkBaru.barcode.length >= 8) && !isEditing && (
                           <span style={{ fontSize: '11px', color: '#FF7835', marginTop: '4px', display: 'block', fontWeight: '500' }}>
-                            ⏳ Sistem sedang mencocokkan barcode...
+                            ⏳ Sistem Sedang Mencocokkan Barcode...
                           </span>
                         )}
                       </div>
