@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Kasir Pintar Modern',
-        short_name: 'KasirPintar',
-        description: 'Aplikasi Kasir Toko Online & Offline',
+        name: 'KasirPRO',
+        short_name: 'KasirPRO',
+        description: 'Keuangan Rapi, Bisnis Lebih Pasti',
         theme_color: '#16a34a', // Warna hijau tema kita
         icons: [
           {

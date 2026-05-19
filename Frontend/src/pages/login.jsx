@@ -21,7 +21,8 @@ function Login({ setIsLoggedIn }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-200">
       <div className="bg-white p-8 rounded-lg shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Login POS Kasir</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Login KasirPRO</h2>
+        <p style={{ color: '#64748b' }}>Selamat Datang di KasirPRO...</p>
         <form onSubmit={handleLogin} className="space-y-4">
           <input 
             type="text" 

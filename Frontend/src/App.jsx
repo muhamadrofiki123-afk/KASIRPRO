@@ -1127,7 +1127,7 @@ function App() {
         <div style={{ background: 'white', padding: '48px 40px', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', width: '100%', maxWidth: '420px', zIndex: 10, position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <div style={{ fontSize: '13px', fontWeight: '800', color: '#FF7835', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>Selamat Datang di Aplikasi</div>
-            <h1 style={{ fontSize: '30px', fontWeight: '900', color: '#272734', margin: 0 }}>POS MODERN PRO</h1>
+            <h1 style={{ fontSize: '30px', fontWeight: '900', color: '#272734', margin: 0 }}><span>Kasir<b>PRO</b></span></h1>
             <p style={{ color: '#27274F', fontSize: '14px', margin: '8px 0 0 0', fontWeight: '600' }}>UMKM Digital Solution</p>
           </div>
           <form onSubmit={handleLogin}>
@@ -1158,7 +1158,7 @@ function App() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
           <button tabIndex="0" onClick={() => setIsSidebarOpen(true)} style={{ background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#272734', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>☰</button>
           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{namaToko || 'POS MODERN PRO'}</h1>
+            <h1 className="header-title" style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#FF7835', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{namaToko || <span>Kasir<b>PRO</b></span>}</h1>
             <p className="header-email" style={{ margin: '0', color: '#27274F', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Akun: {user.email}</p>
           </div>
         </div>
@@ -1178,7 +1178,7 @@ function App() {
           <div style={{ padding: '24px', background: 'linear-gradient(135deg, #FF7835 0%, #E5601E 100%)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '1px' }}>MENU UTAMA</h2>
-              <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>POS Modern Pro</p>
+              <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}><span>Kasir<b>PRO</b></span></p>
             </div>
             <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: '28px', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
           </div>
@@ -2042,7 +2042,7 @@ function App() {
           <div style={{ background: 'white', padding: '30px', borderRadius: '24px', width: '100%', maxWidth: '750px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
-               <h2 style={{ color: '#FF7835', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px', fontWeight: '900' }}>📖 Panduan & Tanya Jawab POS</h2>
+               <h2 style={{ color: '#FF7835', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '22px', fontWeight: '900' }}>📖 Panduan & Tanya Jawab</h2>
                <button onClick={() => setShowHelpModal(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '35px', height: '35px', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
             </div>
             
