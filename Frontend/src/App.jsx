@@ -1265,17 +1265,33 @@ function App() {
                       </select>
                     </div>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: '200px', width: '100%' }}>                    
-                    {chartVisualType === 'line' && (
+                  <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: '200px', width: '100%' }}>                    {chartVisualType === 'line' && (
                       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
                         <polyline points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
-                    {chartDataFinal.data.map((d, i) => (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
-                        {d.total > 0 && <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>{d.total.toLocaleString()}</div>}
-                        {chartVisualType === 'bar' ? ( <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div> ) : ( <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}><div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div></div> )}
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>{d.label}</div>
+                   {chartDataFinal.data.map((d, i) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', position: 'relative', zIndex: 2 }}>
+                    
+                    {/* WADAH KHUSUS BATANG (Flex 1 & MinHeight 0 ini kunci agar HP bisa ngitung persentase tinggi) */}
+                    <div style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', minHeight: 0 }}>
+                      
+                      {/* Nominal Angka di Atas Bar */}
+                      {d.total > 0 && <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>{d.total.toLocaleString()}</div>}
+                      
+                      {/* Batang Grafiknya */}
+                      {chartVisualType === 'bar' ? ( 
+                        <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px', transition: '0.5s ease-out' }}></div> 
+                      ) : ( 
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}>
+                          <div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div>
+                        </div> 
+                      )}
+                    </div>
+
+                    {/* WADAH KHUSUS TEKS BAWAH (Hari / Bulan) */}
+                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>{d.label}</div>
+                    
                       </div>
                     ))}
                   </div>
