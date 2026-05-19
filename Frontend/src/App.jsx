@@ -1265,7 +1265,7 @@ function App() {
                       </select>
                     </div>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: 0 }}>
+                  <div style={{ flex: 1, display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', minHeight: '200px', width: '100%' }}>                    
                     {chartVisualType === 'line' && (
                       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
                         <polyline points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
