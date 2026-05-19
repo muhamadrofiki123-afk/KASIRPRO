@@ -1266,56 +1266,48 @@ function App() {
                     </div>
                   </div>
                 
-                  {/* PEMBUNGKUS UTAMA GRAFIK (Pastikan pakai height absolut 200px) */}
-                  <div style={{ display: 'flex', position: 'relative', alignItems: 'flex-end', gap: '15px', paddingTop: '20px', height: '200px' }}>
+                {/* WADAH UTAMA GRAFIK PAKE PIXEL MUTLAK (DIJAMIN GAK BANTET DI HP) */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '15px', height: '220px', width: '100%', paddingTop: '20px', paddingBottom: '10px' }}>
                     
-                    {/* GRAFIK GARIS (Biarkan ini jika ada) */}
+                    {/* GRAFIK GARIS (LINE) - Tinggi dipaksa 170px, bukan persentase lagi */}
                     {chartVisualType === 'line' && (
-                      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'calc(100% - 20px)', zIndex: 1 }}>
+                      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '170px', zIndex: 1 }}>
                         <polyline points={chartDataFinal.data.map((d, i) => `${(i / (chartDataFinal.data.length - 1 || 1)) * 100},${100 - ((d.total / (chartDataFinal.max || 1)) * 100)}`).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
 
-                    {chartDataFinal.data.map((d, i) => (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', position: 'relative', zIndex: 2 }}>
-                        
-                        {/* Teks Angka Nominal di Atas */}
-                        {d.total > 0 && (
-                          <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
-                            {d.total.toLocaleString()}
-                          </div>
-                        )}
-                        
-                        {/* WADAH KHUSUS BATANG (Ini kuncinya: flex 1 akan mengisi sisa ruang secara dinamis) */}
-                        <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    {/* GRAFIK BATANG (BAR) */}
+                    {chartDataFinal.data.map((d, i) => {
+                      // RAHASIA UTAMANYA DI SINI: Kita hitung tingginya manual maksimal 150px
+                      const tinggiBarPx = (d.total / (chartDataFinal.max || 1)) * 150;
+
+                      return (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', zIndex: 2 }}>
                           
+                          {/* Nominal Angka di Atas */}
+                          {d.total > 0 && (
+                            <div style={{ fontSize: '10px', color: '#2563eb', fontWeight: '800', marginBottom: '6px', textAlign: 'center', background: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px', zIndex: 3 }}>
+                              {d.total.toLocaleString()}
+                            </div>
+                          )}
+                          
+                          {/* Batang & Titik (Sekarang pakai variabel tinggiBarPx) */}
                           {chartVisualType === 'bar' ? ( 
-                            <div style={{ 
-                              width: '100%', 
-                              maxWidth: '40px', 
-                              background: 'linear-gradient(to top, #60a5fa, #2563eb)', 
-                              borderRadius: '6px 6px 0 0', 
-                              height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, /* Sekarang persentase ini akan terbaca sempurna di HP */
-                              minHeight: '8px', 
-                              transition: '0.5s ease-out' 
-                            }}></div> 
+                            <div style={{ width: '100%', maxWidth: '40px', background: 'linear-gradient(to top, #60a5fa, #2563eb)', borderRadius: '6px 6px 0 0', height: `${tinggiBarPx}px`, minHeight: '8px', transition: '0.5s ease-out' }}></div> 
                           ) : ( 
-                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${(d.total / (chartDataFinal.max || 1)) * 100}%`, minHeight: '8px' }}>
+                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', height: `${tinggiBarPx}px`, minHeight: '8px' }}>
                               <div style={{ width: '10px', height: '10px', background: 'white', border: '3px solid #2563eb', borderRadius: '50%', transform: 'translateY(-5px)' }}></div>
                             </div> 
                           )}
-
+                          
+                          {/* Label Jam/Hari di Bawah */}
+                          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>
+                            {d.label}
+                          </div>
                         </div>
-
-                        {/* Teks Label (Jam/Hari) di Bawah */}
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '10px', fontWeight: '700', textAlign: 'center', width: '100%' }}>
-                          {d.label}
-                        </div>
-                        
-                      </div>
-                    ))}
-</div>
-
+                      );
+                    })}
+                  </div> 
                 </div>
 
                 {/* BEST SELLER */}
