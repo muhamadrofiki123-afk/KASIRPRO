@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   initializeFirestore, 
@@ -1035,12 +1035,22 @@ function App() {
     link.download = `Data_Member_Pelanggan.csv`; link.click();
   };
 
-  const getChartData = () => {
-    let labels = []; let values = []; const now = new Date();
+ // MESIN HITUNG GRAFIK (Sekarang langsung otomatis update saat filter diganti)
+  const chartDataFinal = useMemo(() => {
+    let labels = []; 
+    let values = []; 
+    const now = new Date();
+
+    // Pastikan transaksi ada isinya, kalau kosong jangan error
+    if (!transaksi || transaksi.length === 0) {
+      return { data: [], max: 1 };
+    }
+
     if (chartFilter === 'jam') {
       const todayTrans = transaksi.filter(t => t.waktu && t.waktu.toDate && t.waktu.toDate().toDateString() === now.toDateString());
       for(let i=8; i<=22; i+=2) { 
-        labels.push(`${i}:00`); values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0)); 
+        labels.push(`${i}:00`); 
+        values.push(todayTrans.filter(t => (t.metode !== 'Bon' || t.statusBon === 'Lunas') && t.waktu.toDate().getHours() >= i && t.waktu.toDate().getHours() < i+2).reduce((s, t) => s + t.total, 0)); 
       }
     } else if (chartFilter === 'hari') {
       for(let i=6; i>=0; i--) { 
@@ -1059,9 +1069,9 @@ function App() {
       }
     }
     return { data: labels.map((l, i) => ({ label: l, total: values[i] })), max: Math.max(...values, 1) };
-  };
-
-  const chartDataFinal = getChartData();
+    
+  // Ini kuncinya! React akan menghitung ulang HANYA JIKA 'transaksi' atau 'chartFilter' berubah
+  }, [transaksi, chartFilter]);
 
   const getTopProductsVal = () => {
      const pS = {};
