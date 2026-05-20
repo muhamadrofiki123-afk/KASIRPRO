@@ -12,25 +12,21 @@ export default defineConfig({
         name: 'KasirPRO',
         short_name: 'KasirPRO',
         description: 'Keuangan Rapi, Bisnis Lebih Pasti',
-        theme_color: '#16a34a', // Warna hijau tema kita
+        theme_color: '#0D1B2A', // Warna hijau tema kita
         icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+        {
+          src: 'Logo-PWA.png', // <--- Ubah jadi ini
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'any maskable' // Boleh ditambahkan juga
+        },
+        {
+          src: 'Logo-PWA.png', // <--- Ubah jadi ini juga
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable' // Boleh ditambahkan juga
+        }
+      ]
       }
     })
   ]
